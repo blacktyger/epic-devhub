@@ -114,6 +114,7 @@
     - link
       - paragraph
     - link
+    - time
   - navigation
     - link
   - navigation

@@ -225,6 +225,7 @@
       - link
       - link
     - link
+    - time
   - navigation
     - link
     - link

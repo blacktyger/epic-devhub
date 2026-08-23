@@ -146,6 +146,7 @@
     - link
       - paragraph
     - link
+    - time
   - navigation
     - link
     - link
