@@ -1,0 +1,171 @@
+---
+title: Outputs and locking
+description: What happens to your funds between starting a send and it confirming, and how to release outputs reserved by a transfer that did not complete.
+---
+
+# Outputs and locking
+
+Starting a send reserves the inputs it selected, and nothing releases them automatically. If the
+transfer does not complete, those funds stay unavailable until you cancel the transaction. There is no
+timeout and no background process that cleans up.
+
+Understanding this one behaviour explains most situations where an Epic wallet appears to have lost
+money.
+
+## Output states
+
+Your wallet tracks every output it owns with a status:
+
+| Status | Meaning | Spendable |
+| --- | --- | --- |
+| `Unconfirmed` | Seen but not yet buried under enough blocks. Includes change from a send that has not confirmed | No |
+| `Unspent` | Confirmed and available | Yes |
+| `Locked` | Reserved as an input to a transfer you started | No |
+| `Spent` | Consumed by a confirmed transaction | No |
+| `Deleted` | Removed by `scan --delete_unconfirmed` | No |
+
+Coinbase outputs have an additional rule: on mainnet they cannot be spent until 1,440 blocks have
+passed, which is one day at the 60-second target. The window is shorter on the test networks, 30 blocks
+on floonet and 3 on usernet. A newly mined reward appears in your wallet and is not yet spendable.
+
+## What reserves outputs
+
+One operation: `tx_lock_outputs`, which runs as part of every send immediately after the wallet selects
+inputs and builds the first slate. On the command line it happens before the slate leaves your machine.
+
+It marks the selected inputs `Locked` and writes the change output as `Unconfirmed`. During an in-flight
+send, both the amount you sent and your change are unavailable.
+
+Sending 1 EPIC from a single 100 EPIC
+output leaves you with nothing spendable until the transfer resolves, not 99 EPIC. The change output
+does not exist on the chain yet.
+
+## What releases them
+
+**The transfer confirms.** Inputs become `Spent`, change becomes `Unspent`. Nothing to do.
+
+**You cancel it.** `cancel_tx` returns `Locked` inputs to `Unspent` and discards the unconfirmed change.
+
+There is no third route. Restarting the wallet does not release outputs, because the state is on disk,
+and neither does setting an expiry height.
+
+## Cancelling has preconditions
+
+`cancel_tx` is not always available:
+
+1. **A reachable node.** Cancelling contacts the node, so a node that is down or unsynced blocks it.
+2. **Exactly one matching transaction** for the id or slate id you pass.
+3. **A cancellable transaction type**, meaning `TxSentCreated` or `TxReceived`.
+4. **`confirmed` is false.**
+
+Condition 3 has a practical consequence: once a transfer has been posted and observed in the mempool it
+is no longer cancellable this way, and you are waiting on the chain rather than choosing to abandon it.
+
+Related: after posting, the wallet polls the node's mempool once per second for up to four minutes to
+confirm the transaction arrived. The command looks unresponsive during that window. See
+[stuck transactions](/guides/stuck-transactions).
+
+:::note[Confirm the cancellation boundary in your own setup]
+
+The exact point at which a transfer stops being cancellable depends on how quickly it is observed in the
+mempool. If your integration relies on cancelling, test that path deliberately rather than assuming it
+is always available.
+
+:::
+
+## Transaction states
+
+The wallet's record of what it has done is a transaction log entry with a type:
+
+| Type | Meaning |
+| --- | --- |
+| `ConfirmedCoinbase` | A mined reward |
+| `TxReceived` | Inbound transfer |
+| `TxSent` | Outbound transfer that completed |
+| `TxReceivedCancelled` | Inbound, cancelled |
+| `TxSentCancelled` | Outbound, cancelled |
+| `TxSentCreated` | Outbound, in flight. Inputs are locked |
+| `TxSentMempool` | Posted and observed in the node's mempool |
+| `TxReceivedMempool` | Inbound, observed in the mempool |
+
+Transaction-log field semantics:
+
+**`TxReceived` keeps its type after confirming.** The `confirmed` boolean is the only field that tells
+you. Do not infer confirmation from the type.
+
+**`fee` is empty on received transactions.** The receiver does not set the fee and does not record it.
+For reconciliation, take the fee from the sender's record or from the kernel.
+
+## Checking a wallet with unavailable funds
+
+### Read the summary first
+
+```bash
+$ epic-wallet info
+
+____ Wallet Summary Info - Account 'default' as of height 3675163 ____
+
+ Total                             | 12.50000000
+ Awaiting Confirmation (< 10)      |  0.00000000
+ Awaiting Finalization             |  0.00000000
+ Locked by transaction             |  4.00700000
+ Currently Spendable               |  8.49300000
+```
+
+`Locked by transaction` is the line to read. It means a transfer you started is holding those inputs,
+and the difference between total and spendable will not resolve on its own. An `Immature Coinbase` row
+appears above it only when the wallet holds coinbase outputs inside the maturity window.
+
+### Find which transfer is holding the inputs
+
+```bash
+$ epic-wallet txs
+
+ Id  Type          Shared Transaction Id                 Creation Time        Confirmed?  Amount
+ 41  Sent (Created) 9f2b...c31a                          2026-08-22 09:14:02  false       4.00000000
+ 40  Received       1a77...9ee0                          2026-08-21 18:02:55  true       12.50000000
+```
+
+The CLI prints display names. Through the Owner API the same entries carry their enum names,
+`TxSentCreated` and `TxReceived`, in `tx_type`.
+
+Then, per output:
+
+```bash
+$ epic-wallet outputs
+
+ Output Commitment    Height  Locked Until  Status       Coinbase?  Confirms  Value
+ 08f3a1...            3675001 0             Locked       false      162       12.50000000
+ 09bb42...            0       0             Unconfirmed  false      0          8.49300000
+```
+
+### Release the lock, then rescan
+
+The procedure:
+
+1. `epic-wallet info`, comparing total against spendable. A gap means locked, immature or unconfirmed.
+2. `epic-wallet txs`, looking for `Sent (Created)` entries with `Confirmed?` false. Each is holding inputs.
+3. For each, decide whether the counterparty will respond. If not, cancel it.
+4. If the figures still look wrong, `epic-wallet scan` rescans the chain and repairs the local view.
+
+```bash
+epic-wallet cancel -i 41   # release the inputs transfer 41 is holding
+epic-wallet scan          # rescan against the chain
+```
+
+`scan` is safe and non-destructive by default. It is the right tool when the wallet and the chain disagree, and
+the wrong tool for locked outputs, since a lock is a local record the chain has no knowledge of.
+
+The full procedure is in [stuck transactions](/guides/stuck-transactions), and the programmatic version
+is in [send and receive](/examples/send-receive).
+
+## Next
+
+<CardGrid>
+  <Card title="Diagnose a stuck transaction" to="/guides/stuck-transactions">
+    A step-by-step procedure with the commands.
+  </Card>
+  <Card title="Interactive transactions" to="/concepts/interactive-transactions">
+    Why a transfer takes two rounds in the first place.
+  </Card>
+</CardGrid>

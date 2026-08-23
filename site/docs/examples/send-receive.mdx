@@ -1,0 +1,678 @@
+---
+title: "Wallet: send and receive"
+sidebar_label: "Wallet: send and receive"
+description: Send, receive, finalise and cancel Epic transfers through the Owner API and the CLI, in Python, JavaScript, Rust and shell.
+---
+
+# Wallet: send and receive
+
+A transfer is built jointly by both parties, so sending is a sequence rather than a single call. See
+[interactive transactions](/concepts/interactive-transactions) for why.
+
+These examples build on the client from [connect and read](/examples/wallet-connect).
+
+## The simple path: let the wallet drive
+
+If the destination is reachable, `init_send_tx` with `send_args` performs the whole exchange in one
+call: build, lock, deliver, finalise and post.
+
+<Tabs groupId="lang">
+<TabItem value="py" label="Python">
+
+```python title="send_simple.py"
+EPIC = 100_000_000  # freemen per EPIC
+
+slate = wallet.call(
+    "init_send_tx",
+    {
+        "token": wallet.token,
+        "args": {
+            "src_acct_name": None,
+            "amount": int(1.5 * EPIC),
+            "minimum_confirmations": 3,
+            "max_outputs": 500,
+            "num_change_outputs": 1,
+            "selection_strategy_is_use_all": False,
+            "target_slate_version": None,
+            "payment_proof_recipient_address": None,
+            "ttl_blocks": None,
+            "estimate_only": False,
+            "send_args": {
+                "method": "epicbox",
+                "dest": "esYQ...52chars@epicbox.epiccash.com",
+                "finalize": True,
+                "post_tx": True,
+                "fluff": False,
+            },
+        },
+    },
+)
+
+print(f"sent, slate id {slate['id']}")
+```
+
+</TabItem>
+<TabItem value="js" label="JavaScript">
+
+```js title="sendSimple.mjs"
+const EPIC = 100_000_000n; // freemen per EPIC
+
+const slate = await wallet.call('init_send_tx', {
+  token: wallet.token,
+  args: {
+    src_acct_name: null,
+    amount: Number(15n * EPIC / 10n), // 1.5 EPIC
+    minimum_confirmations: 3,
+    max_outputs: 500,
+    num_change_outputs: 1,
+    selection_strategy_is_use_all: false,
+    target_slate_version: null,
+    payment_proof_recipient_address: null,
+    ttl_blocks: null,
+    estimate_only: false,
+    send_args: {
+      method: 'epicbox',
+      dest: 'esYQ...52chars@epicbox.epiccash.com',
+      finalize: true,
+      post_tx: true,
+      fluff: false,
+    },
+  },
+});
+
+console.log(`sent, slate id ${slate.id}`);
+```
+
+</TabItem>
+<TabItem value="rust" label="Rust">
+
+```rust title="src/send.rs"
+const EPIC: u64 = 100_000_000; // freemen per EPIC
+
+let slate = wallet.call(
+    "init_send_tx",
+    json!({
+        "token": wallet.token,
+        "args": {
+            "src_acct_name": null,
+            "amount": 3 * EPIC / 2,          // 1.5 EPIC
+            "minimum_confirmations": 3,
+            "max_outputs": 500,
+            "num_change_outputs": 1,
+            "selection_strategy_is_use_all": false,
+            "target_slate_version": null,
+            "payment_proof_recipient_address": null,
+            "ttl_blocks": null,
+            "estimate_only": false,
+            "send_args": {
+                "method": "epicbox",
+                "dest": "esYQ...52chars@epicbox.epiccash.com",
+                "finalize": true,
+                "post_tx": true,
+                "fluff": false
+            }
+        }
+    }),
+)?;
+
+println!("sent, slate id {}", slate["id"]);
+```
+
+</TabItem>
+<TabItem value="sh" label="CLI">
+
+```bash
+# The command-line equivalent of everything above
+epic-wallet send -m epicbox -d 'esYQ...52chars@epicbox.epiccash.com' 1.5
+
+# Over HTTP to a reachable listener
+epic-wallet send -m http -d http://receiver.example:3415 1.5
+```
+
+</TabItem>
+</Tabs>
+
+### Blocking behaviour
+
+With `finalize` and `post_tx` set, the call waits for the counterparty to respond before returning. Do not
+run it on a request thread. Queue it, or drive the steps yourself as below.
+
+With `method` set to `epicbox` the call returns as soon as the slate is posted to the relay and the inputs
+are locked; `finalize` and `post_tx` are ignored on that path. See
+[the Owner API reference](/api/wallet-owner#inittxargs).
+
+## Quote a fee without committing
+
+`estimate_only` computes the fee and selects inputs without reserving anything. This is what belongs
+behind a "what will this cost" endpoint.
+
+<Tabs groupId="lang">
+<TabItem value="py" label="Python">
+
+```python
+estimate = wallet.call(
+    "init_send_tx",
+    {
+        "token": wallet.token,
+        "args": {
+            "amount": int(1.5 * EPIC),
+            "minimum_confirmations": 3,
+            "max_outputs": 500,
+            "num_change_outputs": 1,
+            "selection_strategy_is_use_all": False,
+            "estimate_only": True,          # nothing is locked
+        },
+    },
+)
+
+print(f"fee: {int(estimate['fee']) / 1e8:.8f} EPIC")
+```
+
+</TabItem>
+<TabItem value="js" label="JavaScript">
+
+```js
+const estimate = await wallet.call('init_send_tx', {
+  token: wallet.token,
+  args: {
+    amount: 150_000_000,
+    minimum_confirmations: 3,
+    max_outputs: 500,
+    num_change_outputs: 1,
+    selection_strategy_is_use_all: false,
+    estimate_only: true, // nothing is locked
+  },
+});
+
+console.log(`fee: ${(Number(estimate.fee) / 1e8).toFixed(8)} EPIC`);
+```
+
+</TabItem>
+</Tabs>
+
+### How the fee is worked out
+
+The fee is a function of transaction shape, not demand:
+
+```
+fee = max(4 × outputs + kernels − inputs, 1) × 0.001 EPIC
+```
+
+There is no fee market, so the estimate is exact rather than a bid. See
+[emission and fees](/mining/emission).
+
+## Driving the steps yourself
+
+Use this when you need to move the slate over your own transport, or when you want control over failure
+handling. This is also the sequence the CLI runs.
+
+### The six calls, and where the cancel branch sits
+
+Left to right, with the branch that matters:
+
+1. `init_send_tx` builds the slate.
+2. `tx_lock_outputs` reserves the inputs. <Risk level="spend" /> From here the outputs are unavailable
+   until the transfer completes or `cancel_tx` releases them.
+3. You deliver the slate, by whichever transport.
+4. The receiver returns it signed.
+5. `finalize_tx` completes the aggregate signature.
+6. `post_tx` broadcasts it.
+
+If it never confirms, `cancel_tx` is the only branch that releases what step 2 reserved. It needs a
+reachable node and a transaction that is not yet confirmed, so a transaction already in the mempool
+cannot be cancelled at all. The full sequence with its four participants is drawn in
+[interactive transactions](/concepts/interactive-transactions).
+
+<Tabs groupId="lang">
+<TabItem value="py" label="Python">
+
+```python title="send_manual.py" showLineNumbers
+def send_manual(wallet, amount_epic: float, deliver) -> str:
+    """Build, lock, deliver, finalise and post a transfer.
+
+    `deliver` is your transport: it receives the slate as a dict and must return
+    the counterparty's signed slate.
+    """
+    args = {
+        "amount": int(amount_epic * EPIC),
+        "minimum_confirmations": 3,
+        "max_outputs": 500,
+        "num_change_outputs": 1,
+        "selection_strategy_is_use_all": False,
+        "estimate_only": False,
+    }
+
+    # 1. Build the first round. Nothing is reserved yet.
+    slate = wallet.call("init_send_tx", {"token": wallet.token, "args": args})
+    slate_id = slate["id"]
+
+    try:
+        # 2. Reserve the inputs. From here you own a cleanup obligation.
+        # Four params: token, slate, participant_id, addr_to.
+        wallet.call(
+            "tx_lock_outputs",
+            {
+                "token": wallet.token,
+                "slate": slate,
+                "participant_id": 0,
+                "addr_to": None,
+            },
+        )
+
+        # 3. Hand the slate to the counterparty and wait for their round.
+        returned = deliver(slate)
+
+        # 4. Complete the aggregate signature.
+        final = wallet.call("finalize_tx", {"token": wallet.token, "slate": returned})
+
+        # 5. Broadcast.
+        wallet.call("post_tx", {"token": wallet.token, "tx": final, "fluff": False})
+        return slate_id
+
+    except Exception:
+        # Any failure after step 2 leaves outputs reserved. Release them.
+        wallet.call(
+            "cancel_tx",
+            {"token": wallet.token, "tx_id": None, "tx_slate_id": slate_id},
+        )
+        raise
+```
+
+</TabItem>
+<TabItem value="js" label="JavaScript">
+
+```js title="sendManual.mjs" showLineNumbers
+/**
+ * Build, lock, deliver, finalise and post a transfer.
+ * `deliver` is your transport: it receives the slate and returns the signed slate.
+ */
+export async function sendManual(wallet, amountEpic, deliver) {
+  const args = {
+    amount: Math.round(amountEpic * 1e8),
+    minimum_confirmations: 3,
+    max_outputs: 500,
+    num_change_outputs: 1,
+    selection_strategy_is_use_all: false,
+    estimate_only: false,
+  };
+
+  // 1. Build the first round. Nothing is reserved yet.
+  const slate = await wallet.call('init_send_tx', {token: wallet.token, args});
+  const slateId = slate.id;
+
+  try {
+    // 2. Reserve the inputs. From here you own a cleanup obligation.
+    // Four params: token, slate, participant_id, addr_to.
+    await wallet.call('tx_lock_outputs', {
+      token: wallet.token,
+      slate,
+      participant_id: 0,
+      addr_to: null,
+    });
+
+    // 3. Hand the slate to the counterparty and wait for their round.
+    const returned = await deliver(slate);
+
+    // 4. Complete the aggregate signature.
+    const final = await wallet.call('finalize_tx', {token: wallet.token, slate: returned});
+
+    // 5. Broadcast.
+    await wallet.call('post_tx', {token: wallet.token, tx: final, fluff: false});
+    return slateId;
+  } catch (err) {
+    // Any failure after step 2 leaves outputs reserved. Release them.
+    await wallet.call('cancel_tx', {
+      token: wallet.token,
+      tx_id: null,
+      tx_slate_id: slateId,
+    });
+    throw err;
+  }
+}
+```
+
+</TabItem>
+<TabItem value="sh" label="CLI">
+
+```bash
+# Sender, round 1. Writes slate.tx and reserves inputs.
+epic-wallet send -m file -d slate.tx 1.5
+
+# Receiver adds their output and partial signature.
+epic-wallet receive -m file -i slate.tx
+
+# Sender completes and posts.
+epic-wallet finalize -m file -i slate.tx.response
+
+# If it did not complete, release the reserved inputs.
+epic-wallet txs                  # find the id
+epic-wallet cancel -i <id>
+```
+
+</TabItem>
+</Tabs>
+
+### The cleanup obligation the lock creates
+
+:::warning[`tx_lock_outputs` is the step you cannot skip]
+
+Between `init_send_tx` and `tx_lock_outputs` nothing is reserved. After it, the inputs and the change are
+both unavailable until the transfer confirms or you cancel.
+
+It takes four parameters, `token`, `slate`, `participant_id` and `addr_to`
+(<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={897} />). The sender is participant 0. Omitting
+`participant_id` fails at the JSON-RPC boundary rather than defaulting.
+
+Wrap everything after the lock in error handling that calls `cancel_tx`. Nothing releases outputs on a
+timer.
+
+:::
+
+## Receiving
+
+### Let a listener do it
+
+The receiving side is usually a listener rather than code you write:
+
+```bash
+epic-wallet listen -m epicbox    # queues while you are offline
+epic-wallet listen               # HTTP, requires reachability
+```
+
+### Call `receive_tx` yourself
+
+To process a slate yourself, the Foreign API method is `receive_tx`. It is on a different surface,
+port 3415, and takes no token:
+
+<Tabs groupId="lang">
+<TabItem value="py" label="Python">
+
+```python title="receive.py"
+import requests
+
+FOREIGN_URL = "http://127.0.0.1:3415/v2/foreign"
+
+
+def receive_tx(
+    slate: dict,
+    account: str | None = None,
+    message: str | None = None,
+    addr_from: str | None = None,
+) -> dict:
+    """Add our output and partial signature to an inbound slate.
+
+    Four positional params as of wallet 4.0. The fourth, addr_from, is new.
+    """
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "receive_tx",
+        "params": [slate, account, message, addr_from],
+    }
+    response = requests.post(FOREIGN_URL, json=payload, timeout=300)
+    response.raise_for_status()
+    body = response.json()
+
+    result = body["result"]
+    if "Err" in result:
+        raise RuntimeError(f"receive failed: {result['Err']}")
+    return result["Ok"]
+```
+
+</TabItem>
+<TabItem value="js" label="JavaScript">
+
+```js title="receive.mjs"
+const FOREIGN_URL = 'http://127.0.0.1:3415/v2/foreign';
+
+/**
+ * Add our output and partial signature to an inbound slate.
+ * Four positional params as of wallet 4.0. The fourth, addrFrom, is new.
+ */
+export async function receiveTx(slate, account = null, message = null, addrFrom = null) {
+  const response = await fetch(FOREIGN_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'receive_tx',
+      params: [slate, account, message, addrFrom],
+    }),
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+  const {result} = await response.json();
+  if ('Err' in result) throw new Error(`receive failed: ${JSON.stringify(result.Err)}`);
+  return result.Ok;
+}
+```
+
+</TabItem>
+<TabItem value="sh" label="Shell">
+
+```bash
+# No auth on the Foreign API, so no credentials needed.
+# Four positional params as of wallet 4.0.
+curl -s -H 'Content-Type: application/json' \
+  -d "{\"jsonrpc\":\"2.0\",\"method\":\"receive_tx\",\"params\":[$(cat slate.json),null,null,null],\"id\":1}" \
+  http://127.0.0.1:3415/v2/foreign | jq '.result.Ok'
+```
+
+</TabItem>
+</Tabs>
+
+### Where to put the Foreign API
+
+Put it where a counterparty can reach it and nothing else can: a private network or a
+TLS-terminating proxy. See [authentication](/api/authentication).
+
+## Finding and clearing stuck transfers
+
+### List the transfers holding inputs
+
+The recovery routine every integration needs.
+
+<Tabs groupId="lang">
+<TabItem value="py" label="Python">
+
+```python title="clear_stuck.py"
+def stuck_transfers(wallet) -> list[dict]:
+    """Outbound transfers holding reserved inputs."""
+    result = wallet.call(
+        "retrieve_txs",
+        {
+            "token": wallet.token,
+            "refresh_from_node": True,
+            "tx_id": None,
+            "tx_slate_id": None,
+            "limit": 500,
+            "offset": 0,
+            "sort_order": "desc",
+        },
+    )
+    return [t for t in result["txs"] if t["tx_type"] == "TxSentCreated" and not t["confirmed"]]
+
+
+def cancel(wallet, tx_id: int) -> None:
+    """Release the inputs a transfer reserved. Requires a reachable node."""
+    wallet.call("cancel_tx", {"token": wallet.token, "tx_id": tx_id, "tx_slate_id": None})
+
+
+for tx in stuck_transfers(wallet):
+    print(f"cancelling {tx['id']}, created {tx['creation_ts']}")
+    cancel(wallet, tx["id"])
+```
+
+</TabItem>
+<TabItem value="js" label="JavaScript">
+
+```js title="clearStuck.mjs"
+/** Outbound transfers holding reserved inputs. */
+export async function stuckTransfers(wallet) {
+  const result = await wallet.call('retrieve_txs', {
+    token: wallet.token,
+    refresh_from_node: true,
+    tx_id: null,
+    tx_slate_id: null,
+    limit: 500,
+    offset: 0,
+    sort_order: 'desc',
+  });
+  return result.txs.filter((t) => t.tx_type === 'TxSentCreated' && !t.confirmed);
+}
+
+for (const tx of await stuckTransfers(wallet)) {
+  console.log(`cancelling ${tx.id}, created ${tx.creation_ts}`);
+  await wallet.call('cancel_tx', {token: wallet.token, tx_id: tx.id, tx_slate_id: null});
+}
+```
+
+</TabItem>
+<TabItem value="sh" label="CLI">
+
+```bash
+epic-wallet info          # spendable below total means something is reserved
+epic-wallet txs           # look for Sent (Created) with Confirmed? false
+epic-wallet cancel -i 42  # release that transfer's inputs
+epic-wallet scan         # rescan if the figures still disagree with the chain
+```
+
+</TabItem>
+</Tabs>
+
+### What cancelling requires
+
+Cancelling needs a reachable node, an unambiguous transaction, and a state that is still cancellable.
+The full decision procedure is in [stuck transactions](/guides/stuck-transactions).
+
+## Invoices
+
+The payee requests an amount and the payer funds it. The cryptography is the same; the initiator
+changes.
+
+<Tabs groupId="lang">
+<TabItem value="py" label="Python">
+
+```python
+# Payee: issue the request
+invoice = wallet.call(
+    "issue_invoice_tx",
+    {"token": wallet.token, "args": {"amount": int(2 * EPIC), "message": "invoice 0001"}},
+)
+
+# Payer: fund it. This reserves the payer's outputs.
+funded = wallet.call(
+    "process_invoice_tx",
+    {
+        "token": wallet.token,
+        "slate": invoice,
+        "args": {
+            "minimum_confirmations": 3,
+            "max_outputs": 500,
+            "num_change_outputs": 1,
+            "selection_strategy_is_use_all": False,
+            "estimate_only": False,
+        },
+    },
+)
+
+# Payee: complete and post via the Foreign API method finalize_invoice_tx
+```
+
+</TabItem>
+<TabItem value="sh" label="CLI">
+
+```bash
+# Payee
+epic-wallet invoice -d invoice.tx 2
+
+# Payer
+epic-wallet pay -i invoice.tx
+
+# Payee finalises
+epic-wallet finalize -i invoice.tx.response
+```
+
+</TabItem>
+</Tabs>
+
+## Payment proofs
+
+Request the proof when you send; it cannot be added afterwards.
+
+<Tabs groupId="lang">
+<TabItem value="py" label="Python">
+
+```python
+# Request at send time by supplying the recipient's proof address
+slate = wallet.call(
+    "init_send_tx",
+    {
+        "token": wallet.token,
+        "args": {
+            "amount": int(1 * EPIC),
+            "minimum_confirmations": 3,
+            "max_outputs": 500,
+            "num_change_outputs": 1,
+            "selection_strategy_is_use_all": False,
+            "estimate_only": False,
+            "payment_proof_recipient_address": "<recipient proof address>",
+            "send_args": {
+                "method": "http",           # not epicbox, see the warning
+                "dest": "http://receiver.example:3415",
+                "finalize": True,
+                "post_tx": True,
+                "fluff": False,
+            },
+        },
+    },
+)
+
+# Later: retrieve and verify
+proof = wallet.call(
+    "retrieve_payment_proof",
+    {"token": wallet.token, "refresh_from_node": True, "tx_id": None, "tx_slate_id": slate["id"]},
+)
+
+result = wallet.call("verify_payment_proof", {"token": wallet.token, "proof": proof})
+print(result)
+```
+
+</TabItem>
+<TabItem value="sh" label="CLI">
+
+```bash
+epic-wallet send --request_payment_proof \
+  --proof_address <recipient proof address> \
+  -m http -d http://receiver.example:3415 1
+
+epic-wallet export_proof -i 42 proof.json
+epic-wallet verify_proof proof.json
+```
+
+</TabItem>
+</Tabs>
+
+### Choose a transport that carries the proof
+
+Epicbox uses slate V2; payment proofs are a V3 field and are silently dropped. Send over HTTP when you
+need a proof. See [payment proofs](/concepts/payment-proofs).
+
+### What the two verification booleans mean
+
+`verify_payment_proof` returns two boolean values whose individual meanings are not documented. Test
+against both a valid proof and a deliberately altered one to establish which is which in your version
+before relying on either. The full marked claim, including the signature it comes from, is on
+[payment proofs](/concepts/payment-proofs#verification).
+
+## Next
+
+<CardGrid>
+  <Card title="Owner API reference" to="/api/wallet-owner">
+    All 37 methods, and `InitTxArgs` field by field.
+  </Card>
+  <Card title="Exchange integration" to="/guides/exchange-integration">
+    Turning these calls into a deposit and withdrawal system.
+  </Card>
+</CardGrid>

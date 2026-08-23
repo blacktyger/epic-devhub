@@ -1,0 +1,19 @@
+# Normalise line endings to LF regardless of the machine that committed. Development happens on
+# Windows and both the site build and the checks have to run identically on Linux and macOS, so a
+# file whose line endings depend on who checked it out is a source of phantom diffs.
+* text=auto eol=lf
+
+# The publish script runs on the Ubuntu host. CRLF here means "bad interpreter: /usr/bin/env
+# bash^M", so this is a correctness rule, not a style one.
+*.sh text eol=lf
+deploy/nginx.conf text eol=lf
+
+# Binary, never touched.
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary

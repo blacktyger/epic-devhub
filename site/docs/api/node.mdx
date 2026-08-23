@@ -1,0 +1,125 @@
+---
+title: Node API
+description: The Epic node's JSON-RPC surfaces, which method lives on which one, and the response shapes clients have to handle.
+---
+
+# Node API
+
+The node serves JSON-RPC 2.0 on one listener, bound to `127.0.0.1` port <Ver k="ports.nodeApi" /> by
+default, split across two surfaces.
+
+| Surface | Path | Serves |
+| --- | --- | --- |
+| Owner | `/v2/owner` | Node administration, eight methods |
+| Foreign | `/v2/foreign` | Chain reads, transaction submission, block templates, seventeen methods |
+
+Credentials, and which of these expects one, are covered once in
+[authentication and TLS](/api/authentication).
+
+:::note[Scope of this reference]
+
+The node also serves an older REST surface under `/v1`. It still works, and it is not documented here.
+Everything below uses JSON-RPC, which is where the current clients and the maintained methods are. If
+you need the REST routes, the node emits its own route index at
+<Src repo="node" path="api/src/handlers.rs" line={448} />.
+
+:::
+
+## Which JSON-RPC method lives where
+
+The split is not obvious and getting it wrong returns a method-not-found error rather than a hint.
+
+`/v2/owner` is node administration only:
+
+`get_status`, `validate_chain`, `compact_chain`, `get_peers`, `get_connected_peers`, `ban_peer`,
+`unban_peer`, `get_onion_addresses`.
+
+`/v2/foreign` is everything else, including every chain read and transaction submission:
+
+`get_header`, `get_block`, `get_blocks`, `get_tip`, `get_version`, `get_kernel`,
+`get_last_n_kernels`, `get_outputs`, `get_unspent_outputs`, `get_pmmr_indices`, `get_pool_size`,
+`get_stempool_size`, `get_unconfirmed_transactions`, `push_transaction`, `get_block_template`,
+`finalize_block_template`, `submit_block`.
+
+So reading a block is a foreign-surface call, and checking sync state is an owner-surface call:
+
+```bash
+curl -s -d '{"jsonrpc":"2.0","method":"get_tip","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/foreign
+
+curl -s -u epic:$(cat ~/.epic/main/.api_secret) \
+  -d '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/owner
+```
+
+## Response shapes
+
+Two fields commonly trip up clients written against other MimbleWimble chains.
+
+**`total_difficulty` is an object, not an integer.** Epic tracks difficulty separately for each
+proof-of-work algorithm:
+
+```json
+{
+  "total_difficulty": {
+    "cuckaroo": 0,
+    "cuckatoo": 1234,
+    "randomx": 5678,
+    "progpow": 9012
+  }
+}
+```
+
+**Block headers describe their proof with two fields**, `proof`, a string naming the algorithm, and
+`solution`, a tagged union whose shape depends on that algorithm. There is no single scalar solution
+field.
+
+`Status` includes `supply`, `max_supply` and `blocks_to_next_halving`, in whole EPIC rather than
+freemen. Reward steps are not all halvings; see [emission](/mining/emission).
+
+Kernels appear in two shapes depending on the method. `get_block` returns a flattened form, while
+`get_kernel` and `get_last_n_kernels` return the raw type with an externally tagged `features` field.
+Handle both.
+
+## Mining over HTTP
+
+The foreign surface offers a three-step block submission flow as an alternative to Stratum:
+`get_block_template`, `finalize_block_template`, `submit_block`. This is ordinary JSON-RPC over HTTP and
+is often easier to work with than the Stratum socket protocol. See [Stratum](/mining/stratum).
+
+## Full method reference
+
+Per method, with editable request and shell-command tabs plus a response panel:
+
+<CardGrid>
+  <Card title="Chain reads" to="/api/node/chain-reads">
+    Ten methods. Blocks, headers, kernels, outputs and the tip.
+  </Card>
+  <Card title="Administration" to="/api/node/administration">
+    Eight methods. Status, peers, validation and compaction.
+  </Card>
+  <Card title="Mempool and submission" to="/api/node/mempool">
+    Four methods, one of them irreversible.
+  </Card>
+  <Card title="Block templates" to="/api/node/block-templates">
+    Three methods. Mining over HTTP instead of Stratum.
+  </Card>
+</CardGrid>
+
+## Source
+
+- <Src repo="node" path="api/src/owner_rpc.rs" line={73} /> defines the eight owner methods
+- <Src repo="node" path="api/src/foreign_rpc.rs" line={125} /> defines the foreign methods
+- <Src repo="node" path="api/src/types.rs" /> defines every response shape
+- <Src repo="node" path="api/src/auth.rs" /> is the Basic auth middleware
+
+## Next
+
+<CardGrid>
+  <Card title="Node and wallet setup" to="/guides/mainnet-setup">
+    Getting one running and the settings to review.
+  </Card>
+  <Card title="Stratum" to="/mining/stratum">
+    The mining socket protocol.
+  </Card>
+</CardGrid>

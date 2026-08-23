@@ -1,0 +1,13 @@
+h1 Developer's Hub
+  h2 Four things that work differently here
+  h2 The developer journey
+    h3 Learn the model
+    h3 Run a chain of your own
+    h3 Then connect to mainnet
+  h2 Everything else
+    h3 Concepts
+    h3 Guides
+    h3 API reference
+    h3 Code examples
+    h3 Configuration and CLI
+    h3 Mining and consensus

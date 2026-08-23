@@ -1,0 +1,124 @@
+---
+title: Downloads
+description: Prebuilt Epic node and wallet binaries, with checksum verification and what to do next.
+---
+
+# Downloads
+
+Prebuilt binaries are published on GitHub releases. Each archive has a matching
+`<archive-name>-sha256sum.txt` next to it; verify before running.
+
+If you would rather build from source, see [build the binaries](/guides/build). Building needs only
+rustup and, on Linux and macOS, no system packages.
+
+## Node <Ver k="node" />
+
+[Release page](https://github.com/EpicCash/epic/releases/tag/v4.0.3) ·
+[Latest release](https://github.com/EpicCash/epic/releases/latest) ·
+[All releases](https://github.com/EpicCash/epic/releases)
+
+| Platform | Asset |
+| --- | --- |
+| Linux x86-64 | `epic-4.0.3-linux-amd64.tar.gz` |
+| macOS Apple silicon | `MacOS-aarch64-4.0.3.zip` |
+| Windows x86-64 | `Windows-v4.0.3.zip` |
+
+There is no macOS Intel or Linux ARM build. Those platforms need a source build.
+
+## Wallet <Ver k="wallet" />
+
+[Release page](https://github.com/EpicCash/epic-wallet/releases/tag/v4.0.0) ·
+[Latest release](https://github.com/EpicCash/epic-wallet/releases/latest) ·
+[All releases](https://github.com/EpicCash/epic-wallet/releases)
+
+| Platform | Asset |
+| --- | --- |
+| Archive | `epic-wallet-4.0.zip` |
+| Windows binary | `epic-wallet.exe` |
+
+The wallet archive is named for the 4.0 line rather than the full `4.0.0` tag. Its checksum file is
+`epic-wallet-4.0-sha256sum.txt`.
+
+## Verify the checksum
+
+Never skip this on a wallet binary.
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux">
+
+```bash
+curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/epic-4.0.3-linux-amd64.tar.gz
+curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/epic-4.0.3-linux-amd64-sha256sum.txt
+
+sha256sum -c epic-4.0.3-linux-amd64-sha256sum.txt
+# expect: epic-4.0.3-linux-amd64.tar.gz: OK
+
+tar xzf epic-4.0.3-linux-amd64.tar.gz
+./epic --usernet
+```
+
+</TabItem>
+<TabItem value="mac" label="macOS">
+
+```bash
+curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/MacOS-aarch64-4.0.3.zip
+curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/MacOS-aarch64-4.0.3-sha256sum.txt
+
+shasum -a 256 -c MacOS-aarch64-4.0.3-sha256sum.txt
+unzip MacOS-aarch64-4.0.3.zip
+```
+
+macOS Gatekeeper will refuse an unsigned binary on first run. Allow it in System Settings, Privacy and
+Security, after confirming the checksum matched.
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+$tag = 'v4.0.3'
+$base = "https://github.com/EpicCash/epic/releases/download/$tag"
+Invoke-WebRequest "$base/Windows-$tag.zip" -OutFile "Windows-$tag.zip"
+Invoke-WebRequest "$base/Windows-$tag-sha256sum.txt" -OutFile "sha256sum.txt"
+
+# Compare the two values yourself; PowerShell has no `sha256sum -c` equivalent.
+(Get-FileHash "Windows-$tag.zip" -Algorithm SHA256).Hash.ToLower()
+Get-Content sha256sum.txt
+
+Expand-Archive "Windows-$tag.zip" -DestinationPath .
+```
+
+</TabItem>
+</Tabs>
+
+:::note
+Release binaries do not include Tor (`--features with-tor` is not enabled in release workflows). Set
+`use_tor_listener = false` in [epic-wallet.toml](/reference/wallet-config), or build from source with
+the feature.
+:::
+
+## Other software
+
+| Software | Repository |
+| --- | --- |
+| Miner | <Repo name="node">EpicCash/epic-miner</Repo> |
+| Desktop GUI wallet | `EpicCash/epic-gui-wallet` |
+| Block explorer | `EpicCash/epic_explorer` |
+| Epicbox relay | <Repo name="epicbox" /> |
+| Docker images | `EpicCash/epic-node-docker`, `EpicCash/epic-node-wallet-docker` |
+
+Mobile wallets are third party. Stack Wallet supports Epic and operates one of the public epicbox
+relays.
+
+## Next
+
+<CardGrid>
+  <Card title="Run a local network" to="/guides/local-network">
+    A private chain, a miner and two wallets.
+  </Card>
+  <Card title="Node and wallet setup" to="/guides/mainnet-setup">
+    Mainnet, once the local chain makes sense.
+  </Card>
+  <Card title="Make a transfer" to="/guides/first-transfer">
+    End to end on a private local chain.
+  </Card>
+</CardGrid>

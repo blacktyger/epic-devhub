@@ -1,0 +1,162 @@
+---
+title: API authentication and TLS
+sidebar_label: Authentication and TLS
+description: Which Epic API surfaces expect a credential, which are open because they have to be, and how to put TLS in front of them.
+---
+
+# API authentication and TLS
+
+Epic ships four HTTP surfaces. It protects the owner-facing ones with credentials and leaves the
+foreign ones open because counterparties must reach them. TLS termination is left to the operator.
+
+## The four surfaces
+
+| Surface | Default port | Credential | Who is meant to call it |
+| --- | --- | --- | --- |
+| Node `/v2/owner` | <Ver k="ports.nodeApi" /> | Basic, `api_secret_path` | You, from the same machine |
+| Node `/v2/foreign` | <Ver k="ports.nodeApi" /> | Optional Basic, `foreign_api_secret_path` | Anything that reads the chain |
+| Wallet Owner `/v3/owner` | <Ver k="ports.walletOwner" /> | Token from `open_wallet` | You, from the same machine |
+| Wallet Foreign `/v2/foreign` | <Ver k="ports.walletForeign" /> | None | A counterparty paying you |
+
+The two Foreign surfaces are open because that is what "foreign" means. An interactive transfer
+cannot start if the receiving side demands a shared secret from a stranger, so the wallet's Foreign
+API takes a slate from anyone and the node's accepts chain queries and transaction pushes. What
+limits them is what they can do: the wallet's Foreign API receives a slate, returns a
+partially signed one, builds a coinbase for a miner configured to pay this wallet, and reports its
+version. It cannot spend, read your balance, or list your outputs.
+
+Put the surfaces you use on an interface you control, terminate TLS in front of them, and rate-limit
+anything you expose.
+
+## Owner access on the wallet
+
+Use `/v3/owner`, and treat the token as the credential that matters.
+
+```bash
+# 1. establish the encrypted channel, 2. open the wallet, 3. call methods with the token
+curl -d '{"jsonrpc":"2.0","method":"init_secure_api","params":{"ecdh_pubkey":"..."},"id":1}' \
+  http://127.0.0.1:3420/v3/owner
+```
+
+Every method on `/v3/owner` takes a `token`, and a token comes from `open_wallet`, which needs the
+wallet password. The <Src repo="wallet" path="controller/src/controller.rs" line={143} /> Basic-auth
+middleware on this listener is built for the `/v2/foreign` path, so `api_secret_path` is not what
+guards `/v3/owner`. The wallet password is the effective credential.
+
+:::danger[Keep the owner port on loopback]
+
+`owner_api_listen_interface` defaults to `127.0.0.1` and should stay there. The listener also mounts
+the legacy `/v2/owner` route, whose methods take no token at all
+(<Fn repo="wallet" path="api/src/owner_rpc.rs" line={507} name="init_send_tx" />), so anything that
+can reach the port can build a spend. If you need remote access, tunnel to loopback rather than
+binding the port outward.
+
+:::
+
+The full method list, and which calls move value, is on the
+[wallet Owner API page](/api/wallet-owner).
+
+## Basic authentication, where it applies
+
+The node's `/v2/owner` uses HTTP Basic with the username literally `epic` and a secret file's contents
+as the password:
+
+```
+Authorization: Basic base64("epic:" + <secret file contents>)
+```
+
+The node creates `~/.epic/<network>/.api_secret` on first run and points `api_secret_path` at it, so
+this works without configuration:
+
+```bash
+curl -u epic:$(cat ~/.epic/main/.api_secret) \
+  -d '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/owner
+```
+
+Secret files hold one 20-character random alphanumeric string with no trailing newline, and the
+comparison is constant time. A rejected call returns 401 with a `WWW-Authenticate` header and a
+JSON-RPC error body:
+
+```json
+{"jsonrpc": "2.0", "error": {"code": -32600, "message": "Unauthorized"}, "id": null}
+```
+
+Three behaviours:
+
+- Commenting out `api_secret_path` removes the credential entirely. The generated config file invites
+  it, and it is a reasonable thing to do on a private test chain.
+- An empty `.api_secret` is regenerated with a new value rather than read as "no secret", so emptying
+  the file does not switch authentication off.
+- `OPTIONS` is passed through before the credential check, which is what makes CORS preflight work.
+
+## Optional credential on the node's foreign surface
+
+`foreign_api_secret_path` exists if you want the node's `/v2/foreign` to require a credential too.
+Nothing creates the file for you and the default is a relative path, so the setting does nothing until
+you create the secret and point at it absolutely:
+
+```bash
+head -c 40 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 20 > ~/.epic/main/.foreign_api_secret
+```
+
+```toml
+[server]
+foreign_api_secret_path = "/home/you/.epic/main/.foreign_api_secret"
+```
+
+The realm is `EpicForeignAPI` and the username is still `epic`. Because the default path resolves
+against the node's working directory, whether it took effect depends on how the node was launched.
+Verify with:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:3413/v2/foreign
+# 401 once the secret is in place
+```
+
+## The credential the wallet presents to the node
+
+`node_api_secret_path` points the other way: it is what the wallet sends when calling the node, and it
+defaults to `<wallet dir>/.api_secret`. Left at defaults, node and wallet share `~/.epic/<network>/`
+and resolve to the same file, so they agree with no configuration. Change the node's secret, move
+either directory, or point the wallet at another node, and this is the key to update.
+
+## TLS
+
+Both binaries take the same pair, both commented out by default:
+
+```toml
+tls_certificate_file = "/path/to/fullchain.pem"
+tls_certificate_key  = "/path/to/privkey.pem"
+```
+
+Setting the certificate switches the listener from HTTP to HTTPS. Setting it without the key is a
+startup error. Certificates are read as a PEM chain; keys may be PKCS#1, PKCS#8 or SEC1 PEM. A file
+that cannot be opened, cannot be parsed, or does not match its certificate stops the process rather
+than falling back to HTTP, so a bad pair fails loudly at startup.
+
+Self-signed certificates are documented as unsupported, which describes clients refusing to trust them
+rather than a check in the server.
+
+:::note[The bundled `epic client` does not speak HTTPS]
+
+`epic client status`, `listconnectedpeers`, `ban` and `unban` build their URLs with a literal
+`http://`, so enabling TLS on the node stops those subcommands working. Call the API with `curl`
+instead.
+
+:::
+
+For most deployments a TLS-terminating reverse proxy in front of a loopback-bound listener is easier to
+run than certificates inside the node, and it gives you one place to add authentication and rate
+limits.
+
+## Next
+
+<CardGrid>
+  <Card title="epic-server.toml" to="/reference/node-config">
+    Every node configuration key.
+  </Card>
+  <Card title="epic-wallet.toml" to="/reference/wallet-config">
+    Every wallet configuration key.
+  </Card>
+</CardGrid>

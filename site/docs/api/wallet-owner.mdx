@@ -1,0 +1,226 @@
+---
+title: Wallet Owner API v3
+description: The wallet's JSON-RPC control surface, covering the encrypted handshake, the 37 methods grouped by what they can do, and InitTxArgs in detail.
+---
+
+# Wallet Owner API v3
+
+The Owner API is how software drives a wallet: create it, read balances, build and finalise transfers,
+verify proofs. For most integrations it is the primary surface.
+
+- **Endpoint**: `http://127.0.0.1:3420/v3/owner`, started with `epic-wallet owner_api`
+- **Protocol**: JSON-RPC 2.0 over HTTP POST
+- **Encryption**: an ECDH handshake wraps every call after the first
+
+Access: the `token` returned by `open_wallet`, which needs the wallet password. Keep the port on
+loopback. See [authentication and TLS](/api/authentication).
+
+## Methods by what they can do
+
+### Can spend funds
+
+<Risk level="spend" /> These seven build, complete or abandon transfers.
+
+| Method | Purpose |
+| --- | --- |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={559} name="init_send_tx" /> | Select inputs and build the first round of a slate |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={897} name="tx_lock_outputs" /> | Reserve the selected inputs. Required in a manual send sequence. Takes `token`, `slate`, `participant_id` and `addr_to` |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1072} name="finalize_tx" /> | Complete the aggregate signature |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1143} name="post_tx" /> | Broadcast to the network |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={644} name="issue_invoice_tx" /> | Create a payment request |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={805} name="process_invoice_tx" /> | Fund someone else's payment request |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1177} name="cancel_tx" /> | Abandon a transfer and release its reserved outputs |
+
+### Destructive
+
+<Risk level="destructive" /> Deletes local wallet data.
+
+| Method | Effect |
+| --- | --- |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1860} name="delete_wallet" /> | Deletes the wallet |
+
+### Exposes a secret
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1787} name="get_mnemonic" /> returns the recovery phrase.
+
+### Changes wallet state
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1822} name="change_password" /> re-encrypts the seed.
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1400} name="scan" /> rebuilds output state.
+
+### Read only
+
+<Risk level="read" /> Safe for anything you would allow to read your balance.
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={78} name="accounts" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={253} name="retrieve_outputs" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={385} name="retrieve_txs" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={452} name="retrieve_summary_info" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1441} name="node_height" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1282} name="get_stored_tx" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1995} name="get_public_address" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2033} name="get_public_proof_address" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1957} name="get_updater_messages" />.
+
+### Wallet lifecycle
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1637} name="create_config" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1680} name="create_wallet" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1720} name="open_wallet" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1753} name="close_wallet" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1527} name="get_top_level_directory" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1560} name="set_top_level_directory" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={111} name="create_account_path" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={144} name="set_active_account" />.
+
+`open_wallet` returns the token that every other call requires.
+
+### Proofs
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2110} name="retrieve_payment_proof" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2157} name="verify_payment_proof" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2070} name="proof_address_from_onion_v3" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1366} name="verify_slate_messages" />. See
+[payment proofs](/concepts/payment-proofs).
+
+### Configuration and background updates
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2197} name="set_tor_config" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2234} name="set_epicbox_config" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1894} name="start_updater" />,
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1924} name="stop_updater" />.
+
+### Transport
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1495} name="init_secure_api" />, described below.
+
+## The encrypted handshake
+
+Every call after `init_secure_api` is encrypted.
+
+Your client generates a keypair and sends the public half, the wallet returns its own, both
+sides derive the same shared secret, and from that point every request and response body travels
+encrypted, starting with `open_wallet` and the token it returns.
+
+Step by step:
+
+1. Generate a secp256k1 keypair in your client.
+2. Call `init_secure_api` with your public key. The wallet returns its own.
+3. Derive a shared secret by ECDH between your private key and the wallet's public key.
+4. Call `open_wallet` with the wallet name and password. It returns a token.
+5. Encrypt the JSON-RPC request body with the shared secret and send it in the encrypted envelope.
+   Decrypt responses the same way.
+6. Include the token in the params of every call that takes one.
+
+Two working reference clients ship in the wallet repository, at `doc/samples/python/secure_api_example.py`
+and `doc/samples/v3_api_node/src/index.js`. The handshake in both is current; some method signatures
+differ from the latest, notably pagination parameters.
+
+## Reading outputs and transactions
+
+`retrieve_outputs` and `retrieve_txs` take `limit`, `offset` and `sort_order`.
+
+## `InitTxArgs`
+
+Controls input selection and transaction shape.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `src_acct_name` | string, optional | Source account. Null uses the active account |
+| `amount` | u64 | Amount in freemen. 1 EPIC is `100000000` |
+| `minimum_confirmations` | u64 | Confirmations required before an output is eligible |
+| `max_outputs` | u32 | Maximum number of inputs to select |
+| `num_change_outputs` | u32 | How many change outputs to create |
+| `selection_strategy_is_use_all` | bool | True consolidates every eligible output; false selects the minimum |
+| `message` | string, optional | Message committed into the slate |
+| `target_slate_version` | u16, optional | Slate version to emit. Use 2 or 3 |
+| `ttl_blocks` | u64, optional | Expiry in blocks. Defaults to none |
+| `payment_proof_recipient_address` | string, optional | Requests a payment proof |
+| `estimate_only` | bool, optional | Compute the fee without reserving anything |
+| `send_args` | object, optional | Destination and transport, to run the whole exchange in one call |
+
+Additional behaviour:
+
+**`selection_strategy_is_use_all` has privacy consequences.** True consolidates your outputs into one
+transaction, which links them together for anyone analysing the chain. False keeps them separate at the
+cost of a larger UTXO set later.
+
+**`estimate_only` is how to quote a fee safely.** It reserves nothing, so it is what belongs behind a
+"what will this cost" endpoint.
+
+**`ttl_blocks` does not release outputs on expiry.** See
+[outputs and locking](/concepts/outputs-and-locking).
+
+**An unrecognised `src_acct_name` falls back to the default account** rather than returning an error.
+Validate account names yourself.
+
+**`send_args` runs the exchange inside the call.** It delivers the slate, then finalises and posts if you
+asked it to, so the call blocks for as long as the counterparty takes. Do not call it on a request thread.
+
+**With `send_args.method` set to `epicbox`, `finalize` and `post_tx` are ignored.** That branch returns as
+soon as the slate is posted to the relay and the inputs are locked
+(<Src repo="wallet" path="api/src/owner.rs" line={761} />). The wallet's epicbox handler finalises and
+posts when the counterparty's reply arrives, which is also where the mempool wait happens. Treat an
+epicbox send as accepted for delivery, not completed.
+
+## Fees
+
+The fee is a function of transaction shape, not of network demand:
+
+```
+fee = max(4 × outputs + kernels − inputs, 1) × 0.001 EPIC
+```
+
+A typical two-input, two-output, one-kernel transfer costs 700,000 freemen, which is 0.007 EPIC. Because
+no base fee is supplied by the wallet, there is no fee market to bid into.
+
+## Version 2
+
+An earlier, unencrypted Owner API with 17 methods is also served, at `/v2/owner`. Its methods take no
+token, so the Basic auth credential is the only thing in front of it. New work should target v3.
+
+## Full method reference
+
+Per method, with its risk, editable request and shell-command tabs, and a response panel:
+
+<CardGrid>
+  <Card title="Session and accounts" to="/api/wallet/session">
+    Ten methods. The handshake, the token, and account labels.
+  </Card>
+  <Card title="Reading state" to="/api/wallet/reading">
+    Eight methods. Balances, outputs, history, addresses.
+  </Card>
+  <Card title="Building transfers" to="/api/wallet/transfers">
+    Seven methods. The ones that move value.
+  </Card>
+  <Card title="Payment proofs" to="/api/wallet/proofs">
+    Four methods, and the transport that discards them.
+  </Card>
+  <Card title="Secrets and maintenance" to="/api/wallet/secrets">
+    Four methods. Recovery phrase, password, deletion and scan.
+  </Card>
+  <Card title="Configuration and updater" to="/api/wallet/config">
+    Four methods. Relay settings and background refresh.
+  </Card>
+</CardGrid>
+
+## Source
+
+- <Src repo="wallet" path="api/src/owner_rpc_s.rs" /> defines every v3 method, most with a worked JSON
+  request and response in its documentation comment
+- <Src repo="wallet" path="api/src/owner_rpc.rs" /> for the older v2 surface
+- <Src repo="wallet" path="libwallet/src/api_impl/owner.rs" /> for the implementation behind the methods
+- <Src repo="wallet" path="libwallet/src/api_impl/types.rs" /> for `InitTxArgs` and friends
+- <Src repo="wallet" path="controller/src/controller.rs" line={139} /> for how the listener and its
+  middleware are wired
+
+## Next
+
+<CardGrid>
+  <Card title="Interactive transactions" to="/concepts/interactive-transactions">
+    What the send methods are doing and why there are several.
+  </Card>
+  <Card title="Exchange integration" to="/guides/exchange-integration">
+    Designing a deposit and withdrawal system around this API.
+  </Card>
+</CardGrid>

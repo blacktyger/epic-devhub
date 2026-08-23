@@ -1,0 +1,175 @@
+---
+title: Diagnose a stuck transaction
+description: A procedure for transfers that did not complete, balances that look wrong, and outputs you cannot spend.
+---
+
+# Diagnose a stuck transaction
+
+**An incomplete Epic transfer has not lost your funds.** They are either reserved by a transfer you can
+cancel, immature, or waiting to confirm. No failure mode of an unfinished transfer consumes value.
+
+## First, classify it
+
+```bash
+epic-wallet info
+```
+
+Compare the figures. The gap between total and spendable tells you which case applies.
+
+| Symptom | Cause | Go to |
+| --- | --- | --- |
+| Spendable below total, after sending | Outputs reserved by an in-flight transfer | [Case 1](#case-1-outputs-reserved-by-an-in-flight-transfer) |
+| Spendable below total, after mining | Coinbase maturity | [Case 2](#case-2-coinbase-maturity) |
+| A send appears to hang for minutes | Mempool confirmation wait | [Case 3](#case-3-the-send-appears-to-hang) |
+| You sent and the recipient never received it | Delivery failure | [Case 4](#case-4-the-recipient-never-received-it) |
+| Figures disagree with the chain | Local database out of date | [Case 5](#case-5-local-database-out-of-date) |
+| You received and it never confirmed | Waiting on the sender | [Case 6](#case-6-received-but-never-confirmed) |
+
+## Case 1: outputs reserved by an in-flight transfer
+
+The most common case.
+
+```bash
+epic-wallet txs
+```
+
+Look for entries of type `Sent (Created)` with `Confirmed?` false, which the Owner API reports as
+`tx_type: "TxSentCreated"`. Each one is holding inputs. The amount unavailable is larger than the amount
+you sent, because the change output is also unconfirmed until the transaction lands.
+
+Decide whether the counterparty will respond. If they are offline and expected back, waiting is correct.
+If the transfer is not going to complete, cancel it:
+
+```bash
+epic-wallet cancel -i <id>
+```
+
+or by slate id:
+
+```bash
+epic-wallet cancel -t <slate_id>
+```
+
+Cancelling returns the reserved inputs to spendable and discards the unconfirmed change. Your balance
+updates immediately.
+
+`cancel` requires a reachable node, a cancellable type (`TxSentCreated` or `TxReceived`), and the
+transfer must not have been posted to the mempool yet.
+
+After cancelling, start a fresh send rather than reusing the old slate.
+
+## Case 2: coinbase maturity
+
+Mined rewards cannot be spent for 1,440 blocks on mainnet, which is one day at the 60-second target. The
+window is 30 blocks on floonet and 3 on usernet.
+
+Nothing to fix. The amount shows as not currently spendable until that depth is reached.
+
+## Case 3: the send appears to hang
+
+After posting a transaction, the wallet polls the node's mempool once per second for up to four minutes
+to confirm it arrived. The command prints nothing during that window.
+
+This is expected. Let it finish.
+
+If it ends with a warning that the transaction was not found in the mempool, the post did not reach the
+node. Check the node is running and synced, then see [Case 5](#case-5-local-database-out-of-date).
+
+## Case 4: the recipient never received it
+
+The transfer failed at delivery. What to check depends on the transport.
+
+**Over epicbox.** The relay queues a slate for a recipient who is not connected, but not indefinitely. A
+slate is held for up to seven days, and a recipient that connects repeatedly without acknowledging will
+have its pending queue discarded well before that. The sender is not notified either way, so treat an
+accepted send as accepted for delivery rather than delivered. See
+[delivery and its limits](/api/epicbox#delivery-and-its-limits).
+
+Ask the recipient to run `epic-wallet listen -m epicbox` and leave it running. If the slate is still
+queued it will arrive. If it was discarded, cancel and send again.
+
+**Over HTTP.** There is no queue. The listener had to be reachable at the moment you sent. Cancel and
+retry when it is up.
+
+**Either way, check wallet versions.** A 3.x wallet and a 4.x wallet can disagree about the slate format.
+
+## Case 5: local database out of date
+
+If the wallet's figures disagree with the chain, rebuild its view:
+
+```bash
+epic-wallet scan
+```
+
+This rescans the chain against your keys and repairs the output set. It is safe and non-destructive.
+
+It will not clear locked outputs, because a lock is a local record the chain knows nothing about. Use
+`cancel` for those.
+
+If a rescan appears to do nothing, check the node's height first. When the node reports a height lower
+than the wallet's last confirmed height, the refresh is skipped, which is what you see against a node
+that is still syncing or has been reset:
+
+```bash
+curl -s -u epic:$(cat ~/.epic/main/.api_secret) -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/owner
+```
+
+## Case 6: received but never confirmed
+
+As the receiver you completed your round and returned the slate. Finalising and posting is the sender's
+step, and you cannot do it for them: you do not hold their keys.
+
+```bash
+epic-wallet txs
+```
+
+A `Received` entry with `Confirmed?` false means exactly this, `tx_type: "TxReceived"` through the API.
+Contact the sender.
+
+Two things to remember reading this data. `TxReceived` keeps its type after confirming, so `confirmed` is
+the only field that tells you. And `fee` is empty on received transfers, because the receiver never set
+it, which is marked as unverified on
+[outputs and locking](/concepts/outputs-and-locking#transaction-states) and is worth confirming once
+against your own data.
+
+To abandon it, `cancel` works on `TxReceived` as well, and releases only what your side reserved.
+
+## If none of these fit
+
+Collect this before asking for help:
+
+```bash
+epic-wallet info
+epic-wallet txs
+curl -s -u epic:$(cat ~/.epic/main/.api_secret) -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/owner
+```
+
+Also note your wallet and node versions, the transport used, and whether the counterparty had a listener
+running.
+
+## Why this class of problem exists
+
+An Epic transfer needs both parties across two rounds, so it has more ways to not complete than a
+broadcast transaction on a transparent chain. In exchange, the failure mode is benign: an incomplete
+transfer returns your funds when you cancel, and a misdirected one never completes at all.
+
+The costs are delivery costs. Designing for them, rather than around them, is covered in
+[interactive transactions](/concepts/interactive-transactions).
+
+## Next
+
+<CardGrid>
+  <Card title="Outputs and locking" to="/concepts/outputs-and-locking">
+    The state machine behind these symptoms.
+  </Card>
+  <Card title="Epicbox delivery" to="/api/epicbox#delivery-and-its-limits">
+    How long the relay holds a slate.
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="operate" />

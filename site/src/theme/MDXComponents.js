@@ -1,0 +1,57 @@
+import React from 'react';
+import MDXComponents from '@theme-original/MDXComponents';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import {Risk, Card, CardGrid, Unverified} from '@site/src/components/Epic';
+import {JourneyNav, JourneyOverview, JourneyProgress, SlateLifecycle} from '@site/src/components/Journey';
+import {SlateRounds, HandshakeTrace} from '@site/src/components/Diagrams';
+import {RpcGroup, RpcMethod, RpcConsole} from '@site/src/components/Rpc';
+import {Src, Fn, Repo, Ver} from '@site/src/components/Src';
+
+/**
+ * Wraps every markdown table in its own horizontal scroll container.
+ *
+ * The widest reference tables here are six columns (concepts/transports) with cells up to
+ * 115 characters (guides/run-a-node), and the cells are full of unbreakable code tokens
+ * like `foreign_api_secret_path`. Infima handles this by making the table itself
+ * `display: block; overflow: auto`, but custom.css overrides that with `display: table` so
+ * that `width: 100%` works, which removed the scroll box and let wide tables widen the
+ * whole document on a narrow screen.
+ *
+ * A wrapper keeps both: the table stays a real table at full width, and the overflow is
+ * contained. tabIndex makes the scroll container reachable by keyboard, which a
+ * mouse-only scroll box fails (WCAG 2.2 2.1.1); it is the same thing Docusaurus does to
+ * <pre> inside a code block.
+ */
+function Table(props) {
+  return (
+    <div className="epicTableWrap" tabIndex={0}>
+      <table {...props} />
+    </div>
+  );
+}
+
+// Registered globally so pages can use them without an import line in every file.
+export default {
+  ...MDXComponents,
+  table: Table,
+  Tabs,
+  TabItem,
+  Risk,
+  Card,
+  CardGrid,
+  Unverified,
+  JourneyNav,
+  JourneyOverview,
+  JourneyProgress,
+  SlateLifecycle,
+  SlateRounds,
+  HandshakeTrace,
+  RpcGroup,
+  RpcMethod,
+  RpcConsole,
+  Src,
+  Fn,
+  Repo,
+  Ver,
+};

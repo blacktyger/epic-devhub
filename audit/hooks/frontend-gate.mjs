@@ -1,0 +1,278 @@
+/**
+ * Frontend verification gate for Kiro hooks.
+ *
+ * Why a hook and not an instruction: an instruction is advice the model may skip, a hook runs
+ * whether or not the model cooperates. This project already has the failure that motivates it.
+ * An agent reviewed CSS source, reported no contrast problems, and wrote a fix that could never
+ * apply, because the failing colours came from inline styles a stylesheet reader cannot see. The
+ * browser harness found over a thousand violations in the same build. The lesson is not "try
+ * harder", it is "do not let rendered appearance be claimed without a browser run".
+ *
+ * Four modes, one file, so the logic that decides what counts as a frontend change lives in
+ * exactly one place:
+ *
+ *   status   SessionStart. One or two lines saying whether the harness artifacts are current.
+ *   advise   PreToolUse. Points at the design skill before a presentation file is edited, and at
+ *            the page-shape rules before a docs page is written.
+ *            Rate limited, because a reminder on every keystroke is noise and noise gets muted.
+ *   mark     PostToolUse. Records that a frontend file was written, with a timestamp.
+ *   gate     Stop. Blocks the turn from ending while a recorded change is unverified.
+ *
+ * The gate releases itself. A marker only counts while it is newer than the evidence, so running
+ * the harness makes every outstanding marker irrelevant without anything having to clear state.
+ * There is no list of session ids to keep and nothing to reset by hand.
+ *
+ * Escape hatch: set EPIC_SKIP_FRONTEND_GATE=1. Documented on purpose. A gate with no way out
+ * gets deleted the first time it is wrong, and a deleted gate protects nothing.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const AUDIT = path.resolve(HERE, '..');
+const DEVDOCS = path.resolve(AUDIT, '..');
+const WORKSPACE = path.resolve(DEVDOCS, '..');
+const SITE = path.join(DEVDOCS, 'site');
+const RESULTS = path.join(AUDIT, 'results');
+const STATE = path.join(AUDIT, '.gate');
+const MARKERS = path.join(STATE, 'touched.json');
+const ADVICE_STAMP = path.join(STATE, 'last-advice');
+const CONTENT_ADVICE_STAMP = path.join(STATE, 'last-content-advice');
+
+const MODE = process.argv[2] ?? 'status';
+const ADVICE_COOLDOWN_MS = 30 * 60 * 1000;
+const MARKER_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Presentation surfaces. A change here can alter how every page renders, so it needs browser
+ * evidence before anyone calls it done.
+ */
+const PRESENTATION = [
+  /epic-devdocs[/\\]site[/\\]src[/\\]/i,
+  /epic-devdocs[/\\]site[/\\]docusaurus\.config\.[cm]?js$/i,
+  /epic-devdocs[/\\]site[/\\]sidebars\.[cm]?js$/i,
+  /epic-devdocs[/\\]site[/\\]package\.json$/i,
+];
+
+/**
+ * Content surfaces. These do not need a browser, but they do need a build, because Docusaurus
+ * treats a broken link or anchor as a build failure and that is the defect content edits cause.
+ */
+const CONTENT = [/epic-devdocs[/\\]site[/\\]docs[/\\].+\.mdx?$/i];
+
+const classify = (p) => {
+  if (PRESENTATION.some((r) => r.test(p))) return 'presentation';
+  if (CONTENT.some((r) => r.test(p))) return 'content';
+  return null;
+};
+
+const mtime = (p) => {
+  try {
+    return fs.statSync(p).mtimeMs;
+  } catch {
+    return 0;
+  }
+};
+
+/** Newest browser-harness artifact. This is the evidence a presentation change is measured against. */
+function newestHarnessRun() {
+  let newest = 0;
+  let which = null;
+  for (const name of ['axe.json', 'runtime.json', 'aria.json', 'keyboard.json', 'budget.json']) {
+    const t = mtime(path.join(RESULTS, name));
+    if (t > newest) {
+      newest = t;
+      which = name;
+    }
+  }
+  return {at: newest, which};
+}
+
+const newestBuild = () => mtime(path.join(SITE, 'build', 'sitemap.xml'));
+
+function readMarkers() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(MARKERS, 'utf8'));
+    const cutoff = Date.now() - MARKER_TTL_MS;
+    return Array.isArray(raw) ? raw.filter((m) => m && m.at > cutoff) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeMarkers(list) {
+  fs.mkdirSync(STATE, {recursive: true});
+  fs.writeFileSync(MARKERS, `${JSON.stringify(list, null, 2)}\n`);
+}
+
+/**
+ * Pulls candidate file paths out of a hook payload.
+ *
+ * The exact field name a tool uses for its target is not something to guess at, and guessing
+ * wrong fails silently, which is the worst outcome for a gate. So every string in the payload is
+ * examined and the ones that look like a path into the docs site are kept. Over-matching here is
+ * harmless: a path that is not a frontend file is discarded by classify().
+ */
+function pathsFrom(payload) {
+  const found = new Set();
+  const walk = (node) => {
+    if (typeof node === 'string') {
+      if (/epic-devdocs[/\\]site[/\\]/i.test(node) && node.length < 400) found.add(node);
+      return;
+    }
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (node && typeof node === 'object') Object.values(node).forEach(walk);
+  };
+  walk(payload);
+  return [...found];
+}
+
+async function stdinJson() {
+  if (process.stdin.isTTY) return {};
+  const chunks = [];
+  for await (const c of process.stdin) chunks.push(c);
+  const text = Buffer.concat(chunks).toString('utf8').trim();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    // A non-JSON payload is still worth scanning as raw text rather than dropping.
+    return {raw: text};
+  }
+}
+
+const rel = (p) => path.relative(WORKSPACE, path.resolve(WORKSPACE, p)).replace(/\\/g, '/');
+
+if (process.env.EPIC_SKIP_FRONTEND_GATE === '1' && MODE === 'gate') {
+  process.exit(0);
+}
+
+if (MODE === 'status') {
+  const harness = newestHarnessRun();
+  if (harness.at === 0) {
+    console.log(
+      'epic-devdocs harness: no results recorded yet. From epic-devdocs/audit run "npm run budget" (seconds), "npm run aria", "npm run keyboard", then "npm run check" for the full axe sweep.',
+    );
+    process.exit(0);
+  }
+  const markers = readMarkers().filter((m) => m.at > harness.at);
+  const age = Math.round((Date.now() - harness.at) / 3600000);
+  if (markers.length === 0) {
+    console.log(`epic-devdocs harness: results current, newest ${harness.which} about ${age}h old.`);
+  } else {
+    console.log(
+      `epic-devdocs harness: ${markers.length} frontend file(s) changed since the last run (${harness.which}, ${age}h old). Rerun the checks in epic-devdocs/audit before reporting frontend work complete.`,
+    );
+  }
+  process.exit(0);
+}
+
+const payload = await stdinJson();
+const candidates = pathsFrom(payload)
+  .map((p) => ({path: p, kind: classify(p)}))
+  .filter((c) => c.kind);
+
+if (MODE === 'advise') {
+  const presentation = candidates.filter((c) => c.kind === 'presentation');
+  const content = candidates.filter((c) => c.kind === 'content');
+
+  // Two stamps, because the two kinds of advice say different things and one must not silence the
+  // other. A session that edits CSS and then writes a page needs both.
+  const stamp = presentation.length ? ADVICE_STAMP : CONTENT_ADVICE_STAMP;
+  if (presentation.length === 0 && content.length === 0) process.exit(0);
+  const last = Number(fs.existsSync(stamp) ? fs.readFileSync(stamp, 'utf8') : 0);
+  if (Date.now() - last < ADVICE_COOLDOWN_MS) process.exit(0);
+  fs.mkdirSync(STATE, {recursive: true});
+  fs.writeFileSync(stamp, String(Date.now()));
+
+  if (presentation.length) {
+    console.log(
+      [
+        'This edit touches a presentation surface of epic-devdocs/site.',
+        'Design intent lives in .kiro/skills/epic-frontend-design (SKILL.md plus references/); read it rather than inferring the visual language from the CSS.',
+        'Rendered appearance is not reviewable from source. Before reporting the change complete, build the site and run the harness in epic-devdocs/audit: budget, aria, keyboard, then check for the full axe sweep.',
+      ].join(' '),
+    );
+    process.exit(0);
+  }
+
+  console.log(
+    [
+      'This edit writes a docs page, which is a rendered surface with a required shape.',
+      'Read the "Writing or editing a docs page" section of .kiro/skills/epic-frontend-design/SKILL.md and assign the route class (narrative or lookup) before writing: it decides the page shape, and a lookup page written in narrative voice is the most common way a reference becomes unusable.',
+      'The MDX primitives in references/components.md are required, not optional: <Ver> for any version, port or consensus constant, <Src> or <Fn> for any claim about implementation behaviour, <Risk> on anything that spends, locks, cancels, finalises or posts, and groupId="lang" on language tab sets.',
+      'Gate for a content-only edit is "npm run build" in epic-devdocs/site, because broken links and anchors are build failures there.',
+    ].join(' '),
+  );
+  process.exit(0);
+}
+
+if (MODE === 'mark') {
+  if (candidates.length === 0) process.exit(0);
+  const now = Date.now();
+  const markers = readMarkers();
+  for (const c of candidates) {
+    const key = rel(c.path);
+    const existing = markers.find((m) => m.path === key);
+    if (existing) existing.at = now;
+    else markers.push({path: key, kind: c.kind, at: now});
+  }
+  writeMarkers(markers);
+  process.exit(0);
+}
+
+if (MODE === 'gate') {
+  const harness = newestHarnessRun();
+  const build = newestBuild();
+  const markers = readMarkers();
+
+  const unverified = markers.filter((m) =>
+    m.kind === 'presentation' ? m.at > harness.at : m.at > build,
+  );
+  if (unverified.length === 0) process.exit(0);
+
+  const presentation = unverified.filter((m) => m.kind === 'presentation');
+  const content = unverified.filter((m) => m.kind === 'content');
+
+  const lines = ['Frontend changes in this session have not been verified against a real browser.', ''];
+  if (presentation.length) {
+    lines.push('Presentation files changed since the last harness run:');
+    for (const m of presentation.slice(0, 8)) lines.push(`  ${m.path}`);
+    if (presentation.length > 8) lines.push(`  and ${presentation.length - 8} more`);
+    lines.push('');
+    lines.push('Run, from epic-devdocs/site:   npm run build');
+    lines.push('then from epic-devdocs/audit:  npm run budget');
+    lines.push('                              npm run aria');
+    lines.push('                              npm run keyboard');
+    lines.push('                              npm run check      (several minutes, every route)');
+    lines.push('');
+    lines.push(
+      'Or delegate the whole review to the docs-design-reviewer agent, which runs these and reports findings by severity.',
+    );
+  }
+  if (content.length) {
+    lines.push('');
+    lines.push('Content files changed with no build since:');
+    for (const m of content.slice(0, 8)) lines.push(`  ${m.path}`);
+    if (content.length > 8) lines.push(`  and ${content.length - 8} more`);
+    lines.push('');
+    lines.push(
+      'Run "npm run build" in epic-devdocs/site. Broken links and anchors are build failures there, so this is the check that catches them.',
+    );
+  }
+  lines.push('');
+  lines.push(
+    'Do not raise a threshold or rewrite a baseline to get a pass. If a baseline genuinely needs updating, say so and let the user decide.',
+  );
+  lines.push('To bypass deliberately for this run: set EPIC_SKIP_FRONTEND_GATE=1.');
+
+  process.stderr.write(`${lines.join('\n')}\n`);
+  process.exit(2);
+}
+
+console.error(`unknown mode "${MODE}". Expected status, advise, mark or gate.`);
+process.exit(1);

@@ -1,0 +1,6 @@
+h1 Code examples
+  h2 Which surface to target​
+  h2 Prerequisites​
+  h2 Conventions in these examples​
+  h2 The response envelope​
+  h2 Where the reference clients live​

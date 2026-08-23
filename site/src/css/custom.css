@@ -1,0 +1,2994 @@
+/*
+ * Epic Cash developer docs theme.
+ *
+ * Palette and typography are derived from the live epiccash.com Elementor global kit,
+ * measured 2026-08-22. Values and reasoning are recorded in
+ * epic-devdocs/research/90-docs-site-framework.md.
+ *
+ *   page background   linear-gradient(71.88deg, #000000 70%, #313133 100%)
+ *   dark surface      #101010
+ *   body text         #FFF9F9   (warm off-white, not pure white)
+ *   muted text        #7A7A7A
+ *   accent            linear-gradient(93.95deg, #F6D471 0%, #C98A3E 100%)   gold
+ *
+ * Deliberately NOT carried over from the marketing site:
+ *   - GothamPro. It is a repackaged commercial Hoefler typeface served as raw .ttf and the
+ *     licence is unconfirmed. Montserrat is the open-licensed substitute and epiccash.com
+ *     already loads it. Self-hosted here rather than pulled from Google, because sending
+ *     every reader's IP to a third party is the wrong default for a privacy project.
+ *   - Uppercase body links and 75px display type. Fine on a landing page, unreadable in a
+ *     reference.
+ *   - Gradient-filled text anywhere it has to be read. It fails contrast checks. The gold
+ *     gradient is used on the landing hero only.
+ */
+
+/* Montserrat, variable weight 100-900, self-hosted. SIL Open Font License. */
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/montserrat-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/montserrat-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+    U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  /* Gold, darkened for AA contrast against a white background in light mode. */
+  --ifm-color-primary: #8f5e1f;
+  --ifm-color-primary-dark: #815525;
+  --ifm-color-primary-darker: #7a5020;
+  --ifm-color-primary-darkest: #64421a;
+  --ifm-color-primary-light: #a96f25;
+  --ifm-color-primary-lighter: #b4762a;
+  --ifm-color-primary-lightest: #c98a3e;
+
+  --epic-gold-light: #f6d471;
+  --epic-gold-deep: #c98a3e;
+  --epic-gradient-gold: linear-gradient(93.95deg, #f6d471 0%, #c98a3e 100%);
+  --epic-gradient-surface: linear-gradient(71.88deg, #000000 70%, #313133 100%);
+
+  --ifm-font-family-base:
+    system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  /* Montserrat is a geometric display face. It is used only at heading sizes, where its
+     character shows and its wide, low-contrast strokes still render crisply. Small UI text
+     uses the platform stack instead, because a display face at 10-13px renders mushy,
+     particularly uppercase with added letter-spacing. */
+  --ifm-heading-font-family: 'Montserrat', var(--ifm-font-family-base);
+  --epic-font-ui: var(--ifm-font-family-base);
+  /* Chosen for an unambiguous zero and distinguishable l/1/I, which matters when a reader is
+     copying a 52-character base58 epicbox address out of a code block. */
+  --ifm-font-family-monospace:
+    'JetBrains Mono', 'Cascadia Code', ui-monospace, SFMono-Regular, 'SF Mono', Menlo,
+    Consolas, 'Liberation Mono', monospace;
+
+  --ifm-code-font-size: 90%;
+  --ifm-heading-font-weight: 600;
+  /* Fluid, so the step from 375px to 1440px is smooth rather than jumping at a breakpoint.
+     Was a fixed 2.25rem. */
+  --ifm-h1-font-size: clamp(1.9rem, 1.4rem + 1.6vw, 2.6rem);
+  --ifm-line-height-base: 1.65;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.08);
+}
+
+/* ---------------------------------------------------------------------------
+   Protocol scope system tokens
+   ---------------------------------------------------------------------------
+   Added 2026-08-22 with the approved visual system. Specification in
+   .kiro/skills/epic-frontend-design/references/visual-language.md, reference
+   implementation in epic-devdocs/mockups/.
+
+   The palette above is unchanged: every value in it was contrast-measured and
+   those measurements are recorded in the comments. What was missing was
+   structure, so this block adds elevation, a reading measure, a fluid display
+   scale and motion timings. Nothing here changes a colour that was verified. */
+:root {
+  /* Elevation. The site previously had one surface, which is why nothing read
+     as a designed object. Light mode goes darker as it lifts, dark mode lighter. */
+  --epic-s1: #ffffff;
+  --epic-s2: #f7f7f8;
+  --epic-s3: #eeeef0;
+  --epic-s4: #e4e4e7;
+  --epic-line: #e0e0e4;
+  --epic-line-strong: #c9c9d0;
+
+  /* Reading measure. The single most important number here: the old landing
+     page ran prose to about 1150px, roughly double what is comfortable. */
+  --epic-measure: 68ch;
+  --epic-measure-wide: 78ch;
+
+  /* Display scale for mastheads and section openers. Page h1 uses
+     --ifm-h1-font-size above; this is for the landing composition. */
+  --epic-t-hero: clamp(2.5rem, 1.2rem + 4.6vw, 4.5rem);
+  --epic-t-section: clamp(1.75rem, 1.2rem + 1.7vw, 2.5rem);
+  --epic-t-micro: 0.6875rem;
+
+  --epic-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --epic-dur: 220ms;
+}
+
+[data-theme='dark'] {
+  --epic-s1: #0d0d10;
+  --epic-s2: #131318;
+  --epic-s3: #1a1a21;
+  --epic-s4: #22222b;
+  --epic-line: #24242a;
+  --epic-line-strong: #33333d;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #f6d471;
+  --ifm-color-primary-dark: #f3c94e;
+  --ifm-color-primary-darker: #f1c33c;
+  --ifm-color-primary-darkest: #e5b01a;
+  --ifm-color-primary-light: #f9df94;
+  --ifm-color-primary-lighter: #fbe5a6;
+  --ifm-color-primary-lightest: #fdf0cd;
+
+  --ifm-background-color: #08080a;
+  --ifm-background-surface-color: #101010;
+  --ifm-font-color-base: #fff9f9;
+  --ifm-heading-color: #fff9f9;
+  /* Was #7a7a7a, taken straight from the marketing site. Measured 4.43:1 against the
+     #101010 card surface, which fails WCAG 2.2 AA for normal text. #8a8a8a measures
+     5.80:1 on the page background and 5.51:1 on the card surface. This variable also
+     drives the lede, figure captions, step notes and TOC links, all of which were
+     sitting on 4.66:1. */
+  --ifm-color-content-secondary: #8a8a8a;
+  --ifm-toc-border-color: #24242a;
+  --ifm-table-stripe-background: rgba(255, 249, 249, 0.03);
+  --ifm-code-background: rgba(246, 212, 113, 0.08);
+  --docusaurus-highlighted-code-line-bg: rgba(246, 212, 113, 0.12);
+}
+
+/* Headings take the brand typeface. Body stays on the platform stack: it renders instantly,
+   costs no request, and is hinted for the OS, which matters for long-form reading. */
+h1,
+h2,
+h3,
+.navbar__title {
+  font-family: var(--ifm-heading-font-family);
+}
+
+/* Negative tracking, but only above 2rem.
+
+   This file previously stated a blanket rule against it, on the grounds that tightening
+   tracking pushes glyphs onto fractional subpixel positions and costs crispness. That
+   reasoning is correct and it is why this is scoped rather than global: at body and h3 sizes
+   the crispness loss is visible and the typographic gain is not, so tracking stays at zero
+   there. Above 2rem the arithmetic inverts. Montserrat is a geometric face with generous
+   default sidebearings, at display sizes it reads conspicuously loose, and a large glyph has
+   enough pixels that fractional positioning is proportionally negligible.
+
+   Applied by size rather than by tag, so it cannot drift when a heading level moves. */
+h1,
+.epic-display {
+  letter-spacing: -0.022em;
+}
+
+@media (min-width: 600px) {
+  h2 {
+    letter-spacing: -0.014em;
+  }
+}
+
+/* h4 and below are small enough that the display face works against legibility. */
+h4,
+h5,
+h6 {
+  font-family: var(--epic-font-ui);
+}
+
+/* Never let the browser fake a weight or style. The variable font covers 100-900, so any
+   synthesis would be a smeared approximation rather than a real instance. */
+html {
+  font-synthesis: none;
+}
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+
+/* The announcement bar carries the version stamp and is dark in both colour modes, so its
+   link cannot inherit --ifm-link-color: in light mode that resolves to #8f5e1f, which
+   measures 3.25:1 against the #1a160e bar and fails AA. The bright gold measures 12.51:1
+   on it and is correct for both themes. */
+div[class^='announcementBar'] a {
+  color: var(--epic-gold-light);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+div[class^='announcementBar'] a:hover {
+  color: #ffffff;
+}
+/* No backdrop-filter. It promotes the navbar to its own compositing layer, which makes the
+   browser fall back from subpixel to grayscale antialiasing, and the text visibly softens.
+   A solid background costs nothing and stays sharp. */
+[data-theme='dark'] .navbar {
+  background-color: #0c0c0f;
+}
+.navbar__logo img {
+  height: 26px;
+  width: auto;
+}
+
+/* Section rules keep long reference pages scannable. */
+[data-theme='dark'] .markdown h2 {
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+  padding-bottom: 0.3rem;
+}
+
+.markdown table {
+  display: table;
+  width: 100%;
+}
+/* Infima ships `table { display: block; overflow: auto }` precisely so that a wide
+   reference table scrolls inside its own box instead of widening the page. The
+   `display: table` above is needed for width: 100% on desktop, but it also removes that
+   scroll container, and the widest tables here are six columns (concepts/transports) with
+   cells up to 115 characters (guides/run-a-node). At 375px those forced the whole document
+   to scroll sideways.
+
+   Fixed by wrapping tables in src/theme/MDXComponents.js instead, so the table keeps its
+   full-width layout and the wrapper owns the overflow. The wrapper is focusable, which
+   the bare Infima scroll box was not. */
+.epicTableWrap {
+  overflow-x: auto;
+  max-width: 100%;
+  margin-bottom: var(--ifm-spacing-vertical);
+}
+.epicTableWrap > table {
+  margin-bottom: 0;
+}
+/* Visible focus for the scroll container, since it is focusable but has no text of its
+   own to indicate focus. */
+.epicTableWrap:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+.markdown table th {
+  font-family: var(--epic-font-ui);
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Inline code is where API method and field names live, so make it read as a distinct object
+   rather than as emphasised prose. */
+[data-theme='dark'] code {
+  border: 1px solid rgba(246, 212, 113, 0.18);
+  color: #fbe5a6;
+}
+
+[data-theme='dark'] .footer {
+  background: var(--epic-gradient-surface);
+  border-top: 1px solid var(--ifm-toc-border-color);
+}
+
+/* The gold gradient is reserved for small accents. It is never used on text that has
+   to be read at body size, because gradient-filled text fails contrast checks. */
+.epicAccent {
+  background: var(--epic-gradient-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .epicAccent {
+    color: var(--epic-gold-light);
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
+/* Cards used on the landing page and section indexes. */
+.epicCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+.epicCard {
+  display: block;
+  padding: 1.25rem;
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 10px;
+  background: var(--ifm-background-surface-color);
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+/* Border and background only. A hover transform promotes the card to a compositing layer,
+   which switches its text to grayscale antialiasing and makes it look blurry on hover. */
+.epicCard:hover {
+  border-color: var(--epic-gold-deep);
+  background: rgba(246, 212, 113, 0.05);
+  text-decoration: none;
+}
+/* The UA focus ring is a thin dark outline, which on a #101010 card on a #08080a page is
+   nearly invisible. These components are the primary navigation on the section index
+   pages, so give them a ring in the accent colour instead of trusting the default. */
+.epicCard:focus-visible,
+.epicSrc:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+  text-decoration: none;
+}
+.epicCard h3,
+.epicCardTitle {
+  display: block;
+  margin: 0 0 0.4rem;
+  font-family: var(--ifm-heading-font-family);
+  font-weight: var(--ifm-heading-font-weight);
+  line-height: var(--ifm-heading-line-height);
+  color: var(--ifm-heading-color);
+  font-size: 1.05rem;
+}
+.epicCard p,
+.epicCardBody {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--ifm-color-content-secondary);
+}
+.epicCardBody p:last-child {
+  margin-bottom: 0;
+}
+
+/* Risk badge for the Owner API calls that can move or destroy funds. Phase 1 identified
+   eleven of them; a reader skimming the reference should never have to infer which. */
+.epicRisk {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--epic-font-ui);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+.epicRiskSpend {
+  color: #ffd8a8;
+  background: rgba(201, 138, 62, 0.18);
+  border: 1px solid rgba(201, 138, 62, 0.5);
+}
+.epicRiskState {
+  color: #b9dcff;
+  background: rgba(51, 154, 240, 0.14);
+  border: 1px solid rgba(51, 154, 240, 0.5);
+}
+.epicRiskSecret {
+  color: #e9c7ff;
+  background: rgba(174, 62, 201, 0.14);
+  border: 1px solid rgba(174, 62, 201, 0.5);
+}
+.epicRiskDestructive {
+  color: #ffc9c9;
+  background: rgba(224, 49, 49, 0.15);
+  border: 1px solid rgba(224, 49, 49, 0.5);
+}
+.epicRiskRead {
+  color: #b2f2bb;
+  background: rgba(64, 192, 87, 0.12);
+  border: 1px solid rgba(64, 192, 87, 0.4);
+}
+
+/* The three colours above are pale tints chosen for a near-black surface. In light mode
+   they landed on a pale tint of the same hue and measured 1.13:1, 1.16:1 and 1.16:1, so
+   the badge that tells a reader a call can spend or destroy funds was effectively
+   invisible. Darkened foregrounds against the same composited backgrounds measure
+   6.28:1, 5.47:1 and 5.51:1. */
+[data-theme='light'] .epicRiskSpend {
+  color: #7a4a12;
+}
+[data-theme='light'] .epicRiskState {
+  color: #1b5f9f;
+}
+[data-theme='light'] .epicRiskSecret {
+  color: #76218c;
+}
+[data-theme='light'] .epicRiskDestructive {
+  color: #b02020;
+}
+[data-theme='light'] .epicRiskRead {
+  color: #237032;
+}
+
+/* Marks a claim we derived from source but could not confirm against a running node.
+   Phase 1 left roughly twenty of these and hiding them would repeat the old site's mistake. */
+.epicUnverified {
+  border-left: 3px solid var(--epic-gold-deep);
+  background: rgba(246, 212, 113, 0.06);
+  padding: 0.75rem 1rem;
+  margin: 1.25rem 0;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.93rem;
+}
+/* The gold left border alone does not tell a reader what the box means, so the
+   component prints a label. Uppercase and small to read as a tag. The dark value is
+   the same gold used for links (13.89:1 on the page, 13.5:1 on this tint); in light
+   mode the raw gold measures 2.92:1, so the border-and-link colour is used instead,
+   at 5.54:1. */
+.epicUnverifiedLabel {
+  display: block;
+  font-family: var(--epic-font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--epic-gold-light);
+  margin-bottom: 0.35rem;
+}
+.epicUnverifiedBody > :last-child,
+.epicUnverifiedSettles > :last-child {
+  margin-bottom: 0;
+}
+.epicUnverifiedSettles {
+  margin-top: 0.5rem;
+  color: var(--ifm-color-content-secondary);
+}
+[data-theme='light'] .epicUnverified {
+  border-left-color: var(--ifm-color-primary);
+}
+[data-theme='light'] .epicUnverifiedLabel {
+  color: var(--ifm-color-primary);
+}
+
+
+/* Source links to GitHub. Rendered as code so a path reads as a path, but clearly a link. */
+.epicSrc {
+  text-decoration: none;
+}
+.epicSrc code {
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
+}
+.epicSrc:hover {
+  text-decoration: none;
+}
+[data-theme='dark'] .epicSrc code {
+  color: #f6d471;
+  border-color: rgba(246, 212, 113, 0.35);
+}
+[data-theme='dark'] .epicSrc:hover code {
+  border-color: var(--epic-gold-deep);
+  background: rgba(246, 212, 113, 0.16);
+}
+.epicSrc::after {
+  content: '↗';
+  font-size: 0.7em;
+  vertical-align: super;
+  margin-left: 0.15em;
+  opacity: 0.6;
+}
+
+/* Language tabs sit directly on top of their code block, so remove the gap and
+   square off the joint between them. */
+.tabs-container {
+  margin-bottom: var(--ifm-leading);
+}
+.tabs-container .tabs {
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+.tabs__item {
+  font-family: var(--epic-font-ui);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px 6px 0 0;
+}
+[data-theme='dark'] .tabs__item--active {
+  background: rgba(246, 212, 113, 0.1);
+  border-bottom-color: var(--epic-gold-light);
+}
+
+/* Collapsible blocks used for long or optional code. */
+.markdown details {
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 8px;
+  background: var(--ifm-background-surface-color);
+}
+.markdown details > summary {
+  font-family: var(--epic-font-ui);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+[data-theme='dark'] .markdown details > summary:hover {
+  color: var(--epic-gold-light);
+}
+
+/* Hand-drawn protocol diagrams, src/components/Diagrams.js. These replaced the four Mermaid
+   diagrams and the swizzle that existed to give them a text fallback: the numbered list is now
+   the primary content and the SVG is aria-hidden decoration on top of it, so nothing is lost
+   without JavaScript and there is no layout shift while a chunk loads.
+
+   Colours are set here rather than in the JSX so light mode is a theme override rather than a
+   second copy of the geometry. Text floor is 4.5:1 and graphics 3:1, measured per pair. */
+.epicFigure {
+  margin: 1.75rem 0;
+  padding: 0;
+}
+/* Text present for assistive technology and absent visually. Used where an animated or
+   SVG rendering carries the same content and is therefore aria-hidden. */
+.epicSrOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+/* The footer byline. It was an inline style with opacity 0.35, which measured 1.67:1 in light
+   mode on 42 pages. Small, quiet and still readable is the goal, so the opacity is gone and the
+   colour is per theme. */
+.epicFooterBy {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: #8a8a8a;
+}
+[data-theme='light'] .epicFooterBy {
+  color: #5f5f5f;
+}
+.epicSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--epic-s2);
+  border: 1px solid var(--epic-line);
+}
+.epicFigure figcaption {
+  font-family: var(--epic-font-ui);
+  font-size: 0.85rem;
+  color: var(--ifm-color-content-secondary);
+  margin-top: 0.6rem;
+}
+.epicFigureSteps {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+.epicFigureSteps li {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr;
+  gap: 0.75rem;
+  align-items: baseline;
+  font-size: 0.95rem;
+}
+.epicFigureStepNum {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.75rem;
+  color: var(--ifm-color-primary);
+  border-top: 1px solid var(--epic-line-strong);
+  padding-top: 0.15rem;
+}
+
+/* SVG primitives, shared by both diagrams. */
+.epicSvg .epicParty rect {
+  fill: var(--epic-s3);
+  stroke: #6b686a;
+  stroke-width: 1;
+}
+.epicSvg .epicTick {
+  fill: none;
+  stroke: var(--epic-gold-deep);
+  stroke-width: 1.5;
+}
+.epicSvg .epicTrace {
+  fill: none;
+  stroke: var(--epic-gold-light);
+  stroke-width: 1.5;
+}
+.epicSvg .epicTraceDim {
+  fill: none;
+  stroke: #8a8a8a;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.epicSvg .epicTraceHead {
+  fill: #8a8a8a;
+  stroke: none;
+}
+.epicSvg .epicLifeline {
+  fill: none;
+  stroke: #6b686a;
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+.epicSvgLabel {
+  fill: var(--ifm-font-color-base);
+  font-family: var(--epic-font-ui);
+  font-size: 15px;
+  font-weight: 600;
+}
+.epicSvgSub {
+  fill: var(--ifm-color-content-secondary);
+  font-family: var(--epic-font-ui);
+  font-size: 12px;
+}
+.epicSvgStep {
+  fill: var(--ifm-color-primary);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 12px;
+}
+
+[data-theme='light'] .epicSvg .epicParty rect {
+  fill: #ffffff;
+  stroke: #8c8c8c;
+}
+[data-theme='light'] .epicSvg .epicTrace {
+  stroke: var(--ifm-color-primary);
+}
+[data-theme='light'] .epicSvg .epicTraceDim,
+[data-theme='light'] .epicSvg .epicLifeline {
+  stroke: #767676;
+}
+[data-theme='light'] .epicSvg .epicTraceHead {
+  fill: #767676;
+}
+
+.epicDiagram {
+  margin: 1.5rem 0;
+}
+
+/* Code block titles read as filenames, so give them a monospace treatment. */
+[data-theme='dark'] div[class^='codeBlockTitle'] {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+  color: var(--ifm-color-content-secondary);
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+
+
+/* ---------------------------------------------------------------------------
+   Admonition contrast.
+
+   The default dark-mode admonitions tint the background with the accent colour
+   and leave inline code, links and bold text at their global colours, which on a
+   coloured panel lands well under the 4.5:1 contrast floor. Worse, the global
+   gold `code` treatment further up this file is illegible on the amber warning
+   and red danger panels.
+
+   Fix: darken and desaturate the panels so they read as surfaces rather than as
+   colour washes, keep the accent on the left border and the heading only, and
+   give inline code inside a panel a neutral high-contrast treatment.
+   --------------------------------------------------------------------------- */
+
+[data-theme='dark'] .theme-admonition {
+  --ifm-alert-background-color: #14141a;
+  --ifm-alert-border-color: #3a3a46;
+  --ifm-alert-foreground-color: #f2eded;
+  background-color: var(--ifm-alert-background-color);
+  color: var(--ifm-alert-foreground-color);
+  border: 1px solid var(--ifm-alert-border-color);
+  border-left: 4px solid var(--ifm-alert-border-color);
+  box-shadow: none;
+}
+
+/* Heading row carries the colour. Body text stays near-white and readable. */
+[data-theme='dark'] .theme-admonition .admonitionHeading_Gvgb,
+[data-theme='dark'] .theme-admonition div[class*='admonitionHeading'] {
+  color: var(--ifm-alert-border-color);
+  text-transform: none;
+  font-family: var(--epic-font-ui);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+[data-theme='dark'] .theme-admonition-note,
+[data-theme='dark'] .theme-admonition-info,
+[data-theme='dark'] .theme-admonition-secondary {
+  --ifm-alert-border-color: #7aa2f7;
+  --ifm-alert-background-color: #12161f;
+}
+[data-theme='dark'] .theme-admonition-tip,
+[data-theme='dark'] .theme-admonition-success {
+  --ifm-alert-border-color: #8ad98a;
+  --ifm-alert-background-color: #101a12;
+}
+[data-theme='dark'] .theme-admonition-warning,
+[data-theme='dark'] .theme-admonition-caution {
+  --ifm-alert-border-color: #f0c274;
+  --ifm-alert-background-color: #1c170f;
+}
+[data-theme='dark'] .theme-admonition-danger {
+  --ifm-alert-border-color: #f08a8a;
+  --ifm-alert-background-color: #1d1213;
+}
+
+/* Inline code inside an admonition: neutral, not gold, so it reads on any panel. */
+[data-theme='dark'] .theme-admonition code {
+  color: #f2eded;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+/* Links inside an admonition take the panel's accent and stay underlined, so they
+   are distinguishable without relying on colour alone. */
+[data-theme='dark'] .theme-admonition a {
+  color: var(--ifm-alert-border-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+[data-theme='dark'] .theme-admonition a code {
+  color: var(--ifm-alert-border-color);
+}
+[data-theme='dark'] .theme-admonition strong {
+  color: #ffffff;
+}
+
+/* Tables and code blocks nested in admonitions need a surface that separates
+   from the panel rather than blending into it. */
+[data-theme='dark'] .theme-admonition pre,
+[data-theme='dark'] .theme-admonition div[class^='codeBlockContainer'] {
+  background-color: #08080a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+[data-theme='dark'] .theme-admonition table th,
+[data-theme='dark'] .theme-admonition table td {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+/* Light mode: the defaults are readable, but the same neutral code treatment
+   keeps the two themes consistent. */
+[data-theme='light'] .theme-admonition code {
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+[data-theme='light'] .theme-admonition a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   Hero animation: the interactive slate exchange.
+
+   Timeline, 9s loop:
+     0.0 - 2.6s   slate travels left to right, one half filled
+     2.6 - 3.4s   receiver pulses as it adds its half
+     3.4 - 6.0s   slate travels right to left, both halves filled
+     6.0 - 6.8s   sender pulses as it finalises
+     6.8 - 8.2s   chain bar fills
+     8.2 - 9.0s   hold, then reset
+
+   Honours prefers-reduced-motion by freezing the completed state, which is still
+   a readable diagram.
+   --------------------------------------------------------------------------- */
+
+.slateExchange {
+  width: 100%;
+  max-width: 620px;
+  margin: 2.5rem 0 0;
+}
+.slateExchange svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.seTrack {
+  /* Was 0.16 alpha, which composites to #302f30 and measures 1.50:1 against the #08080a
+     page: below the WCAG 2.2 1.4.11 3:1 floor for a graphic that carries meaning, and the
+     track is what shows the direction each round travels. 0.36 measures 3.16:1. */
+  stroke: rgba(255, 249, 249, 0.36);
+  stroke-width: 1.5;
+}
+
+.seParty rect {
+  fill: rgba(255, 249, 249, 0.03);
+  /* Was 0.18 alpha, 1.59:1. 0.4 measures 3.63:1. These outlines delimit the two
+     participants, so they are content, not decoration. */
+  stroke: rgba(255, 249, 249, 0.4);
+  stroke-width: 1;
+}
+.seLabel {
+  fill: #fff9f9;
+  font-family: var(--epic-font-ui);
+  font-size: 15px;
+  font-weight: 600;
+  text-anchor: middle;
+}
+.seSub {
+  fill: #7a7a7a;
+  font-family: var(--ifm-font-family-base);
+  font-size: 11px;
+  text-anchor: middle;
+}
+.seRound {
+  fill: #7a7a7a;
+  font-family: var(--epic-font-ui);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-anchor: middle;
+}
+
+.seSlate rect {
+  fill: #101010;
+  stroke: url(#epicGold);
+  stroke-width: 1.5;
+}
+.seDotEmpty {
+  fill: none;
+  stroke: rgba(246, 212, 113, 0.45);
+  stroke-width: 1.2;
+}
+.seDotFilled {
+  fill: #f6d471;
+}
+
+.seChainBar {
+  fill: url(#epicGold);
+  transform-origin: 235px 178px;
+}
+.seChainLabel {
+  fill: #7a7a7a;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .seSlateOut {
+    animation: seTravelOut 9s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+  .seSlateBack {
+    animation: seTravelBack 9s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+  .seParty:nth-of-type(2) rect {
+    animation: sePulse 9s ease-in-out infinite;
+    animation-delay: 2.6s;
+  }
+  .seParty:nth-of-type(1) rect {
+    animation: sePulse 9s ease-in-out infinite;
+    animation-delay: 6s;
+  }
+  .seChainBar {
+    animation: seFill 9s ease-out infinite;
+  }
+  .seChainLabel {
+    animation: seReveal 9s ease-out infinite;
+  }
+}
+
+@keyframes seTravelOut {
+  0% {
+    transform: translate(148px, 62px);
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  29% {
+    transform: translate(472px, 62px);
+    opacity: 1;
+  }
+  33%,
+  100% {
+    transform: translate(472px, 62px);
+    opacity: 0;
+  }
+}
+
+@keyframes seTravelBack {
+  0%,
+  37% {
+    transform: translate(472px, 104px);
+    opacity: 0;
+  }
+  41% {
+    transform: translate(472px, 104px);
+    opacity: 1;
+  }
+  67% {
+    transform: translate(148px, 104px);
+    opacity: 1;
+  }
+  72%,
+  100% {
+    transform: translate(148px, 104px);
+    opacity: 0;
+  }
+}
+
+@keyframes sePulse {
+  0%,
+  6%,
+  100% {
+    stroke: rgba(255, 249, 249, 0.4);
+    fill: rgba(255, 249, 249, 0.03);
+  }
+  2% {
+    stroke: #f6d471;
+    fill: rgba(246, 212, 113, 0.1);
+  }
+}
+
+@keyframes seFill {
+  0%,
+  75% {
+    transform: scaleX(0);
+    opacity: 0.35;
+  }
+  91% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+@keyframes seReveal {
+  0%,
+  75% {
+    opacity: 0;
+  }
+  91%,
+  97% {
+    opacity: 1;
+    fill: #f6d471;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Static, readable end state when motion is not wanted. */
+@media (prefers-reduced-motion: reduce) {
+  .seSlateOut {
+    transform: translate(280px, 62px);
+  }
+  .seSlateBack {
+    transform: translate(340px, 104px);
+  }
+  .seChainBar {
+    transform: scaleX(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .slateExchange {
+    margin-top: 1.75rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Light mode for the hero diagram.
+
+   Every colour above was authored for the near-black page. In light mode the
+   labels measured 1.04:1 (#fff9f9 on #ffffff) and the tracks, party boxes and
+   slate were drawn in near-white on white, so the whole diagram disappeared.
+   Since colorMode respects prefers-color-scheme, that is what a reader on a
+   light OS saw on the landing page.
+
+   Values below: seLabel 16.71:1, seSub and seRound 7.18:1. Non-text graphics (tracks,
+   party boxes, the slate outline) clear the WCAG 1.4.11 3:1 floor: black at 0.45 alpha
+   on white measures 3.36:1, and the slate outline and dots use #8f5e1f at 5.54:1 rather
+   than the gold gradient, which measures 1.44:1 to 2.92:1 on white.
+   --------------------------------------------------------------------------- */
+
+[data-theme='light'] .seTrack {
+  stroke: rgba(0, 0, 0, 0.45);
+}
+[data-theme='light'] .seParty rect {
+  fill: rgba(0, 0, 0, 0.02);
+  stroke: rgba(0, 0, 0, 0.45);
+}
+[data-theme='light'] .seLabel {
+  fill: #1c1e21;
+}
+[data-theme='light'] .seSub,
+[data-theme='light'] .seRound,
+[data-theme='light'] .seChainLabel {
+  fill: #525860;
+}
+[data-theme='light'] .seSlate rect {
+  fill: #ffffff;
+  stroke: #8f5e1f;
+}
+[data-theme='light'] .seDotEmpty {
+  stroke: #8f5e1f;
+}
+[data-theme='light'] .seDotFilled {
+  fill: #8f5e1f;
+}
+[data-theme='light'] .seChainBar {
+  fill: #8f5e1f;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-theme='light'] .seParty rect {
+    animation-name: sePulseLight;
+  }
+}
+@keyframes sePulseLight {
+  0%,
+  6%,
+  100% {
+    stroke: rgba(0, 0, 0, 0.45);
+    fill: rgba(0, 0, 0, 0.02);
+  }
+  2% {
+    stroke: #8f5e1f;
+    fill: rgba(143, 94, 31, 0.08);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Light-mode syntax highlighting contrast: moved, not deleted.
+
+   This block used to hold `[data-theme='light'] .token.comment { color: ... }` and
+   similar. Those rules never applied. prism-react-renderer writes token colours as
+   inline `style` attributes on each span, and an inline style beats a class selector,
+   so the failing colours shipped anyway: a browser pass with axe-core measured 1,110
+   contrast violations in light mode after this block was believed to have fixed them.
+
+   The corrections now live in src/data/prism-themes.js, which patches the theme object
+   the inline styles are generated from. Nothing about token colour belongs here.
+   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   Navbar search field.
+
+   The search theme renders Infima's stock input, and Infima's dark defaults are tuned
+   for its own mid-grey dark theme, not for a near-black one: measured in the browser,
+   the field came out #444950 on a #0c0c0f navbar, a light-grey pill floating in black
+   that reads as a foreign element rather than as this site's search. The placeholder
+   was #bec3c9, brighter than the navbar links beside it, so the empty state shouted
+   louder than the navigation.
+
+   Replaced with a field built from the site's own surfaces: a slightly lifted surface,
+   a hairline border so it reads as an input at rest, and the gold accent on focus.
+   --------------------------------------------------------------------------- */
+
+:root {
+  --ifm-navbar-search-input-background-color: #ffffff;
+  --ifm-navbar-search-input-color: #1c1e21;
+  /* 4.61:1 on white. Infima's default here is #bec3c9 at 1.92:1, which is not readable
+     text by any measure, and a placeholder is the label of an empty field. */
+  --ifm-navbar-search-input-placeholder-color: #6e747c;
+}
+
+[data-theme='dark'] {
+  --ifm-navbar-search-input-background-color: #17171b;
+  --ifm-navbar-search-input-color: #fff9f9;
+  /* 5.02:1 on #17171b. */
+  --ifm-navbar-search-input-placeholder-color: #8f8f8f;
+}
+
+.navbar__search-input {
+  border: 1px solid var(--ifm-toc-border-color);
+  transition: border-color var(--ifm-transition-fast), box-shadow var(--ifm-transition-fast);
+}
+.navbar__search-input:focus,
+.navbar__search-input:focus-visible {
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 0 0 1px var(--ifm-color-primary);
+  outline: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Search results dropdown.
+
+   Two defects, both found by driving the widget rather than reading its CSS.
+
+   1. The highlighted row. The plugin paints the active result with
+      --ifm-color-primary and defaults its text to --ifm-color-white. In dark mode the
+      primary is the gold accent, so the row a reader is about to press measured
+      #ffffff on #f6d471 = 1.44:1. The first result was the least readable thing on
+      the page.
+
+   2. The panel had no visible edge. Its background resolves to #08080a, the page
+      background, and its box-shadow is rgb(0,3,9), so on a dark page the dropdown had
+      no boundary and results appeared to float over the article text underneath.
+
+   Both are fixed through the plugin's own custom properties rather than by out-
+   specifying its selectors. That matters here: the rule setting the active row's colour
+   carries `!important` (SearchBar.module.css:210-219), so an override written as a
+   descendant selector loses no matter how specific it is. The variables are the
+   supported seam and they survive a plugin update.
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* Default is #969faf, which measures 2.66:1 on white. This is the breadcrumb telling a
+     reader which page a hit came from, so it is the most useful line in the row.
+     #5d6470 measures 5.24:1. */
+  --search-local-muted-color: #5d6470;
+  --search-local-highlight-color: var(--ifm-color-primary);
+}
+
+[data-theme='dark'] {
+  /* The active row's background is the gold accent in dark mode, so its text has to be
+     dark, not white. #08080a on #f6d471 measures 15.44:1. */
+  --search-local-hit-active-color: #08080a;
+  --search-local-muted-color: #9aa0a6;
+  --search-local-modal-background: #121215;
+  --search-local-modal-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+  --search-local-input-active-border-color: var(--ifm-color-primary);
+}
+
+[class*='dropdownMenu'] {
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 8px;
+}
+[data-theme='dark'] [class*='dropdownMenu'] {
+  background: #121215;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+}
+
+/* ---------------------------------------------------------------------------
+   Links inside prose carry an underline.
+
+   --ifm-link-decoration is none for this site, which is fine for navigation, cards and
+   the table of contents, where position and grouping already say "this is a link". In a
+   paragraph it is not fine: axe found 117 in-prose links in dark mode distinguished from
+   the surrounding text by colour alone, gold #f6d471 against off-white #fff9f9, a hue
+   difference measuring 1.38:1. WCAG 2.2 1.4.1 wants a non-colour signal, and anyone with
+   a red-green or blue-yellow deficiency loses the link entirely.
+
+   Scoped to article prose and the unverified callouts. Cards, source-link chips, heading
+   anchors and pagination are excluded: each already has a border, a background or a
+   layout role doing the same job. Thin, offset and drawn in a dimmed accent so a
+   paragraph with several links does not turn into a fence.
+   --------------------------------------------------------------------------- */
+
+.markdown a:not(.epicCard):not(.epicSrc):not(.hash-link):not([class*='card']),
+.epicUnverified a,
+.ixStepNote a,
+.ixConventions dd a,
+.ixFoot a,
+.ixLede a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.19em;
+  text-decoration-color: rgba(246, 212, 113, 0.55);
+}
+.markdown a:not(.epicCard):not(.epicSrc):not(.hash-link):not([class*='card']):hover,
+.epicUnverified a:hover,
+.ixStepNote a:hover,
+.ixConventions dd a:hover,
+.ixFoot a:hover,
+.ixLede a:hover {
+  text-decoration-color: currentColor;
+}
+[data-theme='light'] .markdown a:not(.epicCard):not(.epicSrc):not(.hash-link):not([class*='card']),
+[data-theme='light'] .epicUnverified a,
+[data-theme='light'] .ixStepNote a,
+[data-theme='light'] .ixConventions dd a,
+[data-theme='light'] .ixFoot a,
+[data-theme='light'] .ixLede a {
+  text-decoration-color: rgba(143, 94, 31, 0.55);
+}
+/* An anchor whose whole content is a code span already reads as a distinct object, and
+   underlining it fights the code background. */
+.markdown a > code:only-child {
+  text-decoration: none;
+}
+
+/* ---------------------------------------------------------------------------
+   The `namespace` token's dimming is handled in src/data/prism-themes.js, not here.
+
+   Prism dims namespaces with `opacity: 0.7`, which composites the corrected foreground
+   to #72736f on #f6f8fa and measures 4.48:1, missing AA by 0.02. It affects `[Convert]`,
+   `[Text.Encoding]` and `[char]` in the PowerShell examples, which a reader types exactly.
+
+   A `.token.namespace { opacity: 1 }` rule was tried here first and did nothing: like the
+   token colours, the opacity arrives as an inline style on the span, so no class selector
+   can reach it. Recorded so the same rule is not added again.
+   --------------------------------------------------------------------------- */
+
+
+
+
+
+/* ---------------------------------------------------------------------------
+   Language label on untitled code blocks.
+
+   Docusaurus renders a title bar only when the fence carries `title=`, which 37
+   of 172 blocks here do. The other 135 render as bare code with nothing naming
+   the language. That matters most on the guides, which give a bash command and a
+   powershell command one after another for the same task: this project has to
+   work on Windows as well as Linux, so a reader who cannot tell the two apart at
+   a glance runs the wrong one.
+
+   Titled blocks are excluded, because the title bar already occupies that row and
+   names the file, which is more specific than the language. `mermaid` is excluded
+   because it is a diagram, not something a reader copies.
+
+   `right: 3.2rem` clears the copy button. Uppercase and 0.68rem to read as a tag
+   rather than as content; secondary colour measures 5.80:1 dark and 7.18:1 light,
+   and `pointer-events: none` keeps it out of the way of text selection.
+   --------------------------------------------------------------------------- */
+
+div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle']))::before {
+  position: absolute;
+  top: 0.4rem;
+  right: 3.2rem;
+  z-index: 1;
+  font: 600 0.68rem/1 var(--epic-font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ifm-color-content-secondary);
+  pointer-events: none;
+  user-select: none;
+}
+div[class*='codeBlockContainer'][class*='language-bash']:not(:has(div[class^='codeBlockTitle']))::before {
+  content: 'bash';
+}
+div[class*='codeBlockContainer'][class*='language-powershell']:not(:has(div[class^='codeBlockTitle']))::before {
+  content: 'powershell';
+}
+div[class*='codeBlockContainer'][class*='language-python']:not(:has(div[class^='codeBlockTitle']))::before {
+  content: 'python';
+}
+div[class*='codeBlockContainer'][class*='language-js']:not(:has(div[class^='codeBlockTitle']))::before {
+  content: 'javascript';
+}
+div[class*='codeBlockContainer'][class*='language-json']:not(:has(div[class^='codeBlockTitle']))::before {
+  content: 'json';
+}
+div[class*='codeBlockContainer'][class*='language-rust']:not(:has(div[class^='codeBlockTitle']))::before {
+  content: 'rust';
+}
+div[class*='codeBlockContainer'][class*='language-toml']:not(:has(div[class^='codeBlockTitle']))::before {
+  content: 'toml';
+}
+div[class*='codeBlockContainer'][class*='language-nginx']:not(:has(div[class^='codeBlockTitle']))::before {
+  content: 'nginx';
+}
+
+/* The label is positioned against the container, which Infima does not position
+   by itself. Scoped to untitled blocks so nothing else shifts. */
+div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
+  position: relative;
+}
+
+
+/* ---------------------------------------------------------------------------
+   Mermaid edge labels.
+
+   Mermaid's dark theme paints the little "yes" / "no" labels on flowchart edges as
+   #cccccc on #585858, measured 4.43:1 in the browser against a 4.5:1 floor. They are
+   the labels that say which branch of the stuck-transfer flowchart a reader is on, so
+   they are content.
+
+   !important is needed and is not laziness: mermaid injects its own stylesheet inside
+   the SVG using an id selector (`#mermaid-1a2b .edgeLabel p`), which outranks anything
+   a normal stylesheet can say. The supported alternative, themeVariables, applies one
+   value to both colour modes, and this needs different values per mode.
+   --------------------------------------------------------------------------- */
+
+[data-theme='dark'] .edgeLabel,
+[data-theme='dark'] .edgeLabel p,
+[data-theme='dark'] .edgeLabel span {
+  /* #fff9f9 on #16161a measures 17.03:1. */
+  color: #fff9f9 !important;
+  background-color: #16161a !important;
+}
+[data-theme='light'] .edgeLabel,
+[data-theme='light'] .edgeLabel p,
+[data-theme='light'] .edgeLabel span {
+  /* #1c1e21 on #ffffff measures 16.71:1. */
+  color: #1c1e21 !important;
+  background-color: #ffffff !important;
+}
+
+
+
+/* ---------------------------------------------------------------------------
+   Developer journey.
+
+   The journey is a compact layer over the reference library, not a competing app shell.
+   Stage links remain ordinary anchors and every outcome remains visible without script.
+   --------------------------------------------------------------------------- */
+
+.journeyOverview,
+.journeyProgress,
+.journeyLifecycle {
+  margin: 2.25rem 0;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--ifm-toc-border-color);
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+.journeyOverview h2,
+.journeyProgress h2,
+.journeyLifecycle h2 {
+  font-size: 1.35rem;
+  margin: 0 0 0.55rem;
+}
+.journeyIntro,
+.journeyLifecycle > p {
+  max-width: 48rem;
+  color: var(--ifm-color-content-secondary);
+}
+.journeyStages {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+}
+.journeyStage {
+  display: grid;
+  grid-template-columns: 3.3rem minmax(0, 1fr);
+  gap: 0.85rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--ifm-toc-border-color);
+}
+.journeyStage:last-child {
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+.journeyNumber,
+.journeyProgressNumber {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--ifm-color-primary);
+}
+[data-theme='dark'] .journeyNumber,
+[data-theme='dark'] .journeyProgressNumber {
+  color: var(--epic-gold-light);
+}
+.journeyStageLink {
+  display: inline-block;
+  font-family: var(--epic-font-ui);
+  font-size: 1.04rem;
+  font-weight: 600;
+}
+.journeyStage p {
+  max-width: 48rem;
+  margin: 0.35rem 0 0;
+  color: var(--ifm-color-content-secondary);
+}
+.journeyProgress {
+  padding: 1.25rem;
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 8px;
+  background: var(--ifm-background-surface-color);
+}
+.journeyProgressHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.journeyProgressHeading p,
+.journeyProgressNote {
+  margin: 0;
+  color: var(--ifm-color-content-secondary);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+.journeyProgressControls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.journeyProgressControl,
+.journeyLifecycleControls button,
+.journeyReset {
+  font: inherit;
+  color: var(--ifm-font-color-base);
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+.journeyProgressControl {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.65rem 0.7rem;
+  text-align: left;
+}
+.journeyProgressControl[aria-pressed='true'],
+.journeyLifecycleControls button[aria-pressed='true'] {
+  border-color: var(--ifm-color-primary);
+  background: rgba(201, 138, 62, 0.1);
+}
+.journeyProgressControl:hover,
+.journeyLifecycleControls button:hover,
+.journeyReset:hover:not(:disabled) {
+  border-color: var(--ifm-color-primary);
+}
+.journeyProgressControl:focus-visible,
+.journeyLifecycleControls button:focus-visible,
+.journeyReset:focus-visible,
+.journeyNav a:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+.journeyReset {
+  flex: none;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.86rem;
+}
+.journeyReset:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.journeyNav {
+  margin: 2.5rem 0 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--ifm-toc-border-color);
+}
+.journeyNavContext {
+  display: grid;
+  grid-template-columns: 3.3rem minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+}
+.journeyNavContext strong,
+.journeyNavContext span {
+  display: block;
+}
+.journeyNavLabel {
+  margin-bottom: 0.15rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ifm-color-content-secondary);
+}
+.journeyNavContext strong {
+  font-family: var(--epic-font-ui);
+  font-size: 1rem;
+}
+.journeyNavContext strong + span {
+  max-width: 45rem;
+  margin-top: 0.3rem;
+  color: var(--ifm-color-content-secondary);
+  line-height: 1.5;
+}
+.journeyNavLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin: 1rem 0 0 4.15rem;
+}
+.journeyNavNext {
+  font-weight: 600;
+}
+.journeyLifecycleFigure {
+  margin: 1.25rem 0;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+  overflow-x: auto;
+}
+.journeyLifecycleTrack {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(7rem, 1fr));
+  min-width: 640px;
+  padding: 2rem 0 1.25rem;
+}
+.journeyLifecycleTrack::before {
+  content: '';
+  position: absolute;
+  top: 3.75rem;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: var(--ifm-toc-border-color);
+}
+.journeyLifecycleStage {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0 0.35rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ifm-color-content-secondary);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+.journeyLifecycleCircle {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 2px solid var(--ifm-color-content-secondary);
+  border-radius: 50%;
+  background: var(--ifm-background-surface-color);
+  color: var(--ifm-font-color-base);
+  font-family: var(--epic-font-ui);
+  font-size: 1rem;
+  font-weight: 600;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
+}
+.journeyLifecycleLabel {
+  font-family: var(--epic-font-ui);
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.journeyLifecycleStage:hover .journeyLifecycleCircle {
+  border-color: var(--ifm-color-primary);
+}
+.journeyLifecycleStage:focus-visible {
+  outline: none;
+}
+.journeyLifecycleStage:focus-visible .journeyLifecycleCircle {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 4px;
+}
+.journeyLifecycleStage[aria-pressed='true'] {
+  color: var(--ifm-color-primary);
+}
+.journeyLifecycleStage[aria-pressed='true'] .journeyLifecycleCircle {
+  border-color: var(--ifm-color-primary);
+  border-width: 3px;
+  background: rgba(201, 138, 62, 0.14);
+  color: var(--ifm-color-primary);
+}
+[data-theme='dark'] .journeyLifecycleStage[aria-pressed='true'],
+[data-theme='dark'] .journeyLifecycleStage[aria-pressed='true'] .journeyLifecycleCircle {
+  color: var(--epic-gold-light);
+}
+.journeyLifecycleFigure figcaption {
+  max-width: 46rem;
+  margin-top: 0.75rem;
+  line-height: 1.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journeyLifecycleCircle {
+    transition: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .journeyProgressHeading {
+    display: block;
+  }
+  .journeyReset {
+    margin-top: 0.8rem;
+  }
+  .journeyProgressControls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .journeyNavLinks {
+    margin-left: 0;
+  }
+}
+
+
+/* ---------------------------------------------------------------------------
+   Protocol scope: reading measure
+   ---------------------------------------------------------------------------
+   The largest single fix. Prose previously ran the full width of the content
+   column, which on a 1440px viewport is roughly double a comfortable measure
+   and is the loudest reason the old site read as a dated template.
+
+   Capped per element rather than on the container, because tables, code blocks,
+   figures, diagrams and admonitions legitimately need the full width and would
+   be crippled by a container cap. Headings get slightly more room than body
+   copy so a long title does not wrap earlier than the paragraph beneath it. */
+.markdown > p,
+.markdown > ul,
+.markdown > ol,
+.markdown > blockquote,
+.markdown > .epic-lede {
+  max-width: var(--epic-measure);
+}
+
+.markdown > h2,
+.markdown > h3,
+.markdown > h4 {
+  max-width: var(--epic-measure-wide);
+}
+
+/* Nested prose inside an admonition or a details block inherits the panel width,
+   which is already constrained, so it is not capped again here. */
+
+/* ---------------------------------------------------------------------------
+   Protocol scope: list markers
+   ---------------------------------------------------------------------------
+   Browser-default `1.` markers on primary content was one of the five dated
+   patterns identified in the audit.
+
+   Done with ::marker rather than `list-style: none` plus a ::before, which was
+   the first attempt. Removing list-style strips list semantics in WebKit, so a
+   screen reader stops announcing "list, 4 items" and the fix would have been
+   invisible to this harness because it only drives Chromium. ::marker keeps the
+   semantics intact in every engine, needs no padding gymnastics, and
+   decimal-leading-zero is a real list-style-type rather than generated content.
+
+   The tradeoff: ::marker accepts a narrow set of properties, so the numbers get
+   colour and font but cannot be repositioned. That is a fair price for not
+   breaking list announcement. */
+.markdown > ol {
+  list-style-type: decimal-leading-zero;
+}
+
+.markdown > ol > li::marker {
+  color: var(--epic-gold-deep);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.875em;
+  font-variant-numeric: tabular-nums;
+}
+
+.markdown > ol > li + li {
+  margin-top: 0.5rem;
+}
+
+/* Nested lists keep plain decimals: a second zero-padded level reads as noise. */
+.markdown ol ol {
+  list-style-type: decimal;
+}
+
+.markdown > ul > li::marker {
+  color: var(--epic-line-strong);
+}
+
+[data-theme='dark'] .markdown > ul > li::marker {
+  color: var(--ifm-color-content-secondary);
+}
+
+/* ---------------------------------------------------------------------------
+   Protocol scope: elevation
+   ---------------------------------------------------------------------------
+   Surfaces now sit at different depths. Depth comes from surface value and a
+   hairline, never from a drop shadow: a shadow may soften an object that
+   genuinely floats, but it is not what makes an object visible. */
+[data-theme='dark'] .card,
+[data-theme='dark'] .epicCard {
+  background: var(--epic-s1);
+  border-color: var(--epic-line);
+}
+
+[data-theme='dark'] .card:hover,
+[data-theme='dark'] .epicCard:hover {
+  background: var(--epic-s2);
+}
+
+/* ---------------------------------------------------------------------------
+   Protocol scope: entrance motion
+   ---------------------------------------------------------------------------
+   A short fade and rise, once, when the element enters the viewport. Applied by
+   adding .epic-reveal in markup; the .is-in class is set by an observer.
+
+   Under reduced motion the element is fully visible and fully operable rather
+   than merely un-animated, which is the distinction the harness checks. */
+.epic-reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 520ms var(--epic-ease),
+    transform 520ms var(--epic-ease);
+}
+
+.epic-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* No JavaScript, no observer, no reveal: content must never depend on script to
+   become visible. */
+.no-js .epic-reveal {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .epic-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Protocol scope: instrument devices
+   ---------------------------------------------------------------------------
+   Corner ticks mark an enclosure that genuinely is a separate object. Reserved
+   for code blocks, API method blocks and interactive demos. Never on a
+   paragraph, and never on an admonition, which uses a left rule instead. */
+.epic-ticked {
+  position: relative;
+}
+
+.epic-ticked::before,
+.epic-ticked::after {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--epic-gold-deep);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.epic-ticked::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.epic-ticked::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+
+/* A quiet monospace label for metadata. Replaces the uppercase letterspaced
+   monospace eyebrow, which was a dated pattern when used as a section opener but
+   is correct for what it is here: a small machine-readable field label. */
+.epic-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: var(--epic-t-micro);
+  letter-spacing: 0.03em;
+  color: var(--ifm-color-content-secondary);
+}
+
+.epic-meta b {
+  color: var(--epic-gold-deep);
+  font-weight: 500;
+}
+
+/* A gold rule followed by sentence-case text. This is the replacement for the
+   uppercase letterspaced monospace section eyebrow. */
+.epic-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--ifm-color-primary);
+  margin-bottom: 0.75rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.epic-eyebrow::before {
+  content: '';
+  width: 28px;
+  height: 1px;
+  background: currentColor;
+  flex: none;
+}
+
+
+/* ---------------------------------------------------------------------------
+   Protocol scope: documentation page furniture
+   ---------------------------------------------------------------------------
+   Geometry and structure only. Every colour decision above this point was
+   contrast-measured and is left untouched; what changes here is radii, rules,
+   weights and which things get an enclosure.
+
+   The rule being applied: a container must earn itself. Where a hairline and
+   spacing do the job there is no box. Where something genuinely is a separate
+   object with its own state, it gets an enclosure with corner ticks. */
+
+/* ---- Code blocks ---------------------------------------------------------
+   A code block is a separate object with a filename, a language and a copy
+   action, so it is one of the few things that earns an enclosure.
+
+   No corner ticks here, deliberately. `.theme-code-block` is the same element
+   as `codeBlockContainer`, whose ::before is already the language label further
+   up this file. Adding a tick to that pseudo-element does not stack with it, it
+   replaces its geometry: the label survived with its own higher-specificity
+   `content`, but inherited a 9px box and rendered as "BASH" stacked vertically
+   down the left edge, over the code.
+
+   The ticks were decoration and the language label is information, so the
+   ticks lose. They still appear where nothing competes for the pseudo-element:
+   the masthead panel, .ixCode, and any purpose-built enclosure. */
+.theme-code-block {
+  border-radius: 0;
+  border: 1px solid var(--epic-line);
+  box-shadow: none;
+}
+
+.theme-code-block pre,
+.theme-code-block div[class*='codeBlockContent'],
+.theme-code-block div[class*='codeBlockTitle'] {
+  border-radius: 0;
+}
+
+/* The title is a filename, so it is data and takes the monospace treatment. */
+.theme-code-block div[class*='codeBlockTitle'] {
+  border-bottom-color: var(--epic-line);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+/* ---- Tables --------------------------------------------------------------
+   Square, with a monospace header row. The scroll container and its focus ring
+   are handled earlier in this file and are not touched here. */
+.markdown table thead th {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.markdown table th,
+.markdown table td {
+  border-color: var(--epic-line);
+}
+
+.markdown table thead tr {
+  border-bottom-color: var(--epic-line-strong);
+}
+
+/* ---- Admonitions --------------------------------------------------------
+   Geometry only. Colours, including the dark-mode contrast overrides earlier in
+   this file, are deliberately left alone.
+
+   The full 1px border stays. The visual language calls for a left rule and no
+   box, but that pattern needs the panel fill to be distinguishable from the page
+   on its own, and on a #08080a background a #14141a panel is not. The earlier
+   accessibility pass added that border for exactly this reason and recorded it.
+   So the box is kept and squared off instead, which suits the instrument
+   geometry, and only the heavy 4px left edge is narrowed.
+
+   Note the selector: [data-theme='dark'] .theme-admonition outranks a bare
+   .theme-admonition, so the dark case has to be matched at the same specificity
+   or the declaration is silently dead. The first version of this block set
+   border widths to zero and had no effect at all in the default theme. */
+.theme-admonition {
+  --ifm-alert-border-radius: 0;
+  --ifm-alert-border-left-width: 2px;
+  --ifm-alert-shadow: none;
+}
+
+[data-theme='dark'] .theme-admonition {
+  border-left-width: 2px;
+  border-radius: 0;
+}
+
+/* The heading is the level label. Small, monospace, letterspaced: this is the
+   one job that treatment is right for. */
+.theme-admonition div[class*='admonitionHeading'] {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Infima ships a large icon in the heading. At this label size it dominates,
+   and the level is already stated in words, so it is reduced rather than
+   removed: removing it entirely would lose a non-text cue for readers who scan
+   by shape. */
+.theme-admonition div[class*='admonitionHeading'] svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-right: 0.4rem;
+}
+
+/* ---- Sidebar -----------------------------------------------------------
+   Current page marked with a left rule rather than a filled pill, so it reads
+   as position within a list. The active row's colour handling, which is
+   documented further up this file, is left alone. */
+.menu__link {
+  border-radius: 0;
+  border-left: 2px solid transparent;
+  font-size: 0.875rem;
+}
+
+.menu__link--active {
+  border-left-color: var(--ifm-color-primary);
+}
+
+.menu__list-item-collapsible {
+  border-radius: 0;
+}
+
+/* Nested items get a hairline spine, so depth is visible without counting
+   indentation. */
+.menu__list .menu__list {
+  margin-left: 0.75rem;
+  padding-left: 0.35rem;
+  border-left: 1px solid var(--epic-line);
+}
+
+/* ---- Table of contents -------------------------------------------------
+   The outer nav is Docusaurus's scroll container. Its enclosure and corner ticks use
+   borders and background gradients only: padding stays on the inner header/list so the
+   container keeps its native scroll geometry and never develops a second scrollbar. */
+.theme-doc-toc-desktop {
+  border: 1px solid var(--epic-line);
+  border-radius: 0;
+  background-color: var(--epic-s1);
+  background-image:
+    linear-gradient(var(--epic-gold-deep), var(--epic-gold-deep)),
+    linear-gradient(var(--epic-gold-deep), var(--epic-gold-deep)),
+    linear-gradient(var(--epic-gold-deep), var(--epic-gold-deep)),
+    linear-gradient(var(--epic-gold-deep), var(--epic-gold-deep));
+  background-position: left top, left top, right bottom, right bottom;
+  background-repeat: no-repeat;
+  background-size: 9px 1px, 1px 9px, 9px 1px, 1px 9px;
+  scrollbar-color: var(--epic-line-strong) transparent;
+}
+
+[data-theme='dark'] .theme-doc-toc-desktop {
+  background-color: rgba(16, 16, 20, 0.82);
+  border-color: var(--epic-line);
+}
+
+.epicTocHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.85rem 0.9rem 0.7rem;
+  border-bottom: 1px solid var(--epic-line);
+}
+
+.epicTocHeaderLabel,
+.epicTocCount {
+  font-family: var(--ifm-font-family-monospace);
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.epicTocHeaderLabel {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--ifm-color-content-secondary);
+}
+
+.epicTocCount {
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--epic-gold-deep);
+}
+
+@media (max-width: 1400px) {
+  .epicTocHeader {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.3rem;
+  }
+
+  .epicTocCount {
+    justify-self: start;
+  }
+}
+
+.table-of-contents {
+  font-size: 0.8125rem;
+  border-left-color: var(--epic-line);
+}
+
+.epicTocList.table-of-contents,
+.epicTocList > .table-of-contents {
+  margin: 0;
+  padding: 0.45rem 0.75rem 0.7rem;
+  border-left: 0;
+  background: transparent;
+}
+
+.table-of-contents__link {
+  display: block;
+  padding-left: 0.7rem;
+  margin-left: -0.7rem;
+  border-left: 2px solid transparent;
+}
+
+.epicTocList .table-of-contents__link {
+  margin: 0;
+  padding: 0.42rem 0.5rem 0.42rem 0.65rem;
+  border-left: 2px solid transparent;
+  font-family: var(--epic-font-ui);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--ifm-color-content-secondary);
+  transition:
+    color var(--epic-dur) var(--epic-ease),
+    background-color var(--epic-dur) var(--epic-ease),
+    border-color var(--epic-dur) var(--epic-ease);
+}
+
+.epicTocList .table-of-contents__link:hover {
+  color: var(--ifm-font-color-base);
+  background-color: rgba(201, 138, 62, 0.04);
+  text-decoration: none;
+}
+
+.table-of-contents__link--active,
+.epicTocList .table-of-contents__link--active {
+  border-left-color: var(--ifm-color-primary);
+}
+
+[data-theme='dark'] .epicTocList .table-of-contents__link--active {
+  color: var(--epic-gold-light);
+  border-left-color: var(--epic-gold-deep);
+  background-color: rgba(201, 138, 62, 0.07);
+}
+
+.epicTocList > li:not(:last-child),
+.epicTocList > .table-of-contents > li:not(:last-child) {
+  border-bottom: 1px solid var(--epic-line);
+}
+
+.epicTocList .table-of-contents .table-of-contents {
+  margin: 0.1rem 0 0.25rem 0.65rem;
+  padding-left: 0.45rem;
+  border-left: 1px solid var(--epic-line);
+}
+
+/* ---- Breadcrumbs -------------------------------------------------------
+   Breadcrumbs are a location readout, so monospace, and square rather than
+   the Infima default pill. The active-item contrast fix documented earlier in
+   this file still applies. */
+.breadcrumbs__item {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
+.breadcrumbs__link {
+  border-radius: 0;
+}
+
+/* ---- Pagination -------------------------------------------------------- */
+.pagination-nav__link {
+  border-radius: 0;
+  border-color: var(--epic-line);
+  transition: border-color var(--epic-dur) var(--epic-ease);
+}
+
+.pagination-nav__link:hover {
+  border-color: var(--epic-gold-deep);
+}
+
+.pagination-nav__sublabel {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ifm-color-content-secondary);
+}
+
+.pagination-nav__label {
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+/* ---- Cards ------------------------------------------------------------- */
+.card,
+.epicCard {
+  border-radius: 0;
+}
+
+/* ---- Details / disclosure --------------------------------------------- */
+.markdown details {
+  border-radius: 0;
+  border-color: var(--epic-line);
+}
+
+/* ---- Tabs -------------------------------------------------------------
+   Underline rather than pill, matching the language tabs in the reference
+   implementation. */
+.tabs__item {
+  border-radius: 0;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8125rem;
+  padding: 0.5rem 0.9rem;
+}
+
+
+/* ---------------------------------------------------------------------------
+   Protocol scope: page backgrounds
+   ---------------------------------------------------------------------------
+   The measurement grid is a masthead device on the landing page only. It was
+   briefly global, and site-wide it was too much: a 56px lattice behind every
+   line of reference prose competes with the text it sits under, and it turns a
+   substrate into wallpaper. See .ixGrid in index-page.css for the surviving use.
+
+   Documentation pages get depth without pattern instead. A faint lift at the top
+   of the reading column and a warm bloom off its leading edge, both fading out
+   before the prose gets going. No lattice, no noise, no repeat: the only job is
+   to stop the page reading as one flat fill, and a gradient does that without
+   putting anything behind the words.
+
+   Deliberately not applied to the sidebar or the table of contents. Those are
+   navigation surfaces where a reader scans for a target, and any texture behind
+   a dense link list costs more than it gives. Because this is drawn inside the
+   markdown container it cannot reach them, and they are pinned to the page
+   background below to keep that true if the markup ever moves. */
+html[class*='docs-doc-page'] .theme-doc-markdown {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Warm bloom off the leading edge of the reading column. Large, soft and
+   asymmetric, so the top of a page has a light source rather than being an even
+   fill. Values are well above the first attempt, which was so cautious it was
+   invisible: an effect nobody notices is cost with no benefit. */
+html[class*='docs-doc-page'] .theme-doc-markdown::before {
+  content: '';
+  position: absolute;
+  inset-inline: -4rem;
+  top: -3rem;
+  height: 30rem;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(70% 90% at 4% 0%, rgba(246, 212, 113, 0.14) 0%, transparent 62%),
+    radial-gradient(90% 70% at 78% 6%, rgba(201, 138, 62, 0.07) 0%, transparent 58%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 38%, transparent 92%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 38%, transparent 92%);
+}
+
+html[data-theme='light'][class*='docs-doc-page'] .theme-doc-markdown::before {
+  background-image:
+    radial-gradient(70% 90% at 4% 0%, rgba(143, 94, 31, 0.1) 0%, transparent 62%),
+    radial-gradient(90% 70% at 78% 6%, rgba(143, 94, 31, 0.05) 0%, transparent 58%);
+}
+
+/* A page-wide wash, no pattern. Top of the document sits a shade above the base
+   colour and settles into it, which stops a long reference page reading as one
+   flat slab without putting anything behind the words. */
+body {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 249, 249, 0.032) 0rem,
+    rgba(255, 249, 249, 0) 40rem
+  );
+  background-repeat: no-repeat;
+}
+
+[data-theme='light'] body {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(28, 30, 33, 0.035) 0rem,
+    rgba(28, 30, 33, 0) 40rem
+  );
+}
+
+/* Gradient hairline under the navbar. The flat 1px rule was correct and dull;
+   a rule that carries the accent for part of its length and fades out gives the
+   top of every page one deliberate mark.
+
+   position must stay sticky, not relative. Docusaurus makes the navbar sticky through
+   .navbar--fixed-top, and a later `.navbar { position: relative }` here silently beat it on
+   equal specificity, so the navbar scrolled away on every page. Sticky still establishes the
+   containing block the ::after needs. */
+.navbar {
+  position: sticky;
+  top: 0;
+}
+
+.navbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  pointer-events: none;
+  background-image: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--epic-gold-deep) 14%,
+    rgba(201, 138, 62, 0.35) 42%,
+    transparent 72%
+  );
+}
+
+/* Section rules fade out rather than running the full width. Same structural job,
+   noticeably less institutional. Matched at the specificity of the dark-mode rule
+   earlier in this file, which sets border-bottom and would otherwise win. */
+[data-theme='dark'] .markdown > h2,
+[data-theme='light'] .markdown > h2 {
+  border-bottom: none;
+  padding-bottom: 0.45rem;
+  background-image: linear-gradient(
+    to right,
+    var(--epic-line-strong) 0%,
+    var(--epic-line) 38%,
+    transparent 88%
+  );
+  background-size: 100% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+}
+
+/* Navigation surfaces stay flat, on purpose. These are surfaces a reader scans
+   for a target, and texture behind a dense link list costs more than it gives.
+   The page wash is cancelled here rather than merely not added, because body
+   paints behind them. */
+.theme-doc-sidebar-container,
+.table-of-contents {
+  background-image: none;
+  background-color: var(--ifm-background-color);
+}
+
+.epicTocHeaderLabel {
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+   Protocol scope: route classes
+   ---------------------------------------------------------------------------
+   Docusaurus server-renders a route identifier onto <html>, for example
+   `docs-doc-id-concepts/mimblewimble`. That means route class can be decided in
+   CSS alone: no config change, no client module, no JavaScript, and no flash
+   between first paint and hydration, which a JS-set class would have.
+
+   Nothing keys off these for background any more, since documentation pages now
+   share one treatment. They are kept because the distinction is still real for
+   anything with progression to show, which is where waypoint markers and trail
+   rails will attach: narrative routes are read start to finish, lookup routes
+   are scanned by someone who wants one parameter.
+
+   Adding a section: add its prefix here. Anything not listed is a lookup route
+   by default, which is the safe direction to fail in. */
+html[class*='docs-doc-id-concepts/'],
+html[class*='docs-doc-id-guides/'],
+html[class*='docs-doc-id-examples/'],
+.epic-narrative {
+  --epic-narrative: 1;
+}
+
+/* Contour terrain removed. It was scoped to narrative routes and it was the wrong
+   answer: documentation pages now share one background treatment, a gradient lift
+   with no pattern, which is defined above. Terrain survives in the reference
+   implementation at epic-devdocs/mockups/b.css if it is ever wanted for a
+   landing-style page, where there is no prose directly on top of it. */
+
+
+/* ---------------------------------------------------------------------------
+   Protocol scope: navbar fit
+   ---------------------------------------------------------------------------
+   Observed at 1280px: the brand collapsed to "Epic ..." and "Config & CLI"
+   wrapped onto two lines, leaving a ragged gap before "Mining".
+
+   Cause is additive rather than a single mistake. There are eight navbar items
+   plus a brand, a theme toggle and a search field, and switching the brand to
+   Montserrat made it wider than the system stack it replaced. Flex then did what
+   it is supposed to: shrank the brand until it ellipsised, and let a two-word
+   label wrap.
+
+   Fixed by giving the row room rather than by removing an item, since which
+   sections appear in the navbar is a content decision and not mine to make. */
+.navbar__brand {
+  flex: none;
+}
+
+.navbar__title {
+  /* Docusaurus truncates this when the row runs out of space. With the brand no
+     longer shrinking there is nothing to truncate. */
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* A navbar label is one item, so it never breaks across lines. */
+.navbar__item,
+.navbar__link {
+  white-space: nowrap;
+}
+
+/* Tighter than the Infima default of 0.75rem. Eight items times two sides is
+   3rem of horizontal padding recovered, which is more than the overflow. */
+.navbar__items .navbar__item {
+  padding-inline: 0.55rem;
+}
+
+/* Last resort at widths where even the tightened row does not fit: scroll the
+   items rather than wrap or clip them. The fade tells the reader there is more,
+   so a cut-off label reads as "more this way" rather than as a rendering fault. */
+.navbar__items:not(.navbar__items--right) {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 20px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 20px), transparent 100%);
+}
+
+.navbar__items:not(.navbar__items--right)::-webkit-scrollbar {
+  display: none;
+}
+
+
+
+
+/* ---------------------------------------------------------------------------
+   Navbar search: instrument-field treatment.
+   Recovered from prior session 2026-08-23.
+   --------------------------------------------------------------------------- */
+
+.navbar__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.navbar__search-input {
+  width: 8.5rem;
+  height: 2.25rem;
+  padding: 0 0.75rem 0 2.15rem;
+  border-radius: 4px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%238f8f8f' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0.72rem center;
+  background-size: 0.85rem;
+  box-shadow: none;
+  transition: width 180ms var(--epic-ease, ease), border-color var(--ifm-transition-fast),
+    background-color var(--ifm-transition-fast);
+}
+.navbar__search-input:focus,
+.navbar__search-input:focus-visible {
+  width: 10rem;
+}
+@media (max-width: 996px) {
+  .navbar__toggle {
+    margin-right: 0.9rem;
+  }
+  .navbar__search {
+    position: relative;
+    right: auto;
+    margin-left: auto;
+  }
+  .navbar__search-input {
+    width: 5.5rem;
+    font-size: 0.78rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navbar__search-input {
+    transition: none;
+  }
+}
+
+/* Borderless glass treatment. */
+.navbar__search-input,
+.navbar__search-input:hover,
+.navbar__search-input:focus,
+.navbar__search-input:focus-visible {
+  border: 0;
+  box-shadow: none;
+}
+.navbar__search-input {
+  background-color: transparent;
+}
+.navbar__search-input:focus,
+.navbar__search-input:focus-visible {
+  background-color: color-mix(in srgb, var(--ifm-navbar-search-input-background-color) 42%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--epic-gold-deep) 42%, transparent);
+  outline-offset: 1px;
+}
+
+/* Refined: translucent instrument surface in dark mode. */
+.navbar__search-input,
+.navbar__search-input:hover {
+  border: 1px solid rgba(255, 249, 249, 0.1);
+  background-color: rgba(255, 249, 249, 0.025);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.navbar__search-input:focus,
+.navbar__search-input:focus-visible {
+  border: 1px solid rgba(246, 212, 113, 0.36);
+  background-color: rgba(246, 212, 113, 0.055);
+  box-shadow: 0 0 0 1px rgba(246, 212, 113, 0.08);
+  outline: none;
+}
+@media (min-width: 997px) and (max-width: 1200px) {
+  .navbar__search-input,
+  .navbar__search-input:focus,
+  .navbar__search-input:focus-visible {
+    width: 7.5rem;
+  }
+}
+@media (max-width: 996px) {
+  .navbar__search,
+  .navbar__search:focus-within {
+    flex: 0 0 5.5rem;
+    max-width: 5.5rem;
+  }
+  .navbar__search-input,
+  .navbar__search-input:focus,
+  .navbar__search-input:focus-visible {
+    width: 100% !important;
+    max-width: 100%;
+    border-color: rgba(246, 212, 113, 0.22) !important;
+    box-shadow: 0 0 0 1px rgba(246, 212, 113, 0.045) !important;
+    outline: none !important;
+  }
+  /* The rule above deliberately equalises width on mobile, but it also equalised the border and
+     the ring, so a focused search input looked exactly like an unfocused one. npm run keyboard
+     catches that as "looks identical focused and unfocused", and it was right. Focus needs its
+     own values, after the shared rule so it wins. */
+  .navbar__search-input:focus,
+  .navbar__search-input:focus-visible {
+    border-color: var(--ifm-color-primary) !important;
+    box-shadow: 0 0 0 2px rgba(246, 212, 113, 0.35) !important;
+  }
+}
+
+
+/* ===========================================================================
+   LIGHT MODE — complete rewrite 2026-08-23
+   ===========================================================================
+   Design decisions:
+   - Base is warm off-white #faf9f7 (cream warmth matching dark mode's #fff9f9
+     text). Pure #ffffff reads clinical; the warmth connects the two themes.
+   - Surfaces step DARKER as they lift (per visual-language.md). Four levels:
+     s1 #faf9f7, s2 #f3f2ef, s3 #eae8e4, s4 #dfdcd7.
+   - Body text #1c1e21 measures 16.71:1 on base. Secondary #525860 at 7.18:1.
+   - Gold accent is #8f5e1f (already in :root), measuring 5.54:1 on base.
+   - Corner ticks use the accessible gold, not the bright gradient.
+   - Lines are warm grey, not cool Infima defaults.
+   =========================================================================== */
+
+[data-theme='light'] {
+  --ifm-background-color: #faf9f7;
+  --ifm-background-surface-color: #f3f2ef;
+  --ifm-font-color-base: #1c1e21;
+  --ifm-heading-color: #1c1e21;
+  --ifm-color-content-secondary: #525860;
+  --ifm-toc-border-color: #ddd9d3;
+  --ifm-table-stripe-background: rgba(0, 0, 0, 0.025);
+  --ifm-code-background: rgba(143, 94, 31, 0.06);
+  --docusaurus-highlighted-code-line-bg: rgba(143, 94, 31, 0.08);
+  --epic-s1: #faf9f7;
+  --epic-s2: #f3f2ef;
+  --epic-s3: #eae8e4;
+  --epic-s4: #dfdcd7;
+  --epic-line: #ddd9d3;
+  --epic-line-strong: #c4bfb8;
+}
+
+[data-theme='light'] .navbar {
+  background-color: #faf9f7;
+  border-bottom-color: var(--epic-line);
+}
+[data-theme='light'] .navbar::after {
+  background-image: linear-gradient(
+    to right, transparent 0%, #8f5e1f 14%, rgba(143, 94, 31, 0.35) 42%, transparent 72%
+  );
+}
+
+/* Light search */
+[data-theme='light'] .navbar__search-input,
+[data-theme='light'] .navbar__search-input:hover {
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  background-color: rgba(0, 0, 0, 0.025) !important;
+  color: #1c1e21;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+[data-theme='light'] .navbar__search-input:focus,
+[data-theme='light'] .navbar__search-input:focus-visible {
+  border: 1px solid rgba(143, 94, 31, 0.5) !important;
+  background-color: rgba(143, 94, 31, 0.04) !important;
+  box-shadow: 0 0 0 1px rgba(143, 94, 31, 0.12) !important;
+  outline: none !important;
+}
+
+/* Light sidebar */
+[data-theme='light'] .theme-doc-sidebar-container {
+  background-color: #faf9f7;
+  border-right: 1px solid var(--epic-line);
+}
+[data-theme='light'] .menu__link--active {
+  border-left-color: #8f5e1f;
+  color: #8f5e1f;
+  font-weight: 600;
+}
+[data-theme='light'] .menu__link:hover { color: #6b4518; }
+[data-theme='light'] .menu__list .menu__list { border-left-color: var(--epic-line); }
+
+/* Light TOC */
+[data-theme='light'] .theme-doc-toc-desktop {
+  border-color: var(--epic-line);
+  background: #f7f6f3;
+}
+[data-theme='light'] .theme-doc-toc-desktop::before,
+[data-theme='light'] .theme-doc-toc-desktop::after { border-color: #8f5e1f; }
+[data-theme='light'] .epicTocHeader { border-bottom-color: var(--epic-line); }
+[data-theme='light'] .epicTocCount { color: #8f5e1f; }
+[data-theme='light'] .epicTocList .table-of-contents__link { color: var(--ifm-color-content-secondary); }
+[data-theme='light'] .epicTocList .table-of-contents__link:hover {
+  color: #1c1e21; background: rgba(143, 94, 31, 0.04);
+}
+[data-theme='light'] .epicTocList .table-of-contents__link--active {
+  color: #8f5e1f; border-left-color: #8f5e1f; background: rgba(143, 94, 31, 0.06);
+}
+[data-theme='light'] .epicTocList > .table-of-contents > li:not(:last-child) { border-bottom-color: var(--epic-line); }
+[data-theme='light'] .epicTocList .table-of-contents .table-of-contents { border-left-color: var(--epic-line); }
+[data-theme='light'] .epicTocList { scrollbar-color: var(--epic-line-strong) transparent; }
+
+/* Light code blocks */
+[data-theme='light'] .theme-code-block { border-color: var(--epic-line); background: #f5f4f1; }
+[data-theme='light'] .theme-code-block pre { background: #f5f4f1; }
+[data-theme='light'] .theme-code-block div[class*='codeBlockTitle'] {
+  color: var(--ifm-color-content-secondary); background: #edecea; border-bottom-color: var(--epic-line);
+}
+[data-theme='light'] code { color: #6b4518; background: rgba(143, 94, 31, 0.06); border: 1px solid rgba(143, 94, 31, 0.15); }
+
+/* Light cards */
+[data-theme='light'] .epicCard, [data-theme='light'] .card { background: #f7f6f3; border-color: var(--epic-line); }
+[data-theme='light'] .epicCard:hover, [data-theme='light'] .card:hover { border-color: #8f5e1f; background: rgba(143, 94, 31, 0.035); }
+
+/* Light details */
+[data-theme='light'] .markdown details { background: #f7f6f3; border-color: var(--epic-line); }
+[data-theme='light'] .markdown details::before, [data-theme='light'] .markdown details::after { border-color: #8f5e1f; }
+[data-theme='light'] .markdown details > summary:hover { color: #8f5e1f; }
+
+/* Light diagram source */
+[data-theme='light'] .epicDiagramSource { background: #f7f6f3; border-color: var(--epic-line); }
+[data-theme='light'] .epicDiagramSource::before, [data-theme='light'] .epicDiagramSource::after { border-color: #8f5e1f; }
+
+/* Light admonitions */
+[data-theme='light'] .theme-admonition {
+  background-color: #f7f6f3; color: #1c1e21; border: 1px solid var(--epic-line); border-left-width: 2px; box-shadow: none;
+}
+[data-theme='light'] .theme-admonition-note, [data-theme='light'] .theme-admonition-info,
+[data-theme='light'] .theme-admonition-secondary { --ifm-alert-border-color: #2b6cb0; border-left-color: #2b6cb0; }
+[data-theme='light'] .theme-admonition-tip, [data-theme='light'] .theme-admonition-success { --ifm-alert-border-color: #237032; border-left-color: #237032; }
+[data-theme='light'] .theme-admonition-warning, [data-theme='light'] .theme-admonition-caution { --ifm-alert-border-color: #8f5e1f; border-left-color: #8f5e1f; }
+[data-theme='light'] .theme-admonition-danger { --ifm-alert-border-color: #b02020; border-left-color: #b02020; }
+[data-theme='light'] .theme-admonition div[class*='admonitionHeading'] { color: var(--ifm-alert-border-color); }
+[data-theme='light'] .theme-admonition strong { color: #1c1e21; }
+[data-theme='light'] .theme-admonition code { color: #1c1e21; background: rgba(0, 0, 0, 0.05); border: 1px solid rgba(0, 0, 0, 0.1); }
+[data-theme='light'] .theme-admonition a { color: var(--ifm-alert-border-color); text-decoration: underline; text-underline-offset: 2px; }
+[data-theme='light'] .theme-admonition pre,
+[data-theme='light'] .theme-admonition div[class^='codeBlockContainer'] { background-color: #faf9f7; border: 1px solid var(--epic-line); }
+
+/* Light source links */
+[data-theme='light'] .epicSrc code { color: #8f5e1f; border-color: rgba(143, 94, 31, 0.3); }
+[data-theme='light'] .epicSrc:hover code { border-color: #8f5e1f; background: rgba(143, 94, 31, 0.06); }
+
+/* Light tabs */
+[data-theme='light'] .tabs-container .tabs { border-bottom-color: var(--epic-line); }
+[data-theme='light'] .tabs__item--active { background: rgba(143, 94, 31, 0.07); border-bottom-color: #8f5e1f; color: #8f5e1f; }
+
+/* Light footer */
+[data-theme='light'] .footer { background: #f0eeeb; border-top: 1px solid var(--epic-line); color: #525860; }
+[data-theme='light'] .footer__title { color: #1c1e21; }
+[data-theme='light'] .footer__link-item { color: #525860; }
+[data-theme='light'] .footer__link-item:hover { color: #8f5e1f; }
+
+/* Light pagination */
+[data-theme='light'] .pagination-nav__link { border-color: var(--epic-line); }
+[data-theme='light'] .pagination-nav__link:hover { border-color: #8f5e1f; }
+
+/* Light breadcrumbs */
+[data-theme='light'] .breadcrumbs__link { color: var(--ifm-color-content-secondary); }
+[data-theme='light'] .breadcrumbs__item--active .breadcrumbs__link { color: #1c1e21; }
+
+/* Light journey progress */
+[data-theme='light'] .journeyProgress { background: #f7f6f3; border-color: var(--epic-line); }
+[data-theme='light'] .journeyProgress::before, [data-theme='light'] .journeyProgress::after { border-color: #8f5e1f; }
+
+/* Light instrument ticks */
+[data-theme='light'] .epic-ticked::before, [data-theme='light'] .epic-ticked::after { border-color: #8f5e1f; }
+
+/* Light list markers */
+[data-theme='light'] .markdown > ol > li::marker { color: #8f5e1f; }
+[data-theme='light'] .markdown > ul > li::marker { color: var(--epic-line-strong); }
+
+/* Light section rule */
+[data-theme='light'] .markdown > h2 {
+  background-image: linear-gradient(to right, var(--epic-line-strong) 0%, var(--epic-line) 38%, transparent 88%);
+}
+
+/* Light prose links */
+[data-theme='light'] .markdown a:not(.epicCard):not(.epicSrc):not(.hash-link):not([class*='card']) { color: #7a4a12; }
+[data-theme='light'] .markdown a:not(.epicCard):not(.epicSrc):not(.hash-link):not([class*='card']):hover { color: #5c3610; }
+
+/* Light meta/eyebrow */
+[data-theme='light'] .epic-meta b { color: #8f5e1f; }
+
+/* Light search dropdown */
+[data-theme='light'] [class*='dropdownMenu'] { border-color: var(--epic-line); background: #ffffff; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08); }
+
+/* Light journey lifecycle */
+[data-theme='light'] .journeyLifecycleNode.isActive circle { fill: rgba(143, 94, 31, 0.08); stroke: #8f5e1f; }
+[data-theme='light'] .journeyLifecycleNode.isActive text { fill: #8f5e1f; }
+
+/* Light doc page background wash */
+[data-theme='light'] html[class*='docs-doc-page'] .main-wrapper::before {
+  background-image: radial-gradient(55% 72% at 28% 0%, rgba(143, 94, 31, 0.04) 0%, transparent 68%),
+    radial-gradient(48% 62% at 78% 4%, rgba(143, 94, 31, 0.02) 0%, transparent 72%);
+}
+
+/* Light mobile search */
+@media (max-width: 996px) {
+  [data-theme='light'] .navbar__search-input {
+    border-color: rgba(143, 94, 31, 0.3) !important;
+    box-shadow: none !important;
+  }
+  /* Same defect as the dark mobile block: focus needs to look different from rest. */
+  [data-theme='light'] .navbar__search-input:focus,
+  [data-theme='light'] .navbar__search-input:focus-visible {
+    border-color: var(--ifm-color-primary) !important;
+    box-shadow: 0 0 0 2px rgba(143, 94, 31, 0.25) !important;
+  }
+}
+
+
+/* ===========================================================================
+   JSON-RPC reference blocks and the request console, src/components/Rpc.js.
+
+   Lookup-surface rules apply: one strict shape per method, repeated without variation, no
+   entrance motion, square geometry. Corner ticks mark each method because a method genuinely is
+   a separate object, which is what that device is reserved for.
+   =========================================================================== */
+
+.epicRpcContext {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1.25rem;
+  margin: 0 0 2.5rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--epic-line);
+  background: var(--epic-s2);
+  font-size: 0.9rem;
+}
+.epicRpcContext dt,
+.epicRpcMeta dt {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ifm-color-content-secondary);
+  align-self: baseline;
+}
+.epicRpcContext dd,
+.epicRpcMeta dd {
+  margin: 0;
+}
+
+.epicRpcMethod {
+  position: relative;
+  margin: 0 0 3rem;
+  padding: 1.25rem 1.25rem 1.5rem;
+  border: 1px solid var(--epic-line);
+  background: var(--epic-s1);
+  scroll-margin-top: 5rem;
+}
+/* Corner ticks. Checked first that neither pseudo-element is already carrying geometry here. */
+.epicRpcMethod::before,
+.epicRpcMethod::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: var(--epic-gold-deep);
+  border-style: solid;
+  pointer-events: none;
+}
+.epicRpcMethod::before {
+  top: -1px;
+  left: -1px;
+  border-width: 1px 0 0 1px;
+}
+.epicRpcMethod::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 1px 1px 0;
+}
+
+.epicRpcHead {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.epicRpcName {
+  margin: 0;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 1.05rem;
+}
+.epicRpcName a {
+  color: var(--ifm-font-color-base);
+  text-decoration: none;
+}
+.epicRpcName a:hover {
+  color: var(--ifm-color-primary);
+}
+.epicRiskBadge {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid currentcolor;
+}
+.epicRpcSummary {
+  margin: 0.6rem 0 0;
+  max-width: var(--epic-measure);
+}
+.epicRpcRiskNote {
+  margin: 0.5rem 0 0;
+  padding-left: 0.7rem;
+  border-left: 2px solid var(--epic-gold-deep);
+  font-size: 0.92rem;
+  max-width: var(--epic-measure);
+}
+.epicRpcMeta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1.25rem;
+  margin: 1.1rem 0 0;
+  font-size: 0.88rem;
+}
+.epicRpcNotes {
+  margin: 1rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.92rem;
+  max-width: var(--epic-measure);
+}
+.epicRpcNotes li {
+  margin: 0.3rem 0;
+}
+.epicRpcSrc {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.82rem;
+}
+
+.epicRpcConsole {
+  margin-top: 1.4rem;
+  border-top: 1px solid var(--epic-line);
+  padding-top: 1.2rem;
+}
+.epicRpcParams {
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem 0.4rem;
+  border: 1px solid var(--epic-line);
+  background: var(--epic-s2);
+}
+.epicRpcParams legend {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ifm-color-content-secondary);
+  padding: 0 0.4rem;
+}
+.epicRpcParam {
+  margin-bottom: 0.9rem;
+}
+.epicRpcParam label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+.epicRpcParamName {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.9rem;
+  color: var(--ifm-font-color-base);
+}
+.epicRpcParamType {
+  font-size: 0.76rem;
+  color: var(--ifm-color-content-secondary);
+}
+.epicRpcParamReq {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ifm-color-primary);
+}
+.epicRpcInput {
+  width: 100%;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.88rem;
+  padding: 0.4rem 0.55rem;
+  color: var(--ifm-font-color-base);
+  background: var(--ifm-background-color);
+  border: 1px solid var(--epic-line-strong);
+  border-radius: 0;
+}
+.epicRpcInput:focus,
+.epicRpcInput:focus-visible {
+  outline: none;
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 0 0 2px rgba(246, 212, 113, 0.28);
+}
+[data-theme='light'] .epicRpcInput:focus,
+[data-theme='light'] .epicRpcInput:focus-visible {
+  box-shadow: 0 0 0 2px rgba(143, 94, 31, 0.22);
+}
+.epicRpcParamHelp {
+  margin: 0.3rem 0 0;
+  font-size: 0.82rem;
+  color: var(--ifm-color-content-secondary);
+}
+.epicRpcNoParams {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: var(--ifm-color-content-secondary);
+}
+
+.epicRpcJson {
+  margin-bottom: 1rem;
+}
+.epicRpcJsonBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--epic-line);
+  border-bottom: none;
+  background: var(--epic-s3);
+}
+.epicRpcCodeTabs {
+  gap: 0.75rem;
+  padding: 0 0.6rem 0 0;
+}
+.epicRpcTabs {
+  display: flex;
+  align-self: stretch;
+  gap: 0;
+}
+.epicRpcJsonLabel,
+.epicRpcJsonMeta {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+}
+.epicRpcJsonLabel {
+  color: var(--ifm-font-color-base);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.epicRpcJsonMeta {
+  color: var(--ifm-color-content-secondary);
+  margin-left: auto;
+}
+.epicRpcTab,
+.epicRpcCopy {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  color: var(--ifm-font-color-base);
+  background: transparent;
+  border-radius: 0;
+  cursor: pointer;
+}
+.epicRpcTab {
+  align-self: stretch;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  border-right: 1px solid var(--epic-line);
+  border-bottom: 2px solid transparent;
+}
+.epicRpcTab:hover,
+.epicRpcTab.isActive {
+  color: var(--ifm-color-primary);
+}
+.epicRpcTab.isActive {
+  border-bottom-color: var(--ifm-color-primary);
+  background: var(--ifm-background-color);
+}
+.epicRpcCopy {
+  /* 24px is the WCAG 2.2 target-size floor. The button's text is small by design, so the height
+     comes from min-height rather than from padding. */
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--epic-line-strong);
+}
+.epicRpcCopy:hover {
+  color: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
+}
+.epicRpcTab:focus-visible,
+.epicRpcCopy:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+.epicRpcPre {
+  margin: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--epic-line);
+  background: var(--ifm-background-color);
+  font-size: 0.82rem;
+  overflow: auto;
+}
+.epicRpcPreLong {
+  max-height: 22rem;
+}
+.epicRpcPre:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .epicRpcContext,
+  .epicRpcMeta {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+  .epicRpcMeta dd {
+    margin-bottom: 0.5rem;
+  }
+  .epicRpcMethod {
+    padding: 1rem 0.85rem 1.2rem;
+  }
+}
+
+
+/* Method index. The right-hand table of contents cannot see component-rendered headings, so a
+   group page builds its own jump list. Monospace because these are identifiers, and the risk
+   flag is repeated here so a reader scanning the list can see what spends before clicking. */
+.epicRpcIndex {
+  margin: 0 0 2.5rem;
+  padding: 0.9rem 1.1rem;
+  border-left: 2px solid var(--epic-gold-deep);
+  background: var(--epic-s2);
+}
+.epicRpcIndexLabel {
+  margin: 0 0 0.5rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ifm-color-content-secondary);
+}
+.epicRpcIndex ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem 1rem;
+}
+.epicRpcIndex li {
+  min-width: 0;
+  padding: 0.2rem 0.15rem;
+}
+.epicRpcIndex a {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.85rem;
+}
+@media (max-width: 780px) {
+  .epicRpcIndex {
+    padding: 0.8rem;
+  }
+  .epicRpcIndex ul {
+    grid-template-columns: 1fr;
+  }
+}

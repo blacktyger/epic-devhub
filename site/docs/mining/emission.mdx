@@ -1,0 +1,129 @@
+---
+title: Emission and the levy
+description: Epic's stepped emission schedule, the foundation levy that takes a declining share of each block, and how fees are calculated.
+---
+
+# Emission and the levy
+
+Two features distinguish Epic's monetary schedule: emission steps down through defined eras and eventually
+stops, and a declining **foundation levy** takes part of each block reward.
+
+## Units
+
+| Unit | Freemen |
+| --- | --- |
+| 1 EPIC | <Ver k="epicBase" /> (<Fn repo="node" path="core/src/consensus.rs" line={31} kind="const" name="EPIC_BASE" />) |
+| 1 milli-EPIC | 100,000 (<Fn repo="node" path="core/src/consensus.rs" line={33} kind="const" name="MILLI_EPIC" />) |
+| 1 micro-EPIC | 100 (<Fn repo="node" path="core/src/consensus.rs" line={35} kind="const" name="MICRO_EPIC" />) |
+| freeman | 1 (<Fn repo="node" path="core/src/consensus.rs" line={37} kind="const" name="FREEMAN" />) |
+
+Every API accepts and returns integer freemen. 0.1 EPIC is `10000000`.
+
+## Timing
+
+| Parameter | Value |
+| --- | --- |
+| Target block time | <Ver k="blockTimeSeconds" /> seconds (<Fn repo="node" path="core/src/consensus.rs" line={43} kind="const" name="BLOCK_TIME_SEC" />) |
+| Blocks per hour | 60 |
+| Blocks per day | 1,440 |
+| Coinbase maturity | <Ver k="coinbaseMaturity" /> blocks (<Fn repo="node" path="core/src/consensus.rs" line={329} kind="const" name="COINBASE_MATURITY" />) |
+| Cut-through horizon | 10,080 blocks (<Fn repo="node" path="core/src/consensus.rs" line={363} kind="const" name="CUT_THROUGH_HORIZON" />) |
+
+## Reward eras
+
+Emission steps down at era boundaries rather than following a smooth curve:
+
+| Era ends | Height | Duration | Base reward |
+| --- | --- | --- | --- |
+| Era 1 | 480,960 | 334 days | 16 EPIC |
+| Era 2 | 1,157,760 | + 470 days | 8 EPIC |
+| Era 3 | 2,023,200 | + 601 days | 4 EPIC |
+| Era 4 | 3,175,200 | + 800 days | 2 EPIC |
+| Era 5 | 4,642,560 | + 1,019 days | 1 EPIC |
+| Era 6 onward | repeating steps | 1,460 days each | 0.15625 EPIC, halving each step |
+
+The per-era values are in
+<Fn repo="node" path="core/src/consensus.rs" line={110} name="fast_total_supply" />. Note that the base
+reward is not what the miner receives: the foundation levy comes off it first. On a local chain at era 1
+heights, a mined block credited the wallet 14.5792 EPIC, which is 16 EPIC less the 8.88% era 1 levy.
+
+From era 6 the base reward is 0.15625 EPIC
+(<Fn repo="node" path="core/src/consensus.rs" line={58} kind="const" name="BASE_REWARD_ERA_6_ONWARDS" />)
+and steps continue on a 1,460-day period. The era constants are
+<Fn repo="node" path="core/src/consensus.rs" line={46} kind="const" name="BLOCK_ERA_1" /> onwards, and the
+reward is computed by
+<Fn repo="node" path="core/src/consensus.rs" line={293} name="reward_at_height" />.
+
+:::note[Reward steps are not halvings]
+
+The era 5 to 6 transition takes the reward from 1 EPIC to 0.15625 EPIC, a reduction of 6.4 times rather
+than 2. The node's `Status` response exposes a `blocks_to_next_halving` field, but the steps it counts
+towards are not halvings.
+
+If you are building a supply projection or a mining calculator, use the era schedule rather than assuming a
+halving curve.
+
+:::
+
+Because rewards are computed with integer arithmetic, later steps eventually reach zero and emission stops.
+The node reports a hardcoded `max_supply` of 21,000,000 EPIC in its `Status` response
+(<Src repo="node" path="api/src/handlers/server_api.rs" line={86} />), and `supply` as
+<Fn repo="node" path="core/src/consensus.rs" line={104} name="fast_total_supply" /> divided by
+<Ver k="epicBase" />, so both are whole EPIC rather than freemen.
+
+## The foundation levy
+
+A share of each block reward goes to the Epic foundation rather than the miner, declining across nine
+levy eras:
+
+| Levy era | Rate |
+| --- | --- |
+| 1 | 8.88% |
+| 2 | 7.77% |
+| 3 | 6.66% |
+| 4 | 5.55% |
+| 5 | 4.44% |
+| 6 | 3.33% |
+| 7 | 2.22% |
+| 8 | 1.11% |
+| 9 | 1.11% |
+
+The rates are
+<Fn repo="node" path="core/src/consensus.rs" line={257} kind="const" name="FOUNDATION_LEVY" /> over a
+ratio of 10,000, applied by
+<Fn repo="node" path="core/src/consensus.rs" line={260} name="reward_foundation_at_height" />.
+
+The first levy era runs 120 days and each subsequent era runs 365 days, nine eras in total, so the levy
+ends at height 4,377,600 and the full reward goes to the miner from there on.
+
+Foundation payments use pre-generated coinbase data shipped with the node, one entry per day of the levy
+schedule (<Fn repo="node" path="core/src/consensus.rs" line={199} name="foundation_height" />), so a
+foundation coinbase is constructed from that data rather than by the miner.
+
+## Fees
+
+The fee depends on the shape of the transaction, not on network demand:
+
+```
+fee = max(4 × outputs + kernels − inputs, 1) × 0.001 EPIC
+```
+
+A two-input, two-output, one-kernel transfer costs 700,000 freemen, or 0.007 EPIC. The weight is
+<Fn repo="node" path="core/src/core/transaction.rs" line={671} name="TransactionBody::weight" /> and the
+base fee is `MILLI_EPIC`, 100,000 freemen
+(<Src repo="node" path="core/src/libtx/mod.rs" line={37} />).
+
+The wallet does not supply a base fee, so there is no fee market to bid into. Block weight is capped at
+40,000, with inputs weighted 1, outputs 21 and kernels 3. A pool applies its own floor through
+`accept_fee_base`, also 100,000 by default.
+
+## Next
+
+<CardGrid>
+  <Card title="Proof of work" to="/mining/proof-of-work">
+    Three algorithms and the ratio between them.
+  </Card>
+  <Card title="Stratum" to="/mining/stratum">
+    Connecting a miner.
+  </Card>
+</CardGrid>

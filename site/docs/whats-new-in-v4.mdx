@@ -1,0 +1,132 @@
+---
+title: Migrating from 3.x
+description: What changed in Epic node 4.x and wallet 4.x, and what an integration built against 3.x needs to update.
+---
+
+# Migrating from 3.x
+
+Current releases are node **<Ver k="node" />**, wallet **<Ver k="wallet" />** and epicbox protocol
+**<Ver k="epicboxProtocol" />**. Integrations built against 3.x must account for the changes below.
+
+## API changes
+
+### `total_difficulty` is an object
+
+Difficulty is tracked separately for each proof-of-work algorithm:
+
+```json
+{
+  "total_difficulty": {
+    "cuckaroo": 0,
+    "cuckatoo": 1234,
+    "randomx": 5678,
+    "progpow": 9012
+  }
+}
+```
+
+A client expecting an integer will fail to parse block headers.
+
+### Block headers describe proofs with two fields
+
+`proof` names the algorithm and `solution` is a tagged union whose shape depends on it. There is no single
+scalar solution field.
+
+### Wallet output and transaction reads take pagination
+
+`retrieve_outputs` and `retrieve_txs` take `limit`, `offset` and `sort_order`. Supply them explicitly.
+
+### `Status` includes supply fields
+
+`supply`, `max_supply` and `blocks_to_next_halving`, in whole EPIC. Note that reward steps are not halvings;
+see [emission](/mining/emission).
+
+### Kernels appear in two shapes
+
+`get_block` returns a flattened kernel. `get_kernel` and `get_last_n_kernels` return the raw type with an
+externally tagged `features` field.
+
+## Command line changes
+
+| Was | Now |
+| --- | --- |
+| `epic-wallet init -h` for the current directory | `-w` / `--cwd`. `-h` is help |
+| `scan -h <height>` | `-s <height>` |
+| node `taxes <height>` | argument is `start_height` |
+
+New wallet commands: `export_tx`, `import_tx`, `change_password`, and `--slate_version` flags on the
+transfer commands.
+
+The `--onlyrandomx` and `--noprogpow` flags are not read. The equivalent config keys apply, and only on test
+networks.
+
+## Toolchain and build
+
+The required Rust version is pinned in each repository, so installing rustup is sufficient and you should not
+pin a version yourself.
+
+No additional system packages are required on Linux, macOS or Windows:
+
+```bash
+cargo build --release
+```
+
+## Storage changes
+
+**The wallet stores data in SQLite**, at `db/sqlite/epic.db`, in WAL mode. Anything that read the wallet
+database directly needs rewriting.
+
+**The wallet's Tor directory is `wallet_tor`.**
+
+## New behaviour
+
+### Bundled Tor
+
+Building with `--features with-tor` downloads a Tor expert bundle and verifies it against a committed digest.
+Standard release builds do not enable the feature, so a release binary may have no Tor support while
+`use_tor_listener` defaults to true. See [addresses](/concepts/addresses).
+
+### Epicbox acknowledges delivery
+
+Protocol 3.0.0 adds a `Made` acknowledgement carrying a per-message id, so a slate is marked delivered only
+once the recipient confirms it processed it. Compatibility with pre-3.5.2 clients is preserved. See
+[the protocol](/api/epicbox).
+
+### Mempool confirmation after posting
+
+The wallet watches the node's mempool after posting a transaction and records a distinct state when it
+appears, polling once per second for up to four minutes. This is why a send can appear to hang, and it means
+a posted transfer may leave the set that `cancel_tx` accepts. See
+[outputs and locking](/concepts/outputs-and-locking).
+
+### The epicbox relay implementation changed
+
+The relay is now `EpicCash/epic-epicbox-docker`: Node.js with a Rust verification helper, deployed as two
+instances behind nginx with MongoDB storage.
+
+## Behaviour to check in your integration
+
+- **`tx_lock_outputs` is required** in a manual send sequence. Confirm your sender calls it.
+- **Epicbox does not carry payment proofs.** If you rely on them, route over HTTP. See
+  [payment proofs](/concepts/payment-proofs).
+- **`change_password` removes the backup seed** unless `--remove-backup` is passed.
+- **Sync validation defaults changed shape.** `skip_pow_validation` and `disable_checkpoints` default to
+  `true`, which skips proof of work for checkpointed history while always fully verifying the most recent
+  <Ver k="powVerificationThreshold" /> blocks. See
+  [node and wallet setup](/guides/mainnet-setup).
+
+## What has not changed
+
+The transaction model. Slates, interactivity, output reservation and cancellation work as they did in 3.x. A
+correct mental model of a transfer from 3.x is still correct.
+
+## Next
+
+<CardGrid>
+  <Card title="The MimbleWimble model" to="/concepts/mimblewimble">
+    A refresher on why the transaction model works this way.
+  </Card>
+  <Card title="Wallet Owner API" to="/api/wallet-owner">
+    The surface most integrations target.
+  </Card>
+</CardGrid>

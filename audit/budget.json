@@ -1,0 +1,16 @@
+{
+  "note": [
+    "Ceilings in gzip bytes, written by \"node budget.mjs --update\" with 10% headroom.",
+    "sharedGzip is the payload every page declares: webpack runtime, main bundle, stylesheet.",
+    "chunkGzip caps any single route chunk, so one heavy page cannot hide behind an average.",
+    "Raise a ceiling deliberately and say why in the commit. Do not raise it to make CI pass.",
+    "chunkGzip was 189 kB while Mermaid shipped a 171 kB chunk. Mermaid was removed on",
+    "2026-08-23 and the largest route chunk is now 17.6 kB, so that ceiling had stopped",
+    "meaning anything. Set to 64 kB by hand rather than measured+10%: tight enough to catch a",
+    "dependency of that size arriving again, loose enough for a genuinely heavy interactive",
+    "page. If a real page needs more, raise it in the same commit that adds the page."
+  ],
+  "sharedGzip": 196608,
+  "chunkGzip": 65536,
+  "fontBytes": 239616
+}

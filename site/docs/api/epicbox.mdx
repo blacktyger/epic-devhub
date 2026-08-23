@@ -1,0 +1,202 @@
+---
+title: Epicbox relay protocol
+description: The epicbox wire protocol, version 3.0.0, covering addressing, handshake, message types, delivery behaviour, and how to run a relay.
+---
+
+# Epicbox relay protocol
+
+Epicbox is the store-and-forward relay that carries slates between wallets that cannot reach each other
+directly. It is what makes Epic usable on phones and behind NAT.
+
+Protocol version: **3.0.0**.
+
+## What a relay does
+
+It accepts signed slate blobs addressed to a public key, stores them, and delivers them when the
+recipient connects and proves ownership of that key.
+
+It **cannot spend funds**. It never receives key material, and its only cryptographic operation is
+verifying signatures.
+
+It **can observe metadata**: which public keys communicate, when, and from which IP addresses. Amounts
+are inside the slate's commitments and are not visible to it. A self-hosted relay eliminates that
+metadata exposure.
+
+## Transport and addressing
+
+WebSocket over TLS, port 443 by default. Messages are JSON objects with a `type` field.
+
+Addresses are `<public_key>@<domain>[:<port>]`, where `public_key` is 52 base58-check characters encoding
+a compressed secp256k1 public key. See [addresses](/concepts/addresses).
+
+Public relays:
+
+| Relay | Note |
+| --- | --- |
+| `epicbox.epiccash.com` | Wallet default |
+| `epicbox.epicnet.us` | Community operated |
+| `epicbox.stackwallet.com` | Operated for Stack Wallet mobile |
+
+## Authentication
+
+Ownership of an address is proved by signing a challenge. The private key never leaves the wallet.
+
+1. On connection, and then on a repeating interval, the relay sends `Challenge` with a random string.
+2. The client replies `Subscribe` with its address and a signature over that challenge.
+3. The relay verifies the signature. A valid signature proves ownership and the client may receive the
+   queue for that address.
+
+The challenge interval is 60 seconds by default, which sets the worst case for how long a queued slate
+waits before a connected client is offered it. A client already connected and registered as a listener
+receives slates immediately instead, without waiting for the next challenge.
+
+Clients that announce protocol version `2.0.0`, or announce none, are issued a fixed challenge string
+instead of a random one, for compatibility with wallets older than 3.5.2.
+
+## Message types
+
+### Client to relay
+
+| Type | Fields | Purpose |
+| --- | --- | --- |
+| `Subscribe` | `address`, `ver`, `signature` | Prove ownership and begin receiving |
+| `Unsubscribe` | `address` | Stop receiving and close |
+| `PostSlate` | `from`, `to`, `str`, `signature` | Submit a slate for delivery |
+| `Made` | `address`, `signature`, `ver`, `epicboxmsgid` | Acknowledge a slate as processed |
+| `ClientDetails` | `wallet_version`, `wallet_mode`, `protocol_version` | Announce client identity |
+| `ping` / `pong` | none | Keepalive |
+
+`Challenge`, `GetVersion` and `FastSend` are accepted for compatibility and are not part of 3.0.0.
+
+`wallet_mode` is significant: a client announcing `listener` is registered for immediate delivery, so
+slates arriving while it is connected are pushed straight through.
+
+### Relay to client
+
+| Type | Fields | Purpose |
+| --- | --- | --- |
+| `Challenge` | `str` | Sign this to subscribe |
+| `Ok` | none | Accepted |
+| `Slate` | `from`, `str`, `signature`, `challenge`, `ver`, `epicboxmsgid` | A slate for you |
+| `Error` | `kind`, `description` | Rejected |
+
+Error kinds: `UnknownError`, `InvalidRequest`, `InvalidSignature`, `InvalidChallenge`,
+`TooManySubscriptions`.
+
+## Posting a slate
+
+`PostSlate` is validated twice before storage: the address format of both `from` and `to`, and the
+signature over the payload against the key in the `from` address.
+
+A slate whose destination domain and port match the relay's own configuration is stored locally. Any other
+destination is forwarded to that relay over a new outbound WebSocket connection, which is how cross-relay
+delivery works.
+
+## Delivery and its limits
+
+Delivery is acknowledged rather than fire-and-forget, which is the main change from protocol 2.0.0.
+
+1. On a valid `Subscribe`, the relay sends the **oldest undelivered** slate for that key, with an
+   `epicboxmsgid`.
+2. The client processes it and replies `Made`, signing over the `epicboxmsgid`.
+3. Only on a valid `Made` is the slate marked delivered and the next one released.
+
+The queue is therefore serial per recipient: one outstanding slate at a time. A client that stops
+acknowledging blocks its own queue.
+
+Two limits apply, and the shorter one is not the storage expiry:
+
+**Storage expiry, seven days.** Slates are held for 604,800 seconds and then removed regardless of state.
+
+**Acknowledgement limit, roughly nine challenge rounds.** The relay counts send attempts per socket. After
+three unacknowledged attempts it resets the counter and starts another round, and after three such rounds,
+nine attempts in total, it discards **all** undelivered slates for that recipient rather than only the one
+that was failing (<Src repo="epicbox" path="app_mongo.js" line={366} />). At a 60-second challenge
+interval that is about nine minutes.
+
+:::warning[An accepted post is not a delivered slate]
+
+Neither limit notifies the sender. From the sender's side the slate was accepted and then stopped
+existing, while their outputs remain reserved until they cancel.
+
+If you are writing a wallet or an integration, treat `Ok` from `PostSlate` as accepted for delivery and
+track completion by whether the transfer finishes.
+
+:::
+
+Additional delivery characteristics:
+
+**Delivery state is per connection.** Acknowledgement counters live with the socket, so a reconnect resets
+them, and separate relay instances behind a load balancer do not share them. The reference deployment pins
+clients by IP, which is unreliable for mobile clients changing networks.
+
+**Forwarded slates are not stored locally.** A slate bound for another relay is forwarded without being
+persisted, so there is no retry if the outbound connection fails, and no bound on how long a stalled
+remote relay can hold the transfer open.
+
+## Client behaviour
+
+The wallet's relay client:
+
+- Reconnects after a 5-second delay, and keeps retrying.
+- After posting a finalised transaction, polls the node's mempool once per second for up to four minutes.
+- Uses slate V2, so payment proofs and `ttl_cutoff_height` are not carried. See
+  [payment proofs](/concepts/payment-proofs).
+
+## Run a relay
+
+The reference deployment runs two relay instances behind nginx, with MongoDB for storage and a Rust helper
+binary for signature and address verification.
+
+```bash
+git clone https://github.com/EpicCash/epic-epicbox-docker.git
+cd epic-epicbox-docker
+git submodule update --init --recursive
+EPICBOX_DOMAIN=epicbox.example.com docker compose up -d --build
+```
+
+Point wallets at it:
+
+```toml
+[epicbox]
+epicbox_domain = "epicbox.example.com"
+epicbox_port = 443
+```
+
+Configuration comes from environment variables or `default_config.json`, with the environment taking
+precedence. The keys that matter: `EPICBOX_DOMAIN`, `EPICBOX_PORT`, `MONGO_URL`, `CHALLENGE_INTERVAL`
+(milliseconds, default 60000), `DEBUG`, `STATS`.
+
+Production prerequisites:
+
+**The MongoDB indexes come from `mongo-init.js`.** The compose file mounts it into
+`/docker-entrypoint-initdb.d`, so a fresh MongoDB volume gets the queue indexes and the TTL index on
+`createdat` automatically. If you point the relay at an existing MongoDB instead, create them yourself;
+the same commands are in the comment block at the top of <Src repo="epicbox" path="app_mongo.js" />.
+Without the TTL index, slates never expire.
+
+**Set `STATS` to true.** It is off by default, and the hourly counters it exposes are the only built-in
+visibility you get. They are in-memory and reset on restart, so export them somewhere if you want history.
+
+The reference compose file publishes the two relay instances on host ports 8888 and 8889 and nginx on
+8443. Map those to 443 in your own deployment, or edit the compose file.
+
+## Source
+
+- <Src repo="epicbox" path="app_mongo.js" /> is the entire relay: protocol, storage and forwarding
+- <Src repo="epicbox" path="default_config.json" /> for the configuration keys and defaults
+- <Src repo="epicbox" path="mongo-init.js" /> creates the users and indexes on a fresh database
+- <Src repo="wallet" path="impls/src/epicbox/protocol.rs" /> defines the message enums on the client side
+- <Src repo="wallet" path="impls/src/adapters/epicbox.rs" /> is the wallet's relay client
+- <Src repo="wallet" path="libwallet/src/epicbox_address.rs" line={22} /> is the address format
+
+## Next
+
+<CardGrid>
+  <Card title="Transports" to="/concepts/transports">
+    How epicbox compares with the alternatives.
+  </Card>
+  <Card title="Stuck transactions" to="/guides/stuck-transactions">
+    What a user should do when delivery fails.
+  </Card>
+</CardGrid>

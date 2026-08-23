@@ -1,0 +1,108 @@
+- main
+  - paragraph
+  - heading [level=2]
+  - list
+    - listitem
+      - strong
+        - link
+    - listitem
+      - strong
+        - link
+    - listitem
+      - strong
+        - link
+    - listitem
+      - strong
+        - link
+  - figure
+    - img
+  - heading [level=2]
+  - article
+    - heading [level=3]
+    - paragraph
+  - article
+    - heading [level=3]
+    - paragraph
+  - article
+    - heading [level=3]
+    - paragraph
+  - link
+  - heading [level=2]
+  - navigation
+    - heading [level=3]
+    - list
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+  - navigation
+    - heading [level=3]
+    - list
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+  - navigation
+    - heading [level=3]
+    - list
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+  - navigation
+    - heading [level=3]
+    - list
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+  - navigation
+    - heading [level=3]
+    - list
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+  - navigation
+    - heading [level=3]
+    - list
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link

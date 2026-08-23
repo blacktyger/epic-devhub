@@ -1,0 +1,85 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A docs build needs no write access to anything.
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # showLastUpdateTime reads each page's git history, so a shallow clone would make every
+          # page report the same date.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            site/package-lock.json
+            audit/package-lock.json
+
+      - name: Install site dependencies
+        run: npm ci
+        working-directory: site
+
+      # The build is the content gate: Docusaurus is configured to fail on a broken internal link
+      # or a missing heading anchor, so this step failing usually means a link, not a bug.
+      - name: Build
+        run: npm run build
+        working-directory: site
+
+      - name: Install audit dependencies
+        run: npm ci
+        working-directory: audit
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: audit
+
+      # These three compare against committed baselines and fail the job on a regression.
+      - name: Size budget
+        run: npm run budget
+        working-directory: audit
+
+      - name: Accessibility tree snapshots
+        run: npm run aria
+        working-directory: audit
+
+      - name: Keyboard navigation
+        run: npm run keyboard
+        working-directory: audit
+
+      # Source citations can only be checked against the upstream clones, which do not exist here,
+      # so this reports a skip in CI and is a local gate. Run it before changing rpcSpec.js.
+      - name: Source citations
+        run: npm run sources
+        working-directory: audit
+
+      # axe and the console-error sweep report rather than gate, because the remaining findings come
+      # from the upstream search component and would block every PR for a reason no PR can fix.
+      # Read the artifact when a change touches components or CSS.
+      - name: Accessibility and console sweep
+        run: npm run check
+        working-directory: audit
+
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-results
+          path: audit/results/
+          retention-days: 14

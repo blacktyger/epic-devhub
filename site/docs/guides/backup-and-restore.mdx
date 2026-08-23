@@ -1,0 +1,271 @@
+---
+title: Back up and restore a wallet
+sidebar_label: Back up and restore
+description: What to back up in an Epic wallet, how to restore from a recovery phrase, and exactly what recovery does not bring back.
+---
+
+# Back up and restore a wallet
+
+Recovery from a phrase reconstructs your **funds**, not your **records**.
+
+On Bitcoin, rescanning from a seed rebuilds your full transaction history, because the history is public
+and permanently associated with your keys. On Epic there is no public history to rebuild from. The chain
+holds blinded commitments with no sender, recipient or readable amount, so a rescan can identify which
+outputs are yours and nothing else about how they got there.
+
+## What to back up
+
+| Item | Contains | Priority |
+| --- | --- | --- |
+| Recovery phrase | The master secret, as words | **Critical.** Losing it with no seed file loses the funds |
+| `wallet_data/wallet.seed` | The same secret, encrypted with your password | **Critical**, and useless to a thief without the password |
+| `wallet_data/db/sqlite/epic.db` | Transaction history, account labels, slate messages, payment proof records | Important. Not recoverable from anywhere else |
+| `wallet_data/saved_txs/` | Stored transaction objects | Important if you ever need `repost` |
+| `epic-wallet.toml` | Your settings | Convenience. A fresh `init` regenerates defaults |
+
+Safe to lose: `epic-wallet.log`, `wallet_tor/`, `.owner_api_secret`, and the
+SQLite `-wal` and `-shm` files when the wallet is not running.
+
+:::warning[`.api_secret` must match the node's]
+
+The wallet's `.owner_api_secret` regenerates on next run harmlessly. Its `.api_secret` is different: it is
+the credential the wallet presents **to the node**, so it has to match the node's `.api_secret`. Delete it
+and node calls fail until you copy the node's value back in. See
+[authentication](/api/authentication).
+
+:::
+
+## Backing up
+
+The phrase is the only thing you strictly need, and it is printed once by `init`. To display it again:
+
+```bash
+epic-wallet recover
+```
+
+This prompts for your password, decrypts the seed and prints the phrase. It writes nothing, despite the
+command name. It does not perform a recovery.
+
+For a full backup, stop the wallet and copy the directory:
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux and macOS">
+
+```bash
+# Stop any listener or owner_api process first so SQLite is not mid-write.
+tar czf epic-wallet-backup-$(date +%F).tar.gz \
+  -C ~/.epic/main \
+  wallet_data epic-wallet.toml
+
+# Verify the archive lists what you expect before trusting it.
+tar tzf epic-wallet-backup-$(date +%F).tar.gz | head
+```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+# Stop any listener or owner_api process first so SQLite is not mid-write.
+$stamp = Get-Date -Format 'yyyy-MM-dd'
+Compress-Archive -Path "$HOME\.epic\main\wallet_data", "$HOME\.epic\main\epic-wallet.toml" `
+  -DestinationPath "$HOME\epic-wallet-backup-$stamp.zip"
+
+# Verify
+Expand-Archive -Path "$HOME\epic-wallet-backup-$stamp.zip" -DestinationPath "$env:TEMP\verify" -Force
+Get-ChildItem -Recurse "$env:TEMP\verify" | Select-Object -First 10
+```
+
+</TabItem>
+</Tabs>
+
+:::danger[Copy the database only while the wallet is stopped]
+
+SQLite runs in WAL mode. Copying `epic.db` while a wallet process is writing can produce an archive that
+restores to a corrupt database. Stop `listen` and `owner_api` first.
+
+:::
+
+## Restoring from a phrase
+
+```bash
+mkdir -p ~/restored
+cd ~/restored
+epic-wallet init -w -r
+```
+
+You will be prompted for the phrase, then for a new password. The phrase is validated on entry, so a
+mistyped word is rejected immediately rather than silently producing an empty wallet.
+
+`-w` puts the wallet in the current directory. It is a flag on `init` and takes no value, so
+`epic-wallet -w . init` is not valid. To point a later command at a wallet outside `~/.epic/<network>`,
+either run it from that directory or pass `--current_dir <path>`.
+
+Then rescan the chain to find your outputs:
+
+```bash
+epic-wallet scan
+epic-wallet info
+```
+
+`init -r` marks the wallet as needing a scan, so this step is required rather than optional. Until it
+completes, the wallet does not know it owns anything.
+
+:::note[Scanning takes a while and needs a synced node]
+
+The scan walks the chain testing outputs against your keys. It needs a node that is fully synced, and on
+mainnet it is not quick. Start from a known height to shorten it if you know when the wallet was first
+used:
+
+```bash
+epic-wallet scan -s 3400000
+```
+
+Starting too high silently misses older outputs, so only narrow the range if you are confident.
+
+:::
+
+## What recovery does not bring back
+
+| Recovered by `init -r` plus `scan` | Not recovered |
+| --- | --- |
+| All outputs belonging to your seed | Transaction history: who you paid and when |
+| Correct spendable balance | Account labels; only the default account exists |
+| The ability to spend everything you own | Slate messages attached to past transfers |
+| Your epicbox, proof and Tor addresses | Payment proof records for past transfers |
+| | Stored transaction objects, so `repost` will not work for old transfers |
+| | Any transfer that was in flight when you lost the wallet |
+
+**Your balance will be right. Your history will be empty.**
+
+**Using the same recovery phrase on more than one device does not synchronize the wallets.** Each
+instance derives the same keys and, after scanning against a synced node, can identify the same current
+outputs and calculate a valid balance. The transaction log is local database state, however, so each
+device records only the transfers it participated in. Their histories will diverge: one device can show
+the correct balance while missing transfers and status details recorded on the other. Running `scan`
+repairs output and balance state; it does not merge or reconstruct those missing records.
+
+If you had named accounts, recreate them and note that outputs land in the default account after a
+recovery scan. Recreate the account paths in the same order they were originally created so future
+derivation matches:
+
+```bash
+epic-wallet account -c savings
+epic-wallet account            # list accounts
+```
+
+### In-flight transfers cannot be recovered
+
+If a transfer was partly built when the wallet was lost, it is gone. The counterparty may still hold a
+slate referencing outputs you now own, but your side has no record of the exchange and the reserved-output
+state was in the lost database.
+
+After a recovery scan those outputs appear spendable again. If the counterparty later submits a
+finalised transaction built from them, whichever transaction confirms first wins and the other becomes
+invalid. Nothing is lost, but you should not resend to the same counterparty until you have agreed which
+attempt is live. See [interactive transactions](/concepts/interactive-transactions).
+
+## Restoring a full directory backup
+
+If you kept the whole `wallet_data` directory, restore that instead of recovering from the phrase. It
+brings back history, labels and proof records as well as funds.
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux and macOS">
+
+```bash
+mkdir -p ~/.epic/main
+tar xzf epic-wallet-backup-2026-08-22.tar.gz -C ~/.epic/main
+epic-wallet info
+```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+Expand-Archive -Path "$HOME\epic-wallet-backup-2026-08-22.zip" `
+  -DestinationPath "$HOME\.epic\main" -Force
+epic-wallet info
+```
+
+</TabItem>
+</Tabs>
+
+If the figures disagree with the chain afterwards, run `epic-wallet scan` to rebuild output state. That
+leaves your history intact.
+
+## Recovering into a directory that already has a wallet
+
+The CLI will not do it. `init -r` still goes through wallet creation, which refuses when a seed file is
+present (<Src repo="wallet" path="impls/src/lifecycle/default.rs" line={188} />), and there is no override
+flag.
+
+Move the existing wallet aside first:
+
+```bash
+mv ~/.epic/main/wallet_data/wallet.seed ~/.epic/main/wallet_data/wallet.seed.old
+epic-wallet init -r
+```
+
+:::danger[Never run `init` without `-r` to "reset" a wallet]
+
+`init` on its own generates a **brand-new seed**. If you delete `wallet_data/` but keep
+`epic-wallet.toml`, `init` proceeds without complaint and you end up with an empty wallet holding none of
+your funds. They are then only reachable from the phrase.
+
+Confirm you have the phrase written down before running any `init`.
+
+:::
+
+## Changing your password
+
+```bash
+epic-wallet change_password
+```
+
+This re-encrypts the seed with the new password. The phrase does not change, so an old backup of the
+phrase remains valid.
+
+:::warning[The backup seed is deleted unless you pass `--remove-backup`]
+
+The flag's effect is the inverse of what its name suggests: it is declared with `ArgAction::SetFalse`
+(<Src repo="wallet" path="src/cmd/wallet_args.rs" line={448} />), so the value passed to the wallet is
+true, meaning remove, unless you pass the flag. Pass `--remove-backup` to keep `wallet.seed.bak`, and only
+delete that backup once you have confirmed the new password works.
+
+:::
+
+## `scan --delete_unconfirmed` is destructive
+
+Plain `scan` is safe. Adding `-d` deletes unconfirmed outputs, unlocks locked outputs, and deletes the
+transaction log entries associated with them.
+
+That is sometimes what you want, for example a wallet stuck with reserved outputs whose transfers are
+definitively dead and which `cancel` cannot clear. It is not a routine repair step, and it removes
+history. Try [cancelling individual transfers](/guides/stuck-transactions) first.
+
+## A backup routine worth following
+
+1. Write the phrase on paper at `init` time, off any machine. Verify it with `epic-wallet recover`.
+2. Archive `wallet_data` and `epic-wallet.toml` after any period of activity, with the wallet stopped.
+3. Test a restore into a scratch directory at least once, before you need it.
+4. Keep the phrase and the archive in different places. The archive without the password is useless; the
+   phrase alone is sufficient to move funds.
+
+Test a restore before relying on a backup.
+
+## Next
+
+<CardGrid>
+  <Card title="Wallet operations" to="/guides/wallet-operations">
+    The commands this protects.
+  </Card>
+  <Card title="Stuck transactions" to="/guides/stuck-transactions">
+    Clearing reserved outputs without a destructive scan.
+  </Card>
+  <Card title="CLI reference" to="/reference/cli">
+    Every command and flag.
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="operate" />

@@ -1,0 +1,105 @@
+---
+title: The MimbleWimble model
+description: Why an Epic transaction has no addresses, no scripts and no readable amounts, and what that means when you build on it.
+---
+
+# The MimbleWimble model
+
+Epic is a MimbleWimble chain. If your experience is with Bitcoin or an EVM chain, several assumptions
+will not carry across, and they are the kind that produce working code with a broken architecture.
+
+In short: an Epic transaction contains no addresses, no scripts and no readable amounts. It is a set of
+blinded commitments plus a compact signature proving that inputs and outputs balance. Because each
+output commits to a blinding factor only its owner knows, the sender cannot build a complete
+transaction alone.
+
+That last point drives everything else on this site.
+
+## What the chain stores
+
+A transparent chain records, for each payment, a sender, a recipient and an amount. Epic records none
+of those.
+
+An **output** is a Pedersen commitment, a curve point of the form `v·H + r·G` where `v` is the value
+and `r` is a blinding factor. Anyone can verify that a set of commitments balances without learning any
+`v`. A **range proof** accompanies each output, proving the value is not negative, which is what
+prevents inflation.
+
+A **kernel** carries the fee, the lock height and the excess signature. Kernels are the permanent part
+of the chain: a plain kernel serialises to 106 bytes, one byte of feature tag plus an 8-byte fee, a
+33-byte excess commitment and a 64-byte signature. Chain growth therefore tracks the number of users
+rather than the number of transactions ever made.
+
+Spent outputs are removed by **cut-through**: once an output has been created and spent, the pair
+cancels and neither is needed to validate current state. The cut-through horizon is 10,080 blocks, one
+week at the 60-second target.
+
+The practical consequence is that **there is no transaction history to query**. You cannot ask the
+chain what a given party received. Your own records are the only account of who paid you. If you are
+building an exchange, read [exchange integration](/guides/exchange-integration) before designing
+deposits.
+
+## There are no addresses
+
+Epic has identifiers that look like addresses. An epicbox address such as
+`esYQ…@epicbox.epiccash.com` is real and usable. It is not an address in the sense used on other
+chains.
+
+They are **routing identifiers for messages between wallets**. They tell your wallet where to deliver a
+partially built transaction so the other party can complete their half. The chain has no knowledge of
+them. No output is ever "paid to" an epicbox address.
+
+Three things follow:
+
+**You cannot check a balance from an address.** No such query exists at any layer. A balance is a
+private computation your wallet performs by scanning the output set with your own keys.
+
+**You cannot send to an address unilaterally.** Delivering a message to a wallet that is not listening
+accomplishes nothing on its own.
+
+**A wrong recipient cannot take your funds.** Mistype an epicbox address and one of two things happens.
+Either it fails its base58 checksum and your wallet rejects it before sending anything, or it is
+well-formed but no wallet is listening on it, in which case the transfer never completes and the funds
+stay yours. There is no path where a typo makes coins unspendable, and none where value is consumed as
+a fee.
+
+The worst outcome of a misdirected send is a transfer that does not happen plus outputs that stay locked
+until you cancel it.
+
+It does not protect against paying the correct address of the wrong person, paying twice, or a
+compromised seed. Interactivity removes one class of mistake, not all of them.
+
+## Units
+
+One EPIC is 100,000,000 base units. The smallest unit is called a **freeman**. Every API accepts and
+returns amounts as an integer number of freemen, so 0.1 EPIC is `10000000`.
+
+## Relationship to Grin
+
+Epic began as a Grin fork, and the MimbleWimble fundamentals above are common to both. Epic differs in
+several areas, so material written for Grin is a poor guide to these:
+
+| Area | Epic |
+| --- | --- |
+| Proof of work | Three algorithms run concurrently in a fixed ratio. See [proof of work](/mining/proof-of-work) |
+| Emission | Stepped eras, and it terminates. See [emission](/mining/emission) |
+| Block reward | A declining foundation levy takes a share |
+| Default transport | Epicbox, a store-and-forward relay. See [the protocol](/api/epicbox) |
+| Tor | The wallet and the node can both bundle a Tor expert bundle at build time |
+
+## Next
+
+<CardGrid>
+  <Card title="Interactive transactions" to="/concepts/interactive-transactions">
+    Why both wallets must take part, what a slate is, and the sequence a transfer follows.
+  </Card>
+  <Card title="Outputs and locking" to="/concepts/outputs-and-locking">
+    What happens to your funds between starting a send and it confirming.
+  </Card>
+  <Card title="Addresses" to="/concepts/addresses">
+    The three identifiers a wallet prints and what each is for.
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="fundamentals" />

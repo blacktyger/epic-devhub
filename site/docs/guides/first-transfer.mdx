@@ -1,0 +1,218 @@
+---
+title: Your first transfer
+description: Complete an interactive Epic transfer on your local chain, walked slate by slate over the file transport, then the same transfer over HTTP and epicbox.
+---
+
+# Your first transfer
+
+Complete one transfer between two wallets on a private usernet, then repeat it over HTTP and epicbox.
+Only the transport changes.
+
+You need the rig from [run a local network](/guides/local-network): a node producing blocks, two
+wallets, and a spendable balance in Alice. Confirm it before starting:
+
+```bash
+cd wallet_alice
+epic-wallet --usernet info
+```
+
+On usernet, coinbase maturity is 3 blocks while the wallet's `--min_conf` flag defaults to 10. Pass
+`--min_conf 3` on commands that spend (like `send`) so those recently-matured outputs are eligible.
+`info` only reads balances, so it does not need the flag.
+
+<SlateLifecycle />
+
+## The file transport, one stage at a time
+
+File has no network dependency and no third party. The slate is a file you carry between the two
+wallets yourself, which makes every stage inspectable and every failure local. That is why it is first.
+
+### 1. Alice builds the first round
+
+```bash
+cd wallet_alice
+epic-wallet --usernet send -m file -d ../slate.tx --min_conf 3 1
+```
+
+Two things happened. A partial slate was written to `../slate.tx`, and **Alice's inputs were reserved**.
+The reservation lasts until the transfer completes or she cancels it. Nothing on the chain knows about
+it; it is a local record.
+
+```bash
+epic-wallet --usernet info
+epic-wallet --usernet txs
+```
+
+You should see a `Sent (Created)` entry with `Confirmed?` false, and a spendable balance reduced by more
+than 1 EPIC, because the change output is unconfirmed too.
+
+Open `../slate.tx` in an editor. It is JSON. Find `amount`, `fee`, `id` and `participant_data`. There is
+one entry in `participant_data`, Alice's, which is how you can tell the slate is outbound and
+incomplete.
+
+### 2. Bob receives
+
+```bash
+cd ../wallet_bob
+epic-wallet --usernet receive -m file -i ../slate.tx
+```
+
+Bob has added his output, its range proof and his partial signature:
+
+```
+INFO Response file ../slate.tx.response generated, and can be sent back to the
+     transaction originator.
+```
+
+**The response filename is the input path with `.response` appended.** `slate.tx` becomes
+`slate.tx.response`, not a sibling with a different extension.
+
+Open it. `participant_data` now has two entries, so the slate can be finalised.
+
+### 3. Alice finalises and posts
+
+```bash
+cd ../wallet_alice
+epic-wallet --usernet finalize -m file -i ../slate.tx.response
+```
+
+`finalize` completes the aggregate signature and posts the transaction:
+
+```
+INFO Transaction with slate_id 91b35693-... found in mempool and marked as TxSentMempool.
+```
+
+The command can appear to hang here. It is polling the node's mempool once a second to confirm the
+transaction arrived, and it will wait up to <Ver k="mempoolWaitMinutes" /> minutes before giving up.
+
+### 4. Confirm
+
+Once a block includes it:
+
+```bash
+epic-wallet --usernet info   # Alice: 1 EPIC less, plus the fee
+cd ../wallet_bob
+epic-wallet --usernet info   # Bob: 1 EPIC more
+```
+
+Alice's transaction moves off `Sent (Created)` and her reserved inputs are now spent. On an observed run
+of this flow with 5 EPIC, Alice went from 204.10880000 to 199.10080000, so the fee was 0.00800000. Fees
+follow the input and output counts rather than being a flat rate.
+
+## The same transfer over HTTP
+
+One command, because the sender drives both rounds synchronously against Bob's Foreign API listener.
+
+```bash
+# bob, in his own directory. 23425 is the api_listen_port set during setup
+epic-wallet --usernet listen -n
+
+# alice
+epic-wallet --usernet send -m http -d http://127.0.0.1:23425 --min_conf 3 7
+```
+
+Create, exchange, finalise and post all happen inside that one `send`. If Bob is not listening at the
+moment you send, there is no queue and nothing to retry against: the send fails and Alice's inputs stay
+reserved until she cancels.
+
+## The same transfer over epicbox
+
+Also one command, but **both** wallets need a subscription. The signed slate comes back through the
+relay asynchronously rather than as a reply, so it is the sender's own listener that finalises.
+
+```bash
+# bob's address
+epic-wallet --usernet address
+
+# bob and alice, each in their own directory
+epic-wallet --usernet listen -m epicbox -n
+
+# alice
+epic-wallet --usernet send -m epicbox -d <bob-address> --min_conf 3 3
+```
+
+`<bob-address>` is what `address` printed: 52 base58 characters, `@`, then the relay domain.
+
+An observed round trip took about 1.5 seconds:
+
+```
+14:27:31.926  bob    INFO Receive new transaction (foreign::receive_tx)
+14:27:32.569  alice  INFO Finalize transaction (owner::finalize_tx)
+14:27:33.164  alice  INFO Transaction with slate_id a6318e1c-... found in mempool, TxSentMempool
+14:27:33.164  alice  INFO Slate [a6318e1c-...] finalized successfully
+```
+
+The relay never touches the chain. It is store-and-forward for slate JSON keyed by address, and your own
+node does the posting, which is why a private chain can use any relay.
+
+One harmless-looking error appears when the `send` process exits, because it opened its own short-lived
+subscription and then aborted it:
+
+```
+ERROR Error reading message Io(Os { code: 10053, kind: ConnectionAborted ... })
+```
+
+:::warning[Do not point a test chain at a production relay]
+
+Usernet wallets emit **mainnet-form** addresses, because the address version bytes only branch for
+floonet. Pointing a usernet wallet at a public relay puts a test address into the mainnet address
+space, where a real sender could deliver a slate your usernet wallet can never post, leaving their
+outputs reserved.
+
+Run your own relay. Floonet is not maintained as of August 2026 and has no running seed node.
+
+:::
+
+## What differs between the three
+
+The transaction machinery is identical. Two rounds, one aggregate signature, one posted transaction.
+Delivery is the only variable.
+
+| Transport | Commands | Who listens | Records the counterparty | Payment proofs |
+| --- | --- | --- | --- | --- |
+| `file` | 3 | nobody | No | Carried |
+| `http` | 1 | recipient | No | Carried |
+| `epicbox` | 1 | **both** | Yes | Not carried |
+
+Two consequences worth carrying forward. `txs` populates its `From/To Address` column only for epicbox,
+so with file and HTTP nothing in the transaction log tells you who paid you, which matters if you ever
+need to attribute deposits. And epicbox uses slate V2, which cannot carry a payment proof; see
+[transports](/concepts/transports) and [payment proofs](/concepts/payment-proofs).
+
+## If something goes wrong
+
+**Alice's balance is short and no transfer completed.** Her inputs are still reserved:
+
+```bash
+epic-wallet --usernet txs          # note the id
+epic-wallet --usernet cancel -i <id>
+```
+
+**`finalize` cannot find the file.** Use `<input>.response`, and list the directory to confirm what is
+actually there.
+
+**Nothing confirms.** Check the node is running and the miner is reporting accepted shares. At `DEBUG`
+level, `Block rejected` with `Expected RandomX got Cuckoo15` means `run_test_miner` is enabled
+somewhere.
+
+**A wallet command reports the wrong balance.** It acted on `~/.epic/user` rather than the wallet you
+meant. Run it from that wallet's directory, or pass `--current_dir <path>`.
+
+Anything else, and [diagnose a stuck transaction](/guides/stuck-transactions) is the decision procedure.
+
+## Next
+
+<CardGrid>
+  <Card title="Interactive transactions" to="/concepts/interactive-transactions">
+    What those two rounds are actually doing.
+  </Card>
+  <Card title="Outputs and locking" to="/concepts/outputs-and-locking">
+    Why a reservation exists and what releases it.
+  </Card>
+  <Card title="Wallet Owner API" to="/api/wallet-owner">
+    Doing all of this programmatically.
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="transfer" />

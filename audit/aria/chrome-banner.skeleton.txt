@@ -1,0 +1,18 @@
+- banner
+  - link
+  - link
+  - link
+  - paragraph
+  - heading [level=1]
+  - paragraph
+  - complementary
+    - paragraph
+    - list
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link
+      - listitem
+        - link

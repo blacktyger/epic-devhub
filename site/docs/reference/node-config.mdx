@@ -1,0 +1,237 @@
+---
+title: epic-server.toml
+description: Complete configuration reference for the Epic node, every section and key, with defaults.
+---
+
+# `epic-server.toml`
+
+Complete reference for the node's configuration file. Defaults shown are what a fresh mainnet install
+writes.
+
+Every key requires a restart to take effect. The file is read once at startup and there is no reload
+signal.
+
+## Where the file lives
+
+The node looks for configuration in this order:
+
+1. `--config_file <path>`, if given. A missing file at an explicit path is fatal.
+2. `./epic-server.toml` in the current working directory.
+3. `~/.epic/<network>/epic-server.toml`, created with defaults if absent.
+
+`<network>` is `main`, `floo`, `user` or `auto`.
+
+`epic server config` writes a fresh `epic-server.toml` into the current directory with its paths
+pointed at that directory. It refuses to overwrite an existing file.
+
+## A hardened starting point
+
+The generated file contains every key with defaults. A minimal hardened configuration differs from those
+defaults in these keys:
+
+```toml title="epic-server.toml"
+[server]
+# Keep the API on loopback. Use a tunnel or an authenticating proxy for remote access.
+api_http_addr = "127.0.0.1:3413"
+api_secret_path = "/home/you/.epic/main/.api_secret"
+
+# Optional. Nothing creates this file, so the key does nothing until you do.
+foreign_api_secret_path = "/home/you/.epic/main/.foreign_api_secret"
+
+# Keep full block history rather than pruning.
+archive_mode = true
+
+# Leave both at their defaults unless you want to verify all historical proof of work
+# yourself. Recent blocks are fully verified either way. See the note below.
+# skip_pow_validation = true
+# disable_checkpoints = true
+
+[server.p2p_config]
+host = "0.0.0.0"
+port = 3414
+
+[logging]
+log_to_file = true
+file_log_level = "Info"
+```
+
+See [authentication and TLS](/api/authentication) for the foreign secret, and
+[node and wallet setup](/guides/mainnet-setup) to get started.
+
+## `[server]`
+
+| Key | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `db_root` | string | `~/.epic/main/chain_data` | Directory holding chain and peer databases |
+| `api_http_addr` | `host:port` | `127.0.0.1:3413` | Listen address for the HTTP APIs |
+| `api_secret_path` | string, optional | `~/.epic/main/.api_secret` | Basic auth secret for `/v1` and `/v2/owner`. Comment out to run without one |
+| `foreign_api_secret_path` | string, optional | `.foreign_api_secret`, relative | Optional Basic auth secret for `/v2/foreign`. Not created automatically. See [API authentication](/api/authentication) |
+| `foundation_path` | string | `/usr/share/epic/foundation.json`, or `.\foundation.json` on Windows | Pre-generated foundation coinbase data |
+| `tls_certificate_file` | string, optional | unset | PEM certificate chain. Setting it switches the API to HTTPS |
+| `tls_certificate_key` | string, optional | unset | PEM private key. Required if the certificate is set |
+| `chain_type` | enum | `Mainnet` | `Mainnet`, `Floonet`, `UserTesting`, `AutomatedTesting` |
+| `chain_validation_mode` | enum | `Disabled` | `EveryBlock` runs a full chain validation after each block |
+| `archive_mode` | bool, optional | `false` | `true` keeps full block history instead of pruning |
+| `skip_pow_validation` | bool, optional | `true` | Skip proof-of-work validation for historical blocks during sync. See the note below |
+| `disable_checkpoints` | bool, optional | `true` | Allow skipping PoW past the checkpointed range. Only has effect when `skip_pow_validation` is true |
+| `skip_sync_wait` | bool, optional | `false` | Skip the startup sync wait |
+| `header_sync_timeout` | seconds | `10` | Timeout waiting for confirmation more headers exist. Zero or negative becomes 10 |
+| `run_tui` | bool, optional | `false` | Run the terminal interface. Enabling it disables stdout logging |
+| `only_randomx` | bool, optional | `false` | Force a 100% RandomX block policy. **No effect on mainnet.** Set it on a private chain: with the default mixed policy a RandomX-only miner idles on every ProgPow height, so one CPU miner cannot advance the chain. Changing it changes consensus, so wipe `chain_data` |
+| `no_progpow` | bool, optional | `false` | Remove ProgPow from the block policy. **No effect on mainnet** |
+| `run_test_miner` | bool, optional | `false` | **Does not work on Epic.** It only mines Cuckoo, and the block policy demands RandomX or ProgPow at nearly every height, so every block it finds is rejected with `InvalidSortAlgo`. Use Stratum and an external miner |
+| `test_miner_wallet_url` | string, optional | unset | Wallet listener that would receive the test miner's coinbase. Moot while `run_test_miner` produces no accepted blocks. Unset falls back to `http://127.0.0.1:13415`, which is floonet's port |
+
+:::note[What the two sync validation settings actually do]
+
+Both default to `true` as a sync speed optimisation. They do not leave the chain unverified.
+
+- Inside a checkpointed range, headers are compared against a hardcoded hash and PoW is skipped. A
+  mismatch aborts sync.
+- Past the checkpoints and more than <Ver k="powVerificationThreshold" /> blocks behind the tip, PoW is
+  skipped.
+- Within <Ver k="powVerificationThreshold" /> blocks of the chain tip, proof of work is **always** fully
+  verified regardless of both settings.
+
+Set them to `false` only if you want to independently verify all historical proof of work rather than
+trust the compiled-in checkpoints. It costs a much longer sync. See
+[node and wallet setup](/guides/mainnet-setup) for the detail.
+
+:::
+
+## `[server.p2p_config]`
+
+| Key | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `host` | IP | `0.0.0.0` | Interface to listen on. `127.0.0.1` restricts to local |
+| `port` | u16 | `3414`, 13414 floonet, 23414 usernet | P2P listen port |
+| `seeding_type` | enum | `DNSSeed`, `None` on usernet | `None`, `List`, `DNSSeed`, `Programmatic`. `DNSSeed` resolves `node.epiccash.com:3414` on mainnet and `floonet.epiccash.com:13414` on floonet. **The floonet name does not resolve**, so floonet needs `List` and an explicit peer |
+| `seeds` | array of `ip:port`, optional | unset in code; the generated file writes four addresses | Used when `seeding_type = "List"`. Startup fails if that type is set with no list |
+| `capabilities` | u32 flags | `31` | What the node advertises. See the bit table below |
+| `peer_min_preferred_outbound_count` | u32, optional | `4` | **Not written into the generated file.** Outbound peers required before the sync state can leave `AwaitingPeers`. Until it does, `is_syncing()` stays true and the Stratum server refuses all work, so a peerless usernet node cannot mine. Set `0` on a private chain |
+| `peers_allow` | array, optional | unset | Connect only to these peers |
+| `peers_deny` | array, optional | unset | Never connect to these peers |
+| `peers_preferred` | array, optional | unset | Preferred peers, actively dialled |
+| `ban_window` | seconds, optional | `10800` | How long a banned peer stays banned |
+| `peer_max_inbound_count` | u32, optional | `128` | Maximum inbound peers |
+| `peer_max_outbound_count` | u32, optional | `128` | Maximum outbound peers |
+| `peer_min_preferred_outbound_count` | u32, optional | `4` | Outbound count the node keeps trying to reach |
+| `peer_listener_buffer_count` | u32, optional | `8` | Slack above the inbound limit, to help bootstrapping |
+| `dandelion_peer` | `ip:port`, optional | unset | Pinned Dandelion relay |
+| `my_onion_addr` | string, optional | unset | This node's own onion address |
+
+Capability bits:
+
+| Bit | Value | Meaning |
+| --- | --- | --- |
+| `HEADER_HIST` | 1 | Serves header history |
+| `TXHASHSET_HIST` | 2 | Serves txhashset history |
+| `PEER_LIST` | 4 | Serves peer lists |
+| `TX_KERNEL_HASH` | 8 | Serves kernel hashes |
+| `HEADER_FASTSYNC` | 16 | Supports fast header sync |
+| `ONIONSTEM` | 32 | Supports stem transactions over an onion route |
+
+The default of 31 is every bit except `ONIONSTEM`.
+
+## `[server.pool_config]`
+
+| Key | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `accept_fee_base` | u64 | `100000` | Minimum fee per unit of transaction weight for pool acceptance |
+| `max_pool_size` | usize | `50000` | Maximum transactions in the main pool |
+| `max_stempool_size` | usize | `50000` | Maximum transactions in the stempool |
+| `mineable_max_weight` | usize | `40000`, 150 on usernet and automated testing | Maximum total weight a miner packs into a block |
+
+## `[server.dandelion_config]`
+
+| Key | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `epoch_secs` | u16 | `600` | Length of one Dandelion epoch |
+| `embargo_secs` | u16 | `180` | Fluff a stemmed transaction if it is not seen before this expires |
+| `aggregation_secs` | u16 | `30` | Aggregation window before relaying |
+| `stem_probability` | u8 percent | `90` | Probability of stem mode for an epoch |
+| `always_stem_our_txs` | bool | `true` | Always stem transactions submitted through our own API |
+
+## `[server.stratum_mining_config]`
+
+| Key | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `enable_stratum_server` | bool, optional | `false` on every network | Run the Stratum server. The `UserTesting` branch in the `Default` impl that would set `true` is unreachable, because `Default` reads the global chain type before it is set |
+| `stratum_server_addr` | string, optional | `127.0.0.1:3416` | Stratum listen address |
+| `attempt_time_per_block` | seconds | `15` | How long to mine one header before rebuilding it |
+| `cuckatoo_minimum_share_difficulty` | u64 | `3` | Minimum share difficulty for Cuckatoo workers |
+| `randomx_minimum_share_difficulty` | u64 | `4000`, 1 on usertesting | Minimum share difficulty for RandomX workers |
+| `progpow_minimum_share_difficulty` | u64 | `200000` | Minimum share difficulty for ProgPow workers |
+| `wallet_listener_url` | string | `http://127.0.0.1:3415` | Wallet listener that receives coinbase rewards |
+| `burn_reward` | bool | `false` | Discard the block reward instead of paying a wallet. Test only |
+
+Removing the whole `[server.stratum_mining_config]` section can cause a startup failure. Leave the
+section present and set `enable_stratum_server = false` to disable mining instead.
+
+See [Stratum](/mining/stratum) for the protocol.
+
+## `[server.webhook_config]`
+
+The node's push notification mechanism.
+
+| Key | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `tx_received_url` | string, optional | unset | POST target when a transaction arrives from a peer |
+| `header_received_url` | string, optional | unset | POST target when a header arrives |
+| `block_received_url` | string, optional | unset | POST target when a block arrives |
+| `block_accepted_url` | string, optional | unset | POST target when this node accepts a block, including reorgs |
+| `nthreads` | u16 | `4` | Worker threads for webhook delivery |
+| `timeout` | seconds | `10` | HTTP request timeout |
+
+## `[server.tor]`
+
+| Key | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `socks_proxy_addr` | string | `127.0.0.1:9050` | SOCKS proxy address, written into the generated `torrc` |
+| `send_config_dir` | string | `.` | Directory for `torrc`, `data/` and onion service addresses |
+
+This section alone does not enable Tor. The node also needs `capabilities` to include the `ONIONSTEM`
+bit (value 32), and the default of 31 excludes it. A configured proxy address with default capabilities
+leaves the feature inactive.
+
+## `[logging]`
+
+| Key | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `log_to_stdout` | bool | `true` | Log to stdout |
+| `stdout_log_level` | enum | `Info` | `Error`, `Warning`, `Info`, `Debug`, `Trace` |
+| `log_to_file` | bool | `false` | Log to a file |
+| `file_log_level` | enum | `Debug` | Level for the file log |
+| `log_file_path` | string | `~/.epic/main/epic-server.log` | Log file path |
+| `log_file_append` | bool | `true` | Append rather than truncate on each run |
+| `log_max_size` | bytes, optional | `16777216` | Rotate above this size. Comment out to disable rotation |
+| `log_max_files` | u32, optional | `32` | How many rotated files to keep |
+| `tui_running` | bool, optional | unset | Internal. Set from `run_tui` at startup; do not set it yourself |
+
+:::note[A fresh node writes no log file]
+
+`log_to_file` defaults to `false` while `log_file_path` is populated, so the path is set but unused.
+Set `log_to_file = true` if you need a log on disk.
+
+:::
+
+## Source
+
+These values come from the configuration structs and their defaults:
+
+- <Src repo="node" path="servers/src/common/types.rs" /> for `[server]`, `[server.webhook_config]` and `[server.tor]`
+- <Src repo="node" path="p2p/src/types.rs" /> for `[server.p2p_config]`
+- <Src repo="node" path="pool/src/types.rs" /> for `[server.pool_config]` and `[server.dandelion_config]`
+- <Src repo="node" path="config/src/comments.rs" /> for the annotated template written to disk
+- <Src repo="node" path="config/src/config.rs" /> for file discovery and path rewriting
+
+## Next
+
+<CardGrid>
+  <Card title="API authentication and TLS" to="/api/authentication">
+    How to turn on authentication for each API surface.
+  </Card>
+  <Card title="epic-wallet.toml" to="/reference/wallet-config">
+    The wallet's configuration file.
+  </Card>
+</CardGrid>

@@ -1,0 +1,35 @@
+---
+title: Start your Epic developer journey
+description: A guided path from the MimbleWimble model through a private local chain and a first transfer to running against mainnet.
+sidebar_label: Start here
+---
+
+# Start your Epic developer journey
+
+Eight stages, in dependency order, from what makes Epic different to driving it from code. Stages 03 to
+05 run on a private chain of your own, so you complete a real transfer before anything is at risk.
+
+<JourneyOverview />
+
+<JourneyProgress />
+
+## Prefer reference when you already know the subject
+
+Use the sidebar, local search, and the pages below when you do not need the guided sequence:
+
+- [Configuration and CLI](/reference/cli) for commands and persistent settings.
+- [API reference](/api/) and [code examples](/examples/) for programmatic work.
+- [Mining and consensus](/mining/proof-of-work) for node and protocol work.
+- [What changed in v4](/whats-new-in-v4) if you are returning from the 3.x documentation.
+
+## What this version does not cover
+
+**Tor.** Release archives do not include the `tor` binary required by the wallet's onion listener. The
+wallet's `use_tor_listener` setting defaults to `true`, so a plain `epic-wallet listen` can fail in a
+background thread. Set `use_tor_listener = false` in `epic-wallet.toml`, or pass `-n` on every `listen`.
+Tor operation is not documented or runtime-verified here; its configuration keys remain listed in the
+[wallet](/reference/wallet-config) and [node](/reference/node-config) references.
+
+**Older API surfaces.** The node still answers REST requests under `/v1`, and the wallet still mounts an
+unencrypted `/v2/owner`. Both work and neither is documented here. Current work belongs on the node's
+JSON-RPC surfaces and the wallet's `/v3/owner`. See [the API overview](/api/).

@@ -1,0 +1,33 @@
+{
+  "name": "epic-devdocs-audit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Browser-driven visual and accessibility checks for the docs site. Kept out of site/package.json so the shipped site has no test-only dependencies.",
+  "type": "module",
+  "scripts": {
+    "check": "node run-checks.mjs",
+    "report": "node report.mjs",
+    "runtime": "node verify-runtime.mjs",
+    "aria": "node aria-snapshot.mjs",
+    "aria:update": "node aria-snapshot.mjs --update",
+    "keyboard": "node keyboard.mjs",
+    "sources": "node spec-sources.mjs",
+    "sources:fix": "node spec-sources.mjs --fix",
+    "budget": "node budget.mjs",
+    "budget:update": "node budget.mjs --update",
+    "fast": "node budget.mjs",
+    "structure": "node aria-snapshot.mjs && node keyboard.mjs",
+    "shots": "node diagnose.mjs",
+    "page": "node page-shot.mjs",
+    "images": "node hooks/image-guard.mjs scan",
+    "prism": "node prism-contrast.mjs",
+    "hooks:test": "node hooks/selftest.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
+    "playwright": "1.56.1"
+  },
+  "engines": {
+    "node": ">=20.0"
+  }
+}

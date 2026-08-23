@@ -1,0 +1,1073 @@
+/*
+ * Documentation index page.
+ *
+ * Design notes, because the previous version read as cheap and it is worth recording why:
+ *
+ *   - Fourteen identical bordered cards in two grids is the signature of a template. Boxes
+ *     were doing the work that typography should do, and every item had equal visual weight,
+ *     so nothing had priority.
+ *   - Replaced with: a real quick start carrying actual commands, one focal diagram, and a
+ *     dense grouped link index. No card grid on this page at all.
+ *   - Hierarchy comes from a small mono uppercase kicker, a heading, then body. Rules separate
+ *     sections instead of borders enclosing everything.
+ *   - The gold accent appears only on kickers and group labels, never on large areas.
+ */
+
+.ixMast {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(3.25rem, 6vw, 5.5rem) 0 2.5rem;
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+.ixMastIn {
+  position: relative;
+  z-index: 1;
+}
+
+/* Measurement grid. Masked to a radial so it frames the masthead and then gets out of the
+   way rather than tiling behind text. This is the one place it appears: it was briefly
+   global and at site scale a 56px lattice behind reference prose competes with the words,
+   which turns a substrate into wallpaper. Documentation pages get a gradient lift instead,
+   defined in custom.css.
+
+   Light mode gets a fainter grid because a dark line on white is far more visible than a
+   light line on near-black at the same alpha. */
+.ixGrid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(28, 30, 33, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(28, 30, 33, 0.1) 1px, transparent 1px);
+  background-size: 56px 56px;
+  /* Wider and taller than the first version, which combined with a low alpha made
+     the grid effectively invisible and, on a narrow viewport where the masthead is
+     tall rather than wide, cut it out entirely. */
+  -webkit-mask-image: radial-gradient(150% 130% at 26% -10%, #000 0%, #000 38%, transparent 88%);
+  mask-image: radial-gradient(150% 130% at 26% -10%, #000 0%, #000 38%, transparent 88%);
+}
+[data-theme='dark'] .ixGrid {
+  background-image:
+    linear-gradient(to right, rgba(255, 249, 249, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 249, 249, 0.035) 1px, transparent 1px);
+}
+
+/* A warm bloom behind the grid so the masthead has a light source and the lattice
+   is brightest where the title sits. */
+.ixMast::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(
+    62% 80% at 16% 0%,
+    rgba(246, 212, 113, 0.03) 0%,
+    transparent 64%
+  );
+}
+[data-theme='light'] .ixMast::after {
+  background-image: radial-gradient(
+    62% 80% at 16% 0%,
+    rgba(143, 94, 31, 0.02) 0%,
+    transparent 64%
+  );
+}
+
+@media (max-width: 600px) {
+  /* Smaller cells so a 375px masthead shows a lattice rather than three lines,
+     and a stronger alpha because there is less of it to read. */
+  .ixGrid {
+    background-size: 38px 38px;
+    -webkit-mask-image: radial-gradient(180% 110% at 40% -6%, #000 0%, #000 46%, transparent 94%);
+    mask-image: radial-gradient(180% 110% at 40% -6%, #000 0%, #000 46%, transparent 94%);
+  }
+  [data-theme='dark'] .ixGrid {
+    background-image:
+      linear-gradient(to right, rgba(255, 249, 249, 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 249, 249, 0.045) 1px, transparent 1px);
+  }
+}
+
+/* "Epic Cash" above the title. Small, gold, tight to the h1 so the two read as one block
+   rather than two separate lines, and aligned on the same left edge as everything in the
+   masthead column. Not a heading: the h1 below it is the page's only first-level heading and
+   adding another would break the outline for no gain. */
+.ixEyebrow {
+  margin: 0 0 0.15rem 0.15rem;
+  font-family: var(--epic-font-ui);
+  font-size: clamp(1rem, 0.9rem + 0.45vw, 1.2rem);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  color: var(--ifm-color-primary);
+}
+
+.ixTitle {
+  /* Fluid, and tracked in. Was a fixed 2.25rem with default tracking, which at display
+     size left Montserrat reading conspicuously loose. Tracking is scoped to sizes above
+     2rem for the subpixel reason recorded in custom.css. */
+  font-size: clamp(2rem, 1.3rem + 2.6vw, 3.5rem);
+  letter-spacing: -0.022em;
+  margin-bottom: 0.9rem;
+  max-width: 24ch;
+}
+.ixLede {
+  font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  line-height: 1.55;
+  /* Was 52rem, roughly 832px, which is about double a comfortable measure and was the
+     single loudest reason this page read as a dated template. */
+  max-width: 54ch;
+  color: var(--ifm-color-content-secondary);
+  margin-bottom: 0;
+}
+
+/* Match the optical left edge of the Montserrat hero title. */
+.ixLede,
+.ixExplorerStrip {
+  margin-left: 0.15rem;
+}
+
+/* Two-column masthead. Capping the lede gives up width, and leaving that width blank was the
+   same fault the old page had, so the second column carries real orientation data. */
+.ixMastGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2.5rem;
+  align-items: start;
+}
+@media (min-width: 1000px) {
+  .ixMastGrid {
+    grid-template-columns: minmax(0, 1fr) 17rem;
+    gap: 3.5rem;
+    align-items: center;
+  }
+}
+
+/* Instrument panel. Square, corner-ticked, monospace, because every value in it is data. */
+.ixPanel {
+  position: relative;
+  border: 1px solid var(--ifm-toc-border-color);
+  background: var(--ifm-background-surface-color);
+  padding: 1rem 1.1rem 1.1rem;
+}
+[data-theme='dark'] .ixPanel {
+  background: rgba(16, 16, 20, 0.7);
+  border-color: var(--epic-line, var(--ifm-toc-border-color));
+}
+.ixPanel::before,
+.ixPanel::after {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--ifm-color-primary);
+  pointer-events: none;
+}
+.ixPanel::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+.ixPanel::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+[data-theme='dark'] .ixPanel::before,
+[data-theme='dark'] .ixPanel::after {
+  border-color: var(--epic-gold-deep);
+}
+
+/* A structural field label, which is the one job uppercase monospace is right for. */
+.ixPanelHead {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ifm-color-content-secondary);
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+
+.ixPanelList {
+  margin: 0;
+  display: grid;
+  gap: 0;
+  font-size: 0.8125rem;
+}
+.ixPanelList > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.32rem;
+}
+.ixPanelList > div + div {
+  border-top: 1px solid var(--ifm-toc-border-color);
+}
+.ixPanelList dt {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  color: var(--ifm-color-content-secondary);
+}
+.ixPanelList dd {
+  margin: 0;
+  font-family: var(--ifm-font-family-monospace);
+  color: var(--ifm-font-color-base);
+  white-space: nowrap;
+}
+.ixPanelList dd code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 1em;
+  color: var(--ifm-color-primary);
+}
+[data-theme='dark'] .ixPanelList dd code {
+  color: var(--epic-gold-light);
+}
+
+/* Version pills. Bracket-style readout badges above the title, matching mockup C's
+   `[ node 4.0.3 ]` treatment. Monospace because they are machine-readable data. */
+.ixVersionPills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+  margin-bottom: 1.25rem;
+}
+.ixVersionSource {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-right: 0.15rem;
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+.ixVersionSource:hover {
+  color: var(--ifm-color-primary-light);
+  text-decoration: none;
+}
+.ixVersionSource:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+[data-theme='dark'] .ixVersionSource {
+  color: var(--epic-gold-deep);
+}
+.ixPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--ifm-color-content-secondary);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.ixPill:hover {
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+.ixPill::before {
+  content: '[ ';
+  color: var(--ifm-color-primary);
+}
+.ixPill::after {
+  content: ' ]';
+  color: var(--ifm-color-primary);
+}
+.ixPillIcon {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex: none;
+  color: var(--ifm-color-primary);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ixPillIcon--github {
+  width: 0.9rem;
+  height: 0.9rem;
+  fill: currentColor;
+  stroke: none;
+}
+[data-theme='dark'] .ixPill::before,
+[data-theme='dark'] .ixPill::after,
+[data-theme='dark'] .ixPillIcon {
+  color: var(--epic-gold-deep);
+}
+
+/* Explorer data strip below the trace. Same bracket readout style. */
+.ixExplorerStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.25rem;
+  margin-top: 0.75rem;
+}
+.ixPill--data {
+  font-size: 0.72rem;
+  color: var(--ifm-color-content-secondary);
+}
+[data-theme='dark'] .ixPill--data {
+  color: var(--ifm-color-content-secondary);
+}
+
+.ixMain {
+  padding-bottom: 4rem;
+}
+.ixSection {
+  padding: 2.75rem 0;
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+.ixSectionLast {
+  border-bottom: none;
+  padding-bottom: 1rem;
+}
+
+/* Section eyebrow: a short gold rule followed by sentence-case text.
+
+   Was uppercase letterspaced monospace, which the design audit identified as one of the five
+   patterns dating this site. That treatment was the startup house style roughly 2016 to 2019.
+   It survives elsewhere for small structural labels such as .ixGroupLabel and .ixConventions
+   dt, where a monospace field label is the right answer; what it must not be is the opener of
+   a content section.
+
+   Three of the four sections used this on a <p>, which meant Quick start, Everything else and
+   Reading these pages were absent from the document outline entirely: a screen reader listing
+   headings on this page got the title and one h2. Those three are now <h2>, with the heading
+   defaults reset here so nothing about the design changes. The fourth ("Before you write
+   code") stays a <p> because it is an eyebrow above a real h2. */
+.ixKicker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--ifm-font-family-base);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: normal;
+  text-transform: none;
+  /* --epic-gold-deep (#c98a3e) measured 2.92:1 on white, which fails AA for text this
+     size. --ifm-color-primary is the same hue darkened for light mode and measures
+     5.54:1. The bright gold below is only used where the background is near-black. */
+  color: var(--ifm-color-primary);
+  margin: 0 0 0.9rem;
+}
+.ixKicker::before {
+  content: '';
+  flex: none;
+  width: 28px;
+  height: 1px;
+  background: currentColor;
+}
+[data-theme='dark'] .ixKicker {
+  color: var(--epic-gold-light);
+}
+.ixHeading {
+  font-size: clamp(1.4rem, 1.15rem + 0.8vw, 1.9rem);
+  letter-spacing: -0.014em;
+  margin: 0 0 1.5rem;
+  max-width: 34ch;
+}
+
+/* ---- Quick start ---- */
+
+.ixSteps {
+  position: relative;
+  max-width: var(--epic-measure);
+  margin-top: 2.25rem;
+  padding-left: 3.25rem;
+}
+.ixSteps::before {
+  content: '';
+  position: absolute;
+  left: 0.95rem;
+  top: 0.55rem;
+  bottom: 1.25rem;
+  width: 2px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--epic-line-strong) 0 6px,
+    transparent 6px 12px
+  );
+}
+.ixStep {
+  position: relative;
+  padding: 0 0 2.25rem;
+}
+.ixStep:last-child {
+  padding-bottom: 0;
+}
+.ixStep::before {
+  content: '';
+  position: absolute;
+  left: -2.65rem;
+  top: 0.45rem;
+  width: 14px;
+  height: 14px;
+  z-index: 1;
+  border: 2px solid var(--ifm-color-primary);
+  border-radius: 50%;
+  background: var(--ifm-background-color);
+}
+.ixStep--current::before {
+  background: var(--epic-gold-light);
+  box-shadow: 0 0 0 5px rgba(246, 212, 113, 0.1);
+}
+.ixStep--current::after {
+  content: '';
+  position: absolute;
+  left: -2.3rem;
+  top: 1.35rem;
+  width: 2px;
+  height: calc(100% - 0.9rem);
+  background: linear-gradient(to bottom, var(--epic-gold-deep), transparent);
+}
+.ixStepTag {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ifm-color-primary);
+}
+[data-theme='dark'] .ixStepTag {
+  color: var(--epic-gold-deep);
+}
+.ixStepHead {
+  font-family: var(--ifm-heading-font-family);
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0.3rem 0 0.4rem;
+}
+
+/* Hand-rolled rather than a Docusaurus CodeBlock, because these are three short
+   illustrative snippets and the full component's chrome would dominate the section.
+   tabIndex is set on the element in index.js: this is a horizontal scroll container and
+   without it a keyboard-only reader cannot reach the overflowing content, which is
+   WCAG 2.2 2.1.1. Docusaurus's own CodeBlock sets tabindex="0" for the same reason. */
+.ixCode {
+  position: relative;
+  min-width: 0;
+  font-size: 0.8rem;
+  line-height: 1.65;
+  padding: 0.9rem 1rem;
+  margin: 0 0 0.7rem;
+  /* Square, with corner ticks below. A code block genuinely is a separate object, which is
+     what earns it an enclosure in this system. */
+  border-radius: 0;
+  border: 1px solid var(--ifm-toc-border-color);
+  background: var(--ifm-background-surface-color);
+  overflow-x: auto;
+}
+/* Corner ticks. Only two corners, which reads as a measured enclosure rather than a frame. */
+.ixCode::before,
+.ixCode::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--ifm-color-primary);
+  pointer-events: none;
+}
+.ixCode::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+.ixCode::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+[data-theme='dark'] .ixCode {
+  background: #0b0b0e;
+  border-color: var(--epic-line-strong, var(--ifm-toc-border-color));
+}
+[data-theme='dark'] .ixCode::before,
+[data-theme='dark'] .ixCode::after {
+  border-color: var(--epic-gold-deep);
+}
+.ixCode code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ifm-font-color-base);
+  white-space: pre;
+}
+.ixStepNote {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--ifm-color-content-secondary);
+  margin: 0;
+}
+
+/* ---- The model ---- */
+
+.ixModel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 2.75rem;
+  align-items: start;
+}
+.ixModelList {
+  margin: 0;
+  padding-left: 1.9rem;
+  /* Zero-padded gold numbers, matching documentation pages. This list previously
+     used the browser default `1.` in secondary grey, so the landing page and every
+     doc page numbered their steps differently. */
+  list-style-type: decimal-leading-zero;
+}
+.ixModelList li {
+  margin-bottom: 1.05rem;
+  line-height: 1.65;
+}
+.ixModelList li::marker {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.85em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ifm-color-primary);
+}
+[data-theme='dark'] .ixModelList li::marker {
+  color: var(--epic-gold-deep);
+}
+
+/* No border around the diagram. A rule above it and a caption below is enough, and it stops
+   the figure looking like a widget bolted onto the page. */
+.ixFigure {
+  margin: 0;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--ifm-toc-border-color);
+}
+.ixFigure .slateExchange {
+  margin: 0.75rem 0 0;
+  max-width: 100%;
+}
+.ixFigure figcaption {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--ifm-color-content-secondary);
+}
+
+/* ---- Link index ---- */
+
+.ixIndex {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr));
+  gap: 2rem 2.5rem;
+}
+.ixGroupLabel {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ifm-color-content-secondary);
+  padding-bottom: 0.5rem;
+  margin: 0 0 0.6rem;
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+.ixGroup ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ixGroup li {
+  margin: 0;
+}
+.ixGroup a {
+  display: block;
+  padding: 0.28rem 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--ifm-font-color-base);
+  border-bottom: 1px solid transparent;
+}
+.ixGroup a:hover {
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+/* Dense link list on a near-black page: the default focus ring is hard to spot, and this
+   is the whole navigation of the index and 404 pages. */
+.ixGroup a:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 1px;
+  text-decoration: none;
+}
+.ixCode:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 996px) {
+  /* minmax(0, 1fr), not 1fr. A plain `1fr` track has an implicit `auto` minimum, so it
+     cannot shrink below the min-content width of its widest item. The widest item here is
+     an .ixCode block containing `white-space: pre` shell commands, so at 375px the track
+     grew to the longest command and dragged the whole document sideways by 43px, measured
+     in a browser. The desktop rule above already guards against this; the mobile override
+     dropped the guard, which is why only the landing page and only narrow viewports were
+     affected. */
+  .ixSteps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.75rem;
+  }
+  .ixModel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.75rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .ixConventions {
+    grid-template-columns: 1fr;
+    gap: 0.2rem 0;
+  }
+  .ixConventions dd {
+    margin-bottom: 0.9rem;
+  }
+  /* The trace is page presence, not information. At phone width the space is better spent
+     on content. */
+  .ixTrace {
+    display: none;
+  }
+
+  .ixVersionPills,
+  .ixExplorerStrip {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: 0.45rem 0;
+  }
+
+  .ixVersionSource {
+    margin: 0 0 0.1rem;
+  }
+
+  .ixVersionPills .ixPill,
+  .ixExplorerStrip .ixPill {
+    width: max-content;
+  }
+}
+
+/* ---- Typed lede animation ---- */
+
+.ixTyped {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: clamp(0.95rem, 0.85rem + 0.4vw, 1.15rem);
+  letter-spacing: 0.01em;
+  max-width: 68ch;
+  color: var(--ifm-color-content-secondary);
+}
+
+.ixTypedRow {
+  display: block;
+  min-height: 1.55em;
+}
+
+.ixTypedSegment {
+  position: relative;
+  display: inline-block;
+  width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  animation: ixTypeSegment var(--ix-type-duration) steps(var(--ix-type-chars), end)
+    var(--ix-type-delay) forwards;
+}
+
+.ixTypedSegment + .ixTypedSegment {
+  margin-left: 0;
+}
+
+.ixTypedSegment::after {
+  content: '';
+  position: absolute;
+  top: 0.14em;
+  right: 0;
+  width: 2px;
+  height: 1.05em;
+  background: var(--ifm-color-primary);
+  opacity: 0;
+  animation: ixTypeCursor var(--ix-type-duration) step-end var(--ix-type-delay) forwards;
+}
+
+[data-theme='dark'] .ixTypedSegment::after {
+  background: var(--epic-gold-light);
+}
+
+.ixTypedSegment--1 {
+  --ix-type-chars: 25;
+  --ix-type-duration: 1.25s;
+  --ix-type-delay: 0.35s;
+}
+
+.ixTypedSegment--2 {
+  --ix-type-chars: 18;
+  --ix-type-duration: 1s;
+  --ix-type-delay: 1.75s;
+}
+
+.ixTypedSegment--2::after {
+  animation:
+    ixTypeCursorFinal var(--ix-type-duration) step-end var(--ix-type-delay) forwards,
+    ixCursorFade 0.3s ease 2.85s forwards;
+}
+
+@keyframes ixTypeSegment {
+  to { width: calc(var(--ix-type-chars) * 1ch); }
+}
+
+@keyframes ixTypeCursor {
+  0%, 24%, 50%, 74% { opacity: 1; }
+  25%, 49%, 75%, 100% { opacity: 0; }
+}
+
+@keyframes ixTypeCursorFinal {
+  0%, 24%, 50%, 74%, 100% { opacity: 1; }
+  25%, 49%, 75%, 99% { opacity: 0; }
+}
+
+@keyframes ixCursorFade {
+  to { opacity: 0; }
+}
+
+@media (max-width: 600px) {
+  .ixTypedRow {
+    min-height: 0;
+  }
+
+  .ixTypedSegment {
+    display: block;
+    min-height: 1.55em;
+  }
+
+  .ixTypedSegment + .ixTypedSegment {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ixTypedSegment {
+    width: calc(var(--ix-type-chars) * 1ch);
+    animation: none;
+  }
+
+  .ixTypedSegment::after {
+    display: none;
+    animation: none;
+  }
+}
+
+/* ---- Project links and compact AI status ---- */
+
+.ixProjectPanel {
+  background: var(--ifm-background-surface-color);
+}
+[data-theme='dark'] .ixProjectPanel {
+  background: rgba(13, 13, 16, 0.85);
+  border-color: var(--epic-line, var(--ifm-toc-border-color));
+}
+.ixProjectLinks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ixProjectLinks li + li {
+  border-top: 1px solid var(--ifm-toc-border-color);
+}
+.ixProjectLinks a {
+  position: relative;
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.48rem 1.35rem 0.48rem 0;
+  color: var(--ifm-font-color-base);
+  text-decoration: none;
+}
+.ixProjectLinks a::after {
+  content: '↗';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  translate: 0 -50%;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.76rem;
+  color: var(--ifm-color-primary);
+}
+.ixProjectLinks a:hover {
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+.ixProjectLinks a:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+.ixProjectLinks span {
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+.ixProjectLinks small {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.66rem;
+  line-height: 1.35;
+  color: var(--ifm-color-content-secondary);
+}
+[data-theme='dark'] .ixProjectLinks a::after {
+  color: var(--epic-gold-deep);
+}
+
+.ixAiBadge {
+  position: absolute;
+  top: 0.65rem;
+  right: var(--ifm-spacing-horizontal);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 1.7rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid var(--ifm-toc-border-color);
+  background: color-mix(in srgb, var(--ifm-background-color) 88%, transparent);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ifm-color-content-secondary);
+}
+.ixAiBadge .ixPillIcon {
+  width: 0.68rem;
+  height: 0.68rem;
+}
+.ixAiBadgeState {
+  padding-left: 0.4rem;
+  border-left: 1px solid var(--ifm-toc-border-color);
+  color: var(--ifm-color-primary);
+}
+[data-theme='dark'] .ixAiBadge {
+  border-color: var(--epic-line-strong, var(--ifm-toc-border-color));
+  background: rgba(13, 13, 16, 0.82);
+}
+[data-theme='dark'] .ixAiBadgeState {
+  color: var(--epic-gold-deep);
+}
+
+@media (max-width: 600px) {
+  .ixAiBadge {
+    top: 0.55rem;
+    right: 1rem;
+  }
+
+  .ixProjectLinks a {
+    min-height: 2.75rem;
+    padding-block: 0.52rem;
+  }
+}
+
+/* ---- Journey start CTA ---- */
+
+.ixJourneyStart {
+  margin-top: 2.25rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--ifm-toc-border-color);
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+.ixJourneyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.4rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ifm-background-color);
+  background: var(--ifm-color-primary);
+  border: 1px solid var(--ifm-color-primary);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.ixJourneyBtn:hover {
+  background: var(--ifm-color-primary-dark);
+  border-color: var(--ifm-color-primary-dark);
+  color: var(--ifm-background-color);
+  text-decoration: none;
+}
+[data-theme='dark'] .ixJourneyBtn {
+  background: var(--epic-gold-deep);
+  border-color: var(--epic-gold-deep);
+  color: #0d0d10;
+}
+[data-theme='dark'] .ixJourneyBtn:hover {
+  background: var(--epic-gold-light);
+  border-color: var(--epic-gold-light);
+  color: #0d0d10;
+}
+.ixJourneyHint {
+  font-size: 0.8rem;
+  color: var(--ifm-color-content-secondary);
+}
+@media (max-width: 600px) {
+  .ixJourneyStart {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+
+
+/* Compact release rail. It is the only homepage metadata between the navbar and
+   masthead, so readers get version context without a second visible brand name or
+   the old vertical gap. */
+.ixMast {
+  padding-top: 0;
+}
+.ixVersionRail {
+  position: relative;
+  z-index: 1;
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+  background: color-mix(in srgb, var(--ifm-background-color) 90%, transparent);
+}
+.ixVersionRail .container {
+  display: flex;
+  justify-content: flex-start;
+}
+.ixMastIn {
+  padding-top: clamp(3rem, 4vw, 4rem);
+}
+.ixVersionPills {
+  flex-wrap: nowrap;
+  gap: clamp(0.45rem, 1.25vw, 0.9rem);
+  margin: 0;
+  overflow: visible;
+}
+.ixVersionPills .ixPill {
+  font-size: clamp(0.58rem, 0.52rem + 0.18vw, 0.68rem);
+  letter-spacing: 0.025em;
+}
+
+@media (max-width: 600px) {
+  .ixVersionRail {
+    min-height: 1.9rem;
+  }
+  .ixVersionRail .container {
+    padding-inline: var(--ifm-navbar-padding-horizontal, 1rem);
+    display: flex;
+    justify-content: flex-start;
+  }
+  .ixVersionPills {
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .ixExplorerStrip {
+    display: none;
+  }
+  .ixVersionPills .ixPill {
+    width: auto;
+    font-size: 0.58rem;
+  }
+  .ixMastIn {
+    padding-top: 3.25rem;
+  }
+}
+
+
+/* Keep the first version glyph on the same x-coordinate as the first navbar label.
+
+   Desktop navbar geometry is explicit: 16px navbar inset, an 89px brand slot (65px logo,
+   8px logo gap, 16px brand gap), then the navbar item's 0.55rem text inset. The version rail
+   reserves those same spaces in the same order, so its first bracket and "Start here" begin
+   at the same pixel. Below the collapsed-nav breakpoint there is no visible first item to
+   align with, so both reserved spaces are removed. */
+.ixVersionRail {
+  --epic-navbar-brand-slot: 89px;
+  --epic-navbar-item-inset: 0.55rem;
+}
+.ixVersionRail > .container {
+  display: flex;
+  width: 100%;
+  max-width: none;
+  justify-content: flex-start;
+  padding-inline:
+    calc(
+      var(--ifm-navbar-padding-horizontal, 1rem) + var(--epic-navbar-brand-slot) +
+        var(--epic-navbar-item-inset)
+    )
+    var(--ifm-navbar-padding-horizontal, 1rem);
+}
+.ixVersionRail .ixVersionPills {
+  width: max-content;
+  margin-inline: 0;
+}
+@media (max-width: 996px) {
+  .ixVersionRail {
+    --epic-navbar-brand-slot: 0px;
+    --epic-navbar-item-inset: 0rem;
+  }
+}
+@media (max-width: 600px) {
+  .ixExplorerStrip {
+    display: none;
+  }
+}
+
+
+/* Desktop uses one compact reveal, so animated segment boundaries never wrap into
+   the masthead panel. Mobile switches to the deliberately grouped two-line copy. */
+.ixTyped {
+  max-width: 100%;
+  font-size: clamp(0.9rem, 0.82rem + 0.25vw, 1rem);
+}
+.ixTypedDesktop {
+  display: inline-block;
+  width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  animation: ixDesktopSubtitleReveal 2s steps(44, end) 0.35s forwards;
+}
+.ixTypedMobile {
+  display: none;
+}
+@keyframes ixDesktopSubtitleReveal {
+  to {
+    width: min(44ch, 100%);
+  }
+}
+@media (max-width: 600px) {
+  .ixTypedDesktop {
+    display: none;
+  }
+  .ixTypedMobile {
+    display: block;
+    min-height: 3.1em;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ixTypedDesktop {
+    width: auto;
+    animation: none;
+  }
+}

@@ -1,0 +1,162 @@
+---
+title: Proof of work
+description: Epic runs three proof-of-work algorithms concurrently in a fixed ratio. How that works, and what it means for miners.
+---
+
+# Proof of work
+
+Epic runs **three proof-of-work algorithms on one chain at the same time**, in a ratio enforced by
+consensus. Every block declares which algorithm produced it.
+
+This is not merge mining, and not a switch from one algorithm to another at a fork. All three are always
+valid, in defined proportions.
+
+The intent is to keep different classes of mining hardware economically relevant at once, since the three
+algorithms have different bottlenecks.
+
+## The three algorithms
+
+| Algorithm | Bottleneck | Minimum difficulty |
+| --- | --- | --- |
+| Cuckoo / Cuckatoo | Memory-bound graph cycle search | 3 |
+| RandomX | CPU | 4,000 |
+| ProgPow | GPU | 200,000 |
+
+Cuckoo parameters: proof size 42, minimum edge bits 19, second proof-of-work edge bits 31, base edge bits
+24.
+
+The algorithm implementations live in separate crates, `EpicCash/randomx-rust` and
+`EpicCash/progpow-rust`.
+
+Because difficulty is tracked separately for each algorithm, the node reports it as an object:
+
+```json title="get_status on /v2/owner, result abbreviated"
+{
+  "tip": {
+    "height": 3675163,
+    "total_difficulty": {
+      "cuckaroo": 0,
+      "cuckatoo": 1234567,
+      "randomx": 89012345,
+      "progpow": 678901234
+    }
+  }
+}
+```
+
+Block headers name their algorithm in `proof` and carry the solution in `solution`, an externally tagged
+value whose shape depends on that algorithm:
+
+```json title="get_block on /v2/foreign, header abbreviated"
+{
+  "header": {
+    "height": 3675163,
+    "proof": "RandomX",
+    "solution": {"RandomX": "8137299428173948139..."}
+  }
+}
+```
+
+The four shapes are `{"Cuckoo": [nonce, ...]}`, a list of u64 nonces; `{"RandomX": "<decimal string>"}`,
+the 32-byte hash rendered as a big integer in base 10; `{"ProgPow": [byte, ...]}`, the 32-byte mix as an
+array of numbers; and `{"MD5": "<string>"}`, which mainnet does not use. The `proof` string is one of
+`Cuckoo`, `RandomX`, `ProgPow` or `MD5`, so Cuckatoo and Cuckaroo blocks both report `Cuckoo` there and
+are distinguished by edge bits. Types are in
+<Src repo="node" path="api/src/types.rs" line={574} />.
+
+The policy that decides which algorithm a block must use is in
+<Src repo="node" path="core/src/core/block/feijoada.rs" />, and the constants below are in
+<Src repo="node" path="core/src/consensus.rs" />.
+
+## The block policy
+
+Which algorithm the next block must use is decided by a deterministic policy, not by chance. The
+implementation holds a counter per algorithm and selects whichever is furthest behind its allotted share
+of the current 100-block window.
+
+The relevant code is
+<Src repo="node" path="core/src/core/block/feijoada.rs" line={249} /> for the mainnet allotments,
+<Fn repo="node" path="core/src/core/block/feijoada.rs" line={348} name="next_block_bottles" /> for
+advancing the window and resetting it at 100 blocks, and
+<Fn repo="node" path="core/src/core/block/feijoada.rs" line={427} name="choose_algo" /> for the selection
+itself, over the
+<Fn repo="node" path="core/src/core/block/feijoada.rs" line={80} kind="struct" name="PolicyConfig" />
+type. <Fn repo="node" path="core/src/core/block/feijoada.rs" line={335} name="get_bottles_default" />
+returns the zeroed counters that each window starts from.
+
+Because it is deterministic rather than probabilistic, the algorithm mix over a window is exact rather than
+an average.
+
+Allotments per 100 blocks:
+
+| Era | RandomX | ProgPow | Cuckatoo | Cuckaroo |
+| --- | --- | --- | --- | --- |
+| Eras 1 to 2 | 60 | 38 | 2 | 0 |
+| Era 3 onward | 48 | 48 | 4 | 0 |
+
+Cuckaroo is allotted zero on mainnet. It exists in the type system and is not scheduled.
+
+Constraints on the algorithm mix:
+
+- The policy is fixed in the node and is not configurable through `epic-server.toml`.
+- The `no_progpow` and `only_randomx` settings apply only to test networks. They have no effect on
+  mainnet.
+
+```toml title="epic-server.toml, test networks only"
+[server]
+only_randomx = true    # force RandomX-only blocks
+no_progpow   = false   # or just drop ProgPow from the mix
+```
+
+:::note[Confirm allotments against real blocks]
+
+The ratios above are what the policy implements at node <Ver k="node" />. If you are sizing hardware or writing a
+scheduler, sample a few hundred recent blocks and confirm the distribution before committing to it.
+
+:::
+
+## Difficulty
+
+Each algorithm has its own difficulty track, retargeted independently by
+<Fn repo="node" path="core/src/consensus.rs" line={664} name="next_difficulty" />. The adjustment window
+is <Ver k="difficultyWindow" /> blocks
+(<Fn repo="node" path="core/src/consensus.rs" line={441} kind="const" name="DIFFICULTY_ADJUST_WINDOW" />),
+one hour at the <Ver k="blockTimeSeconds" />-second target, and the window walks back over blocks of the
+same algorithm only, so each track sees its own history.
+
+All three tracks share the same clamp factor of 2 and damp factor of 3.
+
+## Consensus changes by height
+
+Two consensus changes are keyed to mainnet block heights rather than to a version fork:
+
+| Height | Change |
+| --- | --- |
+| 501,160 | The difficulty rule changes, and the RandomX and ProgPow minimums move from 5,000 and 100,000 to 4,000 and 200,000 |
+| 880,000 | The graph weight expiry factor changes, from one year to one hundred years of blocks |
+
+A reimplementation that only honoured declared fork versions would diverge at both. The first declared hard
+fork height is 9,000,000, which at 60-second blocks is more than a decade away, so later header versions are
+only reachable on test networks.
+
+## Connecting a miner
+
+Two options:
+
+**Stratum** on port 3416. Raw TCP with newline-delimited JSON. See [Stratum](/mining/stratum).
+
+**HTTP** through the node's foreign JSON-RPC surface, using `get_block_template`,
+`finalize_block_template` and `submit_block`. See [the node API](/api/node#mining-over-http).
+
+`EpicCash/epic-miner` is the reference mining client.
+
+## Next
+
+<CardGrid>
+  <Card title="Emission and the levy" to="/mining/emission">
+    What a block pays and what the foundation levy takes.
+  </Card>
+  <Card title="Stratum" to="/mining/stratum">
+    Connecting a miner to a node.
+  </Card>
+</CardGrid>

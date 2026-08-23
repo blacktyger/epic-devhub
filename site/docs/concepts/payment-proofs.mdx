@@ -1,0 +1,67 @@
+---
+title: Payment proofs
+description: What an Epic payment proof establishes, how to request one, and which transport carries it.
+---
+
+# Payment proofs
+
+On a transparent chain, proving you paid someone means pointing at a transaction. On Epic there is
+nothing to point at: the ledger holds blinded commitments with no sender, recipient or readable amount.
+Proof of payment therefore has to be constructed deliberately, at the time of the transfer.
+
+A payment proof is that construct. It binds an amount, a sender and a recipient into evidence the sender
+can present later.
+
+## What it establishes
+
+A payment proof shows that the holder of a particular recipient key acknowledged receiving a particular
+amount from a particular sender, as part of a specific transaction.
+
+It does not show that goods were delivered, that the transaction confirmed, or that the recipient is who
+they claim to be outside the protocol. It is a cryptographic receipt.
+
+## Request it when you send
+
+A proof cannot be produced after the fact. The recipient signs the proof message as part of their round
+of the exchange, so it has to be requested when the transfer starts.
+
+```bash
+epic-wallet send --request_payment_proof --proof_address <recipient_proof_address> -d <dest> 1.5
+```
+
+The recipient's proof address is required. When sending to a Tor address the wallet can supply it
+automatically; otherwise the recipient provides it from `epic-wallet address`.
+
+Through the Owner API, set the payment proof fields on `InitTxArgs` when calling `init_send_tx`.
+Retrieval and verification are `retrieve_payment_proof` and `verify_payment_proof`.
+
+## Choose the transport accordingly
+
+Epicbox uses slate V2, and payment proofs are a V3 field. A proof requested on a transfer sent over
+epicbox is silently dropped. The HTTP transport returns an error instead. If you need payment proofs,
+send over HTTP.
+
+## Verification
+
+`verify_payment_proof` returns `Result<(bool, bool), Error>` at
+<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={2161} />. Neither element is documented in the
+trait or the sample clients. Test against a known-good proof and an altered one to confirm which element
+is authoritative.
+
+## Practical guidance
+
+- Decide at design time whether you need proofs. They cannot be added to past transfers.
+- If you need them, do not route over epicbox.
+- Collect the recipient's proof address as part of whatever flow collects their payment details.
+- Store the proof yourself. Nothing in the chain lets you reconstruct it.
+
+## Next
+
+<CardGrid>
+  <Card title="Transports" to="/concepts/transports">
+    Which routes carry a proof.
+  </Card>
+  <Card title="Wallet Owner API" to="/api/wallet-owner">
+    The calls that request, retrieve and verify proofs.
+  </Card>
+</CardGrid>

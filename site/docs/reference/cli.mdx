@@ -1,0 +1,139 @@
+---
+title: CLI reference
+description: Node and wallet commands, default ports, networks, data directory layout and build commands.
+---
+
+# CLI reference
+
+Configuration files have their own pages: [epic-server.toml](/reference/node-config) and
+[epic-wallet.toml](/reference/wallet-config).
+
+## Wallet commands
+
+| Command | Purpose |
+| --- | --- |
+| `init` | Create a wallet. `-r` restores from a recovery phrase, `-w` creates it in the current directory |
+| `info` | Balance summary |
+| `txs` | Transaction log |
+| `outputs` | Raw output list |
+| `address` | Print the epicbox, payment proof and Tor addresses |
+| `send` | Start an outbound transfer |
+| `receive` | Process an inbound slate |
+| `finalize` | Complete and post a transfer |
+| `invoice` | Issue an invoice slate |
+| `pay` | Pay an invoice slate |
+| `cancel` | Abandon a transfer and release its reserved outputs |
+| `post` | Post a finalised slate file |
+| `repost` | Repost or dump a stored transaction. Requires `-i` |
+| `listen` | Run a receiving listener. `-m http\|keybase\|epicbox` |
+| `owner_api` | Run the Owner API |
+| `scan` | Rescan the chain and rebuild output state. `-s` sets a start height, `-d` deletes unconfirmed |
+| `recover` | Print the existing recovery phrase |
+| `account` | List accounts, or create one with `-c <name>` |
+| `export_tx` / `import_tx` | Move transaction log entries between wallets. Both require a file argument |
+| `export_proof` / `verify_proof` | Payment proofs. `export_proof -i <id> <file>`, `verify_proof <file>` |
+| `change_password` | Re-encrypt the seed file |
+
+`issue_invoice` appears in `--help` but has no dispatch arm, so it exits with "Unknown wallet command".
+Use `invoice`.
+
+Send transports for `-m`: `http`, `file`, `self`, `keybase`, `emoji`, `epicbox`, defaulting to `http`.
+`receive` and `finalize` accept `file` and `emoji`, defaulting to `file`. `pay` accepts `file`, `http` and
+`self`. See [transports](/concepts/transports).
+
+Global flags, which go before the subcommand: `-p <password>`, `-a <account>`, `-r <node url>`,
+`-t <dir>`/`--top_level_dir`, `-c <dir>`/`--current_dir`, `-e`/`--external`, `-s`/`--show_spent`,
+`--offline_mode`, and the network selectors `--floonet` and `--usernet`.
+
+`-w`/`--cwd` is a flag on `init` alone and takes no value, so `epic-wallet -w . init` is not valid. To act
+on a wallet outside `~/.epic/<network>`, run the command from that directory or pass `--current_dir <path>`.
+
+:::warning[CLI quirks]
+
+`change_password` removes the backup seed unless you pass `--remove-backup`. The flag name suggests
+the opposite of what it does.
+
+`repost` requires `-i`. Without it the command exits with no output instead of printing usage.
+
+:::
+
+## Node commands
+
+| Command | Purpose |
+| --- | --- |
+| `epic` | Run the node |
+| `epic server` | Server control, including `config` to write a fresh `epic-server.toml`, and `--api_port` to move the API to `0.0.0.0` |
+| `epic client status` | Node status |
+| `epic client listconnectedpeers` | Connected peers |
+| `epic client ban` / `unban` | Peer management |
+| `epic taxes` | Foundation coinbase tooling. Takes `start_height` |
+
+Top-level flags: `--floonet`, `--usernet`, and `--noprogpow` / `--onlyrandomx`, which are declared but not
+read. Use the `no_progpow` and `only_randomx` config keys instead, and only off mainnet.
+
+`epic client` builds its URLs with a literal `http://`, so these subcommands do not work when TLS is
+enabled on the node. Query the API with `curl` in that case.
+
+## Ports
+
+| Port | Service | Shifts per network |
+| --- | --- | --- |
+| 3413 | Node API | Yes. 13413 floonet, 23413 usernet |
+| 3414 | Node P2P | Yes. 13414 floonet, 23414 usernet |
+| 3415 | Wallet Foreign API | Yes. 13415 floonet, 23415 usernet |
+| 3416 | Node Stratum server | Yes. 13416 floonet, 23416 usernet |
+| 3420 | Wallet Owner API | **No** |
+| 443 | Epicbox relay | Not applicable |
+
+## Networks
+
+| Network | Flag | Directory | Notes |
+| --- | --- | --- | --- |
+| Mainnet | none | `~/.epic/main` | Coinbase maturity 1,440 blocks |
+| Floonet | `--floonet` | `~/.epic/floo` | Coinbase maturity 30 blocks. **No live seed**, so it only works between nodes you point at each other with `epic server -s` |
+| Usernet | `--usernet` | `~/.epic/user` | Private local chain. Coinbase maturity 3 blocks. Needs `epic-miner` over Stratum plus `peer_min_preferred_outbound_count = 0` and `only_randomx = true` to produce blocks; `run_test_miner` does not work |
+| Automated testing | | `~/.epic/auto` | Used by the test suites. Cannot be selected from the command line |
+
+Mainnet and floonet epicbox addresses use different version bytes and cannot be confused for each other.
+
+## Data directories
+
+**Node.** `chain_data`, `epic-server.toml`, `epic-server.log` and `.api_secret`. Holds no keys, so
+nothing needs backing up. Deleting `chain_data` costs a resync.
+
+**Wallet.** `wallet_data/` containing the seed file and the database, plus `epic-wallet.toml`,
+`epic-wallet.log`, `.owner_api_secret`, `.api_secret` and `wallet_tor/`.
+
+The seed file is the wallet. Back up the recovery phrase, which is equivalent and easier to store safely.
+The database holds your transaction history, account labels and payment proof records. `epic-wallet scan`
+rebuilds outputs and balances from the chain, but not history. See
+[back up and restore](/guides/backup-and-restore).
+
+The wallet database is SQLite, at `wallet_data/db/sqlite/epic.db`.
+
+## Building and testing
+
+Install rustup. Both repositories pin their toolchain version, so it is selected automatically. No
+additional system packages are needed on Linux, macOS or Windows.
+
+```bash
+cargo build --release                                    # binaries
+cargo build --workspace --all-targets                    # everything, including tests
+cargo test --workspace -- --nocapture --test-threads=1    # test suite
+```
+
+The node has cucumber feature tests behind a `cucumber-tests` feature flag.
+
+## Next
+
+<CardGrid>
+  <Card title="epic-server.toml" to="/reference/node-config">
+    Every node configuration key.
+  </Card>
+  <Card title="epic-wallet.toml" to="/reference/wallet-config">
+    Every wallet configuration key.
+  </Card>
+  <Card title="Authentication and TLS" to="/api/authentication">
+    Which surfaces are protected and how to change that.
+  </Card>
+</CardGrid>

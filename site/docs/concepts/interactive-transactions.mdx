@@ -1,0 +1,117 @@
+---
+title: Interactive transactions
+description: An Epic transfer is built jointly by both parties. This is the sequence it follows, what a slate contains, and how transfers fail.
+---
+
+# Interactive transactions
+
+An Epic transfer is an exchange, not a broadcast. Two wallets pass a document called a **slate** back
+and forth, each adding its own half of the cryptography, and only then does anything reach the chain.
+
+This follows from the commitment scheme described in [the MimbleWimble model](/concepts/mimblewimble).
+The receiver's output commits to a blinding factor only the receiver knows, and the transaction's excess
+signature is an aggregate both parties must contribute to. The sender cannot finish alone.
+
+## The sequence
+
+In words, for anyone who cannot see the diagram: the sender builds a partial slate and reserves its
+inputs locally, the slate travels to the receiver over whichever transport is in use, the receiver adds
+an output and a partial signature and sends it back the same way, and only then does the sender complete
+the aggregate signature and broadcast the finished transaction to a node.
+
+<SlateRounds />
+
+Steps 01 and 02 happen inside a single `send` on every transport except `file`. Note that the reservation
+in step 01 exists from the moment you start a send, not when it completes. See
+[outputs and locking](/concepts/outputs-and-locking).
+
+The **invoice flow** reverses the roles. The payee calls `issue_invoice_tx` to request an amount, the
+payer calls `process_invoice_tx` to fund it, and the payee calls `finalize_invoice_tx`. The cryptography
+is the same; only the initiator changes.
+
+## How transfers fail
+
+Failures are almost always in delivery rather than on the chain:
+
+- **The receiver was not listening.** No listener means no second round and no transaction. This is the
+  most common cause.
+- **The relay did not deliver.** With epicbox, a slate waits in a queue for the receiver to reconnect.
+  That queue has limits; see
+  [delivery guarantees](/api/epicbox#delivery-and-its-limits).
+- **The sender went away between rounds.** The receiver has completed their part and returned a slate
+  that no wallet is waiting for.
+- **The two wallets disagree on the slate version.** See below.
+
+None of these are fixed by retrying the same send, because the sender's inputs are already committed to
+the first attempt. Cancel, then start again.
+
+A useful model: treat a send as a request that can time out, not a command that succeeds or fails
+immediately. Integrations built that way behave predictably. Fire-and-forget integrations do not.
+
+## What a slate contains
+
+The slate is JSON. The fields that matter when tracing a transfer:
+
+| Field | Meaning |
+| --- | --- |
+| `id` | UUID for this transfer. Both parties use the same value |
+| `num_participants` | Normally 2 |
+| `participant_data` | One entry per party, holding public nonces and partial signatures |
+| `amount` | Value in freemen |
+| `fee` | Fee in freemen, set by the sender |
+| `tx` | The transaction being built: inputs, outputs, kernels |
+| `height` | Chain height the sender observed |
+| `lock_height` | Kernel lock height |
+| `ttl_cutoff_height` | Optional expiry height |
+| `payment_proof` | Optional proof request. See [payment proofs](/concepts/payment-proofs) |
+| `version_info` | Slate format version, and the version the sender wants in return |
+
+To see which round a slate is in, compare the length of `participant_data` against
+`num_participants`. Fewer entries means it is still outbound and awaiting the receiver. Equal means it
+has come back and can be finalised.
+
+Note: `ttl_cutoff_height` does not release outputs on expiry. You still need `cancel_tx` to
+unlock them.
+
+## Slate versions
+
+Two formats are in use, V2 and V3. V3 carries two fields that V2 has no place for:
+`ttl_cutoff_height` and `payment_proof`. Converting a V3 slate to V2 discards both.
+
+How each transport handles that differs, and it matters:
+
+- **HTTP** refuses to downgrade a slate that carries a payment proof, and returns an error instead.
+- **Epicbox** always uses V2, so a payment proof is dropped and neither party is warned.
+
+Epicbox is the default transport for most users, so if your integration depends on payment proofs, send
+over HTTP. See [transports](/concepts/transports). The V2-only code path is unambiguous but the loss has
+not been observed on a live transfer; the marked claim is on
+[payment proofs](/concepts/payment-proofs#choose-the-transport-accordingly).
+
+`target_slate_version` lets you request a format. Pass 2 or 3. Other values are accepted at the API
+boundary and then fail later during serialisation.
+
+## Designing around this
+
+- Do not model a send as synchronous. It is a round trip through software you do not control.
+- Keep the receiver listening, or use epicbox, which is the only transport that queues.
+- Persist the slate `id`. It is your handle on an in-flight transfer.
+- Treat cancellation as part of the normal lifecycle, not an error path.
+- Set your own deadline for a transfer, because nothing expires on its own.
+
+## Next
+
+<CardGrid>
+  <Card title="Outputs and locking" to="/concepts/outputs-and-locking">
+    What is reserved, when, and how to release it.
+  </Card>
+  <Card title="Transports" to="/concepts/transports">
+    Six ways to move a slate, and which tolerate the other side being offline.
+  </Card>
+  <Card title="Make a transfer" to="/guides/first-transfer">
+    Run through it end to end on a local chain.
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="exchange" />

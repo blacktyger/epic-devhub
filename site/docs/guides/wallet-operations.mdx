@@ -1,0 +1,176 @@
+---
+title: Wallet operations
+sidebar_label: Wallet operations
+description: The day-to-day Epic wallet commands on mainnet, receiving, sending, reading balances and transaction state, and repairing a wallet that disagrees with the chain.
+---
+
+# Wallet operations
+
+What to do with a wallet that is set up and pointed at a node. Everything here is mainnet, so there is
+no network flag, and every command that moves value is real.
+
+Set up first: [node and wallet setup](/guides/mainnet-setup). The transfer mechanics are the ones you
+already ran on the local chain in [your first transfer](/guides/first-transfer), and they are not
+repeated here.
+
+A positive wallet balance is required for the commands below.
+
+## Read what the wallet knows
+
+```bash
+epic-wallet info
+```
+
+```
+Total                   15.00000000
+Immature Coinbase       0.00000000
+Awaiting Confirmation   0.00000000
+Locked by transaction   0.00000000
+Currently Spendable     15.00000000
+```
+
+Amounts print with 8 decimals, because 1 EPIC is <Ver k="epicBase" /> <Ver k="smallestUnit" />s. Rows at
+zero are sometimes suppressed rather than shown.
+
+A gap between `Total` and `Currently Spendable` is normal and means one of three things: coinbase
+maturity has not passed, a transfer is in flight and has reserved inputs, or the confirmation threshold
+has not been met. [Outputs and locking](/concepts/outputs-and-locking) explains which is which.
+
+`--min_conf` defaults to 10 and is a CLI flag with no config key. It controls which outputs are
+considered spendable, so pass it on `send`, `invoice`, and `pay` when you want a lower threshold. `info`
+reads balances and does not spend, so the flag is unnecessary there.
+
+```bash
+epic-wallet txs
+```
+
+Per-transaction detail. `Sent (Created)` with `Confirmed?` false is an incomplete transfer holding
+reserved inputs. The `From/To Address` column is populated only for epicbox transfers; file and HTTP
+leave it empty, so the log alone cannot tell you who paid you.
+
+## Receive
+
+Someone paying you needs your wallet to take part, because an Epic transfer is built by both sides. That
+means a listener, or a slate file you process by hand.
+
+```bash
+epic-wallet listen -m epicbox -n
+```
+
+This holds a connection to an epicbox relay, so transfers sent while you were offline are delivered when
+you reconnect. Print the address to give out:
+
+```bash
+epic-wallet address
+```
+
+The epicbox address is 52 base58 characters, `@`, then the relay domain. It routes slates to you. It is
+not an on-chain account, it cannot be looked up in the chain, and it does not reveal your balance. A
+corrupted address fails its checksum locally, so a typo cannot send funds anywhere.
+
+Relay delivery is not indefinite. An undelivered slate is retried for roughly nine minutes and then
+discarded, so a sender whose transfer never lands has to cancel and retry rather than wait.
+
+To process a slate file instead of listening:
+
+```bash
+epic-wallet receive -m file -i slate.tx
+# writes slate.tx.response, which goes back to the sender
+```
+
+## Send
+
+```bash
+epic-wallet send -m epicbox -d <recipient-address> <amount>
+```
+
+<Risk level="spend" /> This reserves your inputs immediately, before the recipient has done anything.
+The reservation is released by completion or by `cancel`, and by nothing else.
+
+Quote the fee before committing to it:
+
+```bash
+epic-wallet send --estimate_only -m epicbox -d <recipient-address> <amount>
+```
+
+Fees follow the number of inputs and outputs rather than a flat rate. Consolidating many small outputs
+increases the estimate.
+
+Two behaviours to expect. The command can appear to hang after posting: it polls the node's mempool for
+up to <Ver k="mempoolWaitMinutes" /> minutes to confirm the transaction arrived. And with
+`-m epicbox` both sides need a subscription, because the countersigned slate returns through the relay
+and your own listener finalises it.
+
+Choosing a transport is a real decision on mainnet, mostly because epicbox uses slate V2 and cannot carry
+a payment proof. See [transports](/concepts/transports).
+
+## Cancel a transfer that cannot complete
+
+<Risk level="destructive" /> Cancelling releases the reserved inputs and abandons the transfer.
+
+```bash
+epic-wallet txs                 # find the id of the incomplete transfer
+epic-wallet cancel -i <id>
+```
+
+Cancel the transfer you actually mean. `cancel` needs a reachable node, exactly one matching
+transaction, and a state that is not yet confirmed, so a transaction already in the mempool cannot be
+cancelled at all. [Diagnose a stuck transaction](/guides/stuck-transactions) is the decision procedure,
+including what to do when `cancel` refuses.
+
+## Repair a wallet that disagrees with the chain
+
+```bash
+epic-wallet scan
+```
+
+Rescans the chain against your keys and rebuilds the local view of your outputs. Non-destructive, and
+the right first move when the balance looks wrong.
+
+It does not release locked outputs, because a lock is a local record the chain knows nothing about.
+`cancel` is the only thing that releases those, and restarting the wallet does not, since the state is on
+disk.
+
+:::warning[`scan --delete_unconfirmed` is a different thing]
+
+It unlocks locked outputs and deletes their transaction log entries, so it discards records rather than
+rebuilding them. Reach for plain `scan` first.
+
+:::
+
+## Accounts
+
+```bash
+epic-wallet account            # list
+epic-wallet account -c savings # create
+epic-wallet -a savings info    # act as one
+```
+
+Accounts are separate derivation paths inside one seed, so they share the recovery phrase and back up
+together. They are a bookkeeping convenience, not a security boundary.
+
+## Change the password
+
+```bash
+epic-wallet change_password
+```
+
+Note that this removes the backup seed file unless you pass `--remove-backup`, which is inverted from
+what the name suggests.
+
+## Next
+
+<CardGrid>
+  <Card title="Back up and restore" to="/guides/backup-and-restore">
+    Funds and the history the chain cannot reconstruct.
+  </Card>
+  <Card title="Diagnose a stuck transaction" to="/guides/stuck-transactions">
+    The most common real problem, case by case.
+  </Card>
+  <Card title="CLI reference" to="/reference/cli">
+    Every command and flag.
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="operate" />

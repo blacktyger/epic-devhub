@@ -1,0 +1,260 @@
+---
+title: Run a local network
+description: Stand up a complete private Epic network on one machine, a node, a miner and two wallets, and mine real coins into the first wallet.
+---
+
+# Run a local network
+
+This guide creates a private usernet node, two wallets and a miner on one machine. It does not use
+mainnet.
+
+Build the three binaries first: [build the binaries](/guides/build).
+
+## Why usernet
+
+| Network | Flag | P2P port | API port | Use for |
+| --- | --- | --- | --- | --- |
+| Mainnet | none | 3414 | 3413 | Real value. See [connecting to mainnet](/guides/mainnet-setup) |
+| Floonet | `--floonet` | 13414 | 13413 | A test network with no public seed running |
+| Usernet | `--usernet` | 23414 | 23413 | A private chain on your own machine |
+
+Use usernet. It needs no seed peers and runs as a private chain on your machine.
+
+Floonet is not maintained as of August 2026. Its DNS seed does not resolve and no public node is
+running, so a floonet node finds no peers at height 0 unless you configure peers manually.
+
+Neither test network produces blocks on its own. That is what the miner is for.
+
+## Lay it out first
+
+Where files sit matters more than usual, because both binaries resolve their config from the **current
+working directory** before falling back to `~/.epic/<network>`. The directory you launch from is
+therefore the instance selector, and that is what lets one wallet binary drive several wallets.
+
+A layout that works:
+
+```
+epic-local/
+  .epic/user/       node data, the three binaries,
+                    epic-server.toml and epic-miner.toml
+  wallet_alice/     epic-wallet.toml and wallet_data/, no binary
+  wallet_bob/       same
+```
+
+The node and miner share a directory safely, because their config filenames differ. Keep one wallet per
+directory, and run the shared `epic-wallet` binary from inside whichever wallet you mean to act as.
+
+## 1. Configure and start the node
+
+Generate a config from inside the chain directory, so the paths land there:
+
+```bash
+epic --usernet server config
+```
+
+Then make four changes:
+
+```toml title=".epic/user/epic-server.toml"
+[server]
+only_randomx = true
+
+[server.p2p_config]
+peer_min_preferred_outbound_count = 0
+
+[server.stratum_mining_config]
+enable_stratum_server = true
+
+[logging]
+log_to_file = true
+```
+
+Each one is required and none is documented upstream, so here is what each is for.
+
+`only_randomx = true` forces a 100% RandomX policy. Epic normally assigns each height one of several
+algorithms, and a single CPU miner can only answer the RandomX ones. On a real network other miners
+cover the rest; on your own chain nobody does, so without this the miner idles on most heights. It
+changes consensus, so delete `chain_data` if you set it on an existing chain: blocks mined under the old
+policy will not validate under the new one.
+
+`peer_min_preferred_outbound_count = 0` is not written into the generated file, so add the line
+yourself. A node below that threshold reports itself as syncing forever, and a syncing node refuses to
+hand out mining work. Usernet has no peers by design, so it can never reach the default of 4.
+
+`enable_stratum_server = true` switches on the mining port. It is off by default on every network,
+usernet included.
+
+`log_to_file = true` because you will want the log when something does not mine.
+
+Leave `burn_reward = false` and `wallet_listener_url` alone for now. A generated usernet config already
+points at port 23415, which will be Alice.
+
+```bash
+epic --usernet server run
+```
+
+`No peers available, can not sync` in the log is the state you want, not an error. It means the node
+stopped waiting for peers, which is what allows it to serve mining work.
+
+## 2. Create the two wallets
+
+Each in its own directory, using `-w` so the wallet is created there rather than in `~/.epic/user`:
+
+```bash
+cd wallet_alice && epic-wallet --usernet init -w
+cd ../wallet_bob && epic-wallet --usernet init -w
+```
+
+`-w` takes no value. It is declared on `init` only, so later commands use `--current_dir <path>`
+instead, or you run them from inside the wallet directory.
+
+Record both recovery phrases. They are worthless here, but the habit is not.
+
+Two wallets on one machine collide on two ports, so edit Bob's:
+
+```toml title="wallet_bob/epic-wallet.toml"
+api_listen_port = 23425        # Foreign API. Alice keeps 23415
+owner_api_listen_port = 3421   # Owner API, see below
+
+[tor]
+use_tor_listener = false
+```
+
+The Foreign port is derived from the network, so usernet already moved it away from mainnet's. The Owner
+port does not shift per network: it is 3420 everywhere, so a second wallet on the same machine always
+collides there whatever chain it runs. Set `use_tor_listener = false` in both wallets, for the reason in
+[what this version does not cover](/start#what-this-version-does-not-cover).
+
+:::note[Wallets outside `~/.epic` need the node's API secret]
+
+Left in the default location, node and wallet share `~/.epic/<network>/` and resolve the node API secret
+to the same `.api_secret` file, so this is invisible. Because `-w` put each wallet elsewhere, each
+generated its own secret, which the node will reject with a 401.
+
+Two ways out. Either copy the node's `.api_secret` into each wallet directory, which leaves every
+default working, since the wallet only creates that file when it is missing. Or, for a throwaway chain,
+comment out `api_secret_path` in `epic-server.toml` and `node_api_secret_path` in both wallet configs.
+Both keys are optional, so an absent key means no secret. The second option is faster and means your
+client code never exercises its credential path, so do not carry the habit anywhere that matters.
+
+:::
+
+## 3. Mine coins into Alice
+
+The Stratum server asks a wallet listener to build each coinbase, so Alice must be listening before
+blocks are worth anything.
+
+```bash
+# in wallet_alice
+epic-wallet --usernet listen -n
+```
+
+Pass `-n` on every `listen`. Then start the miner from the chain directory, with `epic-miner.toml`
+alongside it:
+
+```toml title=".epic/user/epic-miner.toml"
+[mining]
+algorithm = "RandomX"
+stratum_server_addr = "127.0.0.1:23416"
+miner_plugin_config = []
+
+[mining.randomx_config]
+threads = 3
+jit = true
+```
+
+`miner_plugin_config` is required even for RandomX, and it must sit inside `[mining]` above every
+sub-table, or TOML attaches it to the wrong table and the miner exits with
+`missing field 'miner_plugin_config'`.
+
+```bash
+epic-miner
+```
+
+Success looks like this:
+
+```
+INFO Mining: RandomX at 475 hps (hashes per second)
+INFO Block Found!!
+INFO Share Accepted!!
+```
+
+Watch Alice's balance climb. Each block pays 14.5792 EPIC at era 1, being the 16 EPIC base reward less
+the 8.88% foundation levy:
+
+```bash
+epic-wallet --usernet info
+```
+
+Coinbase maturity is 3 blocks on usernet, against mainnet's <Ver k="coinbaseMaturity" />. The wallet
+separately defaults `--min_conf` to 10, and that is a CLI flag with no config key. Pass `--min_conf 3`
+on commands that spend (like `send`) so recently-matured outputs are eligible. `info` only reads
+balances, so it does not need the flag.
+
+:::warning[Do not use `run_test_miner`]
+
+It looks like the obvious way to get blocks without an external miner. It only produces Cuckoo proofs
+while the policy asks for RandomX or ProgPow, so every block it finds is rejected with
+`InvalidSortAlgo`. It is inherited Grin code that predates Epic's multi-algorithm consensus and has
+never worked here.
+
+:::
+
+## 4. Decouple mining from the wallets
+
+Once Alice has coins, stop the miner and set:
+
+```toml title=".epic/user/epic-server.toml"
+[server.stratum_mining_config]
+burn_reward = true
+```
+
+Restart the node and the miner. Rewards are now discarded, which is what you want: with
+`burn_reward = false` and no listener up, the node cannot build a coinbase and **stops producing blocks
+entirely**. That couples block production to a wallet being up, and you are about to start and stop
+wallets repeatedly. Alice keeps what she already mined.
+
+You can now stop Alice's listener. Blocks keep coming, so transactions keep confirming.
+
+## 5. Confirm the rig
+
+```bash
+epic --usernet client status                        # height climbing
+epic-wallet --usernet info                          # from each wallet directory
+```
+
+Alice should show a spendable balance and Bob zero. That is the starting state for
+[your first transfer](/guides/first-transfer).
+
+## If something goes wrong
+
+| Symptom | Cause |
+| --- | --- |
+| Miner logs `Node is syncing - Please wait` | `peer_min_preferred_outbound_count` is still 4 |
+| Miner logs `0 hps` and `algo from job progpow` | `only_randomx` is not set |
+| Node log fills with `Share ... submitted too late` | The same idle miner, still submitting against the previous height's job |
+| Node stops producing blocks | `burn_reward = false` with no wallet listener up, so no coinbase can be built |
+| Node loops on `CoinbaseSumMismatch` at height 1440 and its API goes unreachable | The first foundation levy boundary, one day of blocks in. Observed with `burn_reward = true`. Setting `enable_stratum_server = false` gets the API back so you can read the chain; there is no known fix for mining past it yet, so treat 1440 as the current ceiling for a burned-reward chain |
+| Wallet gets 401 from the node | Wallet and node disagree about the API secret, see step 2 |
+| Balance shows but `Currently Spendable` is zero | Coinbase maturity, or the `--min_conf 10` default |
+| Blocks rejected with `InvalidSortAlgo` | `run_test_miner` is enabled somewhere |
+| A wallet command acts on the wrong wallet | Run it from that wallet's directory, or pass `--current_dir <path>` |
+
+## Reset
+
+Delete `chain_data` for a fresh chain. The wallet databases will then disagree with it, so delete each
+`wallet_data` and re-init, or accept wrong balances. Deleting the whole tree and rebuilding from this
+page takes a couple of minutes.
+
+## Next
+
+<CardGrid>
+  <Card title="Your first transfer" to="/guides/first-transfer">
+    Move coins from Alice to Bob, three ways.
+  </Card>
+  <Card title="Proof of work" to="/mining/proof-of-work">
+    Why the algorithm policy exists and how the mix is decided.
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="local-network" />

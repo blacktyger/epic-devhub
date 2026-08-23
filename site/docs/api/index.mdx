@@ -1,0 +1,88 @@
+---
+title: API reference
+sidebar_label: Overview
+description: Every Epic Cash API surface in one place, covering the node's JSON-RPC surfaces, wallet Owner and Foreign, and the epicbox relay protocol.
+---
+
+# API reference
+
+Epic exposes four programmable surfaces across three pieces of software. Which one you want depends on
+whether you need chain data or key operations.
+
+<CardGrid>
+  <Card title="Node API" to="/api/node">
+    Chain data, blocks, the mempool, peers and transaction submission.
+  </Card>
+  <Card title="Wallet Owner API" to="/api/wallet-owner">
+    Balances, transfers, proofs. <Ver k="ownerApiMethods" /> methods. This is the one that can spend.
+  </Card>
+  <Card title="Wallet Foreign API" to="/api/wallet-foreign">
+    Six listener methods for receiving slates and building mining rewards.
+  </Card>
+  <Card title="Epicbox relay protocol" to="/api/epicbox">
+    The WebSocket protocol that carries slates between wallets.
+  </Card>
+  <Card title="Authentication and TLS" to="/api/authentication">
+    Which surfaces expect a credential, and how to put TLS in front of them.
+  </Card>
+</CardGrid>
+
+## At a glance
+
+| Surface | Where | Protocol | Default port | Can spend |
+| --- | --- | --- | --- | --- |
+| Node `/v2/owner` | node | JSON-RPC 2.0, node administration | <Ver k="ports.nodeApi" /> | No |
+| Node `/v2/foreign` | node | JSON-RPC 2.0, chain reads and tx submission | <Ver k="ports.nodeApi" /> | No |
+| Wallet Owner `/v3/owner` | wallet | JSON-RPC 2.0, encrypted | <Ver k="ports.walletOwner" /> | **Yes** |
+| Wallet Foreign `/v2/foreign` | wallet | JSON-RPC 2.0 | <Ver k="ports.walletForeign" /> | No |
+| Epicbox relay | relay | WebSocket over TLS | <Ver k="ports.epicbox" /> | No |
+
+Documented against node <Ver k="node" /> and wallet <Ver k="wallet" />.
+
+Two older surfaces exist and are out of scope here: the node's REST routes under `/v1`, and the wallet's
+unencrypted `/v2/owner`. Both still respond. The wallet's `/v2/owner` has no token requirement and is
+covered by the warning in [authentication](/api/authentication).
+
+## Choosing a surface
+
+**Reading chain data.** JSON-RPC on the node: `/v2/foreign` for blocks, kernels and outputs,
+`/v2/owner` for node status and peers. No keys involved. Start at
+[node queries](/examples/node-api).
+
+**Anything involving balances, keys or transfers.** Wallet Owner API. It requires an ECDH handshake and a
+wallet token, which is covered step by step in
+[connect and read](/examples/wallet-connect).
+
+**Receiving a payment.** Running `epic-wallet listen` handles this automatically via the epicbox protocol
+or HTTP. To process a slate programmatically, the Foreign API method is `receive_tx`.
+
+**Operating relay infrastructure.** The [epicbox protocol](/api/epicbox).
+
+## The response envelope
+
+Every Epic JSON-RPC method returns HTTP 200 with a JSON-RPC `result`, and inside that result is a second
+`Ok` or `Err` envelope. A request can succeed at both the HTTP and JSON-RPC layers and still have failed:
+
+```json
+{"id": 1, "jsonrpc": "2.0", "result": {"Ok": {"...": "data"}}}
+{"id": 1, "jsonrpc": "2.0", "result": {"Err": {"NotEnoughFunds": {"available": 0}}}}
+```
+
+A single unwrap helper handles both layers. There is a version for each language in
+[the examples overview](/examples/#the-response-envelope).
+
+## Amounts
+
+Every amount is an integer count of **<Ver k="smallestUnit" />s**, and 1 EPIC is
+<Ver k="epicBase" /> of them. In JSON they are serialised as strings, so parse before doing arithmetic.
+
+## Next
+
+<CardGrid>
+  <Card title="Code examples" to="/examples/">
+    Working clients in Python, JavaScript, Rust and shell.
+  </Card>
+  <Card title="CLI reference" to="/reference/cli">
+    The command line equivalents of most API calls.
+  </Card>
+</CardGrid>

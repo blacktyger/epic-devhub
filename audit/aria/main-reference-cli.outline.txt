@@ -1,0 +1,8 @@
+h1 CLI reference
+  h2 Wallet commands​
+  h2 Node commands​
+  h2 Ports​
+  h2 Networks​
+  h2 Data directories​
+  h2 Building and testing​
+  h2 Next​

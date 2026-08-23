@@ -1,0 +1,151 @@
+---
+title: Transports
+description: Six ways to move a slate between Epic wallets, which tolerate the receiver being offline, and how to choose between them.
+---
+
+# Transports
+
+A slate has to travel from one wallet to the other and back. The transport is independent of the
+cryptography: the resulting transaction is identical whichever route you use. What differs is the
+operational cost, whether the receiver must be online at that moment, and whether every slate field
+survives the trip.
+
+Send methods: `http`, `file`, `self`, `keybase`, `emoji`, `epicbox`. Listening accepts `http`, `keybase`
+or `epicbox`.
+
+## Comparison
+
+| Transport | Receiver online | Needs reachable address | Works behind NAT | Slate version | Payment proofs |
+| --- | --- | --- | --- | --- | --- |
+| `epicbox` | Not required, relay queues | No | Yes | V2 | Not carried |
+| `http` | Required | Yes, public URL | No | Negotiated | Carried |
+| `file` | Not required | No | Yes | Up to V3 | Carried |
+| `emoji` | Not required | No | Yes | Up to V3 | Carried |
+| `keybase` | Not required | Keybase identity | Yes | Negotiated | Unconfirmed |
+| `self` | Same wallet | No | Yes | n/a | n/a |
+
+The first and last columns pull in opposite directions, and that tension decides most integrations.
+Epicbox is the only transport that tolerates the receiver being offline, which is why ordinary users
+rely on it. It is also the only one that does not carry payment proofs.
+
+### Observed differences in use
+
+Observed differences across the three transports a developer reaches for:
+
+| Transport | Commands to complete a transfer | Who must be listening | `txs` records the counterparty |
+| --- | --- | --- | --- |
+| `file` | 3, split across both wallets | nobody | No, `From/To Address` is `None` |
+| `http` | 1, sender only | recipient | No, `From/To Address` is `None` |
+| `epicbox` | 1, sender only | **both parties** | Yes, the sender's address |
+
+**Epicbox needs the sender listening too.** The signed slate comes back through the relay
+asynchronously rather than as a reply, so it is the sender's own `listen -m epicbox` that finalises and
+posts. Start both subscriptions before sending. An observed round trip took about 1.5 seconds.
+
+**Only epicbox tells you who paid you.** File and HTTP leave the transaction log's counterparty field
+empty, so attribution has to come from somewhere else in your own system. That is a design constraint
+for anything crediting deposits; see [exchange integration](/guides/exchange-integration).
+
+## epicbox
+
+A store-and-forward relay. Your wallet holds a WebSocket connection to the relay, and the relay holds
+slates addressed to you until you reconnect and acknowledge them. This is the practical default and the
+only option when neither party can accept inbound connections.
+
+```bash
+# receiver
+epic-wallet listen -m epicbox
+
+# sender
+epic-wallet send -m epicbox -d <52-char-key>@epicbox.epiccash.com 1.5
+```
+
+Points to know:
+
+- The relay **cannot spend your funds**. It stores signed blobs and verifies signatures, and never holds
+  key material.
+- It **can see metadata**: which keys communicate, when, and from which IP addresses. Amounts are inside
+  the commitments and are not visible. Run your own relay if the metadata matters to you.
+- Slates are **not queued indefinitely**. See
+  [delivery and its limits](/api/epicbox#delivery-and-its-limits).
+- It uses slate V2, so payment proofs are not carried.
+- After posting, the send blocks for up to four minutes while it confirms the transaction reached the
+  mempool. The command looks unresponsive during that time.
+
+The wire protocol is documented in [the epicbox reference](/api/epicbox).
+
+## http
+
+The sender posts the slate directly to the receiver's listener. Lowest latency, and the only transport
+that refuses to silently drop a slate field, which makes it the right choice when correctness matters
+more than convenience.
+
+```bash
+# receiver
+epic-wallet listen
+
+# sender
+epic-wallet send -m http -d http://receiver.example:3415 1.5
+```
+
+The receiver must be reachable, which means a public host or a port forward.
+
+## file
+
+Write the slate to a file, move it by any means, and have the other side process it. Manual and slow, and
+the option least likely to fail, because it has no network dependency.
+
+```bash
+epic-wallet send -m file -d slate.tx 1.5             # sender, round 1
+epic-wallet receive -m file -i slate.tx              # receiver
+epic-wallet finalize -m file -i slate.tx.response    # sender
+```
+
+Use this for debugging, for moving value between machines you control, and for inspecting exactly what a
+slate contains.
+
+## emoji
+
+The slate encoded as a sequence of emoji, for pasting through a chat application.
+
+The encoding uses a 1,024-entry table, giving 10 bits per glyph. The first glyph is a header encoding how
+many padding bits were added, so an emoji slate always begins with one of ten specific glyphs. Expect
+roughly 0.8 glyphs per byte of slate JSON, which is about 3.2 times the byte count once encoded as UTF-8.
+
+Emoji transport has two implementation constraints. Decoding requires the exact glyphs from the table,
+so a chat client that substitutes or normalises emoji will break it. Decoding is also quadratic in
+length, so large slates are slow.
+
+## keybase
+
+Requires the Keybase client and remains available for compatibility.
+
+## self
+
+Both sides of the transfer are the same wallet. Useful for moving value between accounts in one wallet
+and for exercising the transaction machinery without a counterparty.
+
+```bash
+epic-wallet send -m self -d <destination_account> 1.5
+```
+
+## Choosing
+
+| Situation | Use |
+| --- | --- |
+| Integration where correctness matters | `http` on a private network |
+| Ordinary users, mobile, intermittent connectivity | `epicbox` |
+| Debugging, or moving value between your own machines | `file` |
+| Payment proofs required | Anything except `epicbox` |
+| Chat-based transfer | `emoji` |
+
+## Next
+
+<CardGrid>
+  <Card title="Epicbox protocol" to="/api/epicbox">
+    The wire protocol, handshake and delivery behaviour.
+  </Card>
+  <Card title="Payment proofs" to="/concepts/payment-proofs">
+    Why the transport decides whether you get one.
+  </Card>
+</CardGrid>

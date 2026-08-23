@@ -1,0 +1,164 @@
+---
+title: Exchange and merchant integration
+sidebar_label: Exchange integration
+description: How to architect Epic deposits and withdrawals, and why per-user deposit addresses do not exist.
+unlisted: true
+---
+
+# Exchange and merchant integration
+
+Epic requires a different deposit architecture from address-based chains. The per-user deposit-address
+model used by most exchange backends does not exist.
+
+## Per-user deposit addresses do not exist
+
+The usual pattern is to derive an address per user, watch the chain for credits to it, and attribute each
+credit to that user. None of those steps is available:
+
+- There are **no addresses in the ledger**. See [the MimbleWimble model](/concepts/mimblewimble).
+- There is **no balance or history query**. Nothing to poll.
+- The only on-chain identifier is an output commitment, a blinded point that reveals neither party nor amount.
+- A deposit **cannot arrive unattended**. An Epic transfer is interactive, so your side must take part in
+  building it. See [interactive transactions](/concepts/interactive-transactions).
+
+Attribution therefore cannot come from the chain. It has to come from the transport.
+
+## What replaces it
+
+Carry the account identifier in the deposit endpoint. Expose a per-user URL, have the user's wallet send to
+that URL, and record who paid from the path. The transport carries identity; the chain carries none.
+
+Deploy wallet listeners behind a reverse proxy that maps each per-user path onto a wallet's Foreign API,
+and write attribution when the slate arrives.
+
+### Map a per-user path onto a listener
+
+```nginx title="/etc/nginx/conf.d/epic-deposits.conf"
+# Per-user deposit endpoints. The path carries the identity the chain cannot.
+server {
+    listen 443 ssl;
+    server_name deposits.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/deposits.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/deposits.example.com/privkey.pem;
+
+    # /deposit/<account_id>  ->  your attribution service, which records the
+    # account and then forwards to a wallet Foreign API listener.
+    location ~ ^/deposit/([A-Za-z0-9_-]{1,64})$ {
+        proxy_set_header X-Epic-Account $1;
+        proxy_set_header X-Real-IP      $remote_addr;
+        proxy_pass http://127.0.0.1:8080/receive;
+
+        client_max_body_size 1m;   # slates are small; reject anything large
+        proxy_read_timeout   120s; # the exchange is interactive
+    }
+
+    # Never proxy anything else through to a wallet.
+    location / { return 404; }
+}
+```
+
+### Record the account before you co-sign
+
+Your service at `127.0.0.1:8080` records `X-Epic-Account` against the incoming slate id, then calls
+`receive_tx` on the wallet's Foreign API. The
+[receive example](/examples/send-receive#receiving) shows that call.
+
+```python title="attribution.py"
+"""Record who paid, then co-sign the slate. Attribution must be durable before we sign."""
+
+from fastapi import FastAPI, Header, HTTPException
+
+app = FastAPI()
+
+
+@app.post("/receive")
+async def receive(slate: dict, x_epic_account: str = Header(...)) -> dict:
+    slate_id = slate.get("id")
+    if not slate_id:
+        raise HTTPException(status_code=400, detail="slate has no id")
+
+    # Write attribution first and commit it. If this fails, refuse the deposit:
+    # an unattributed credit cannot be reconstructed from the chain later.
+    await record_pending_deposit(account=x_epic_account, slate_id=slate_id)
+
+    return await receive_tx(slate)   # from the receive example
+```
+
+:::danger[Your database is the only record of who paid you]
+
+User attribution cannot be reconciled against the chain afterwards, because the chain never held it. If that
+data is lost or corrupted it cannot be reconstructed. Treat it as primary financial data with backups to
+match, not as a cache.
+
+:::
+
+## Architecture
+
+1. **Your own fully validating node.** A public node sees every output query you make. See
+   [node and wallet setup](/guides/mainnet-setup).
+2. **Hot wallets** running the Foreign API to receive and the Owner API for your backend to drive.
+3. **A reverse proxy** mapping per-user paths onto listeners, terminating TLS and adding authentication.
+4. **Your attribution database**, written synchronously as slates arrive.
+5. **Withdrawal processing** through the Owner API, with retry and cancellation logic.
+
+The Foreign API has no authentication (counterparties do not hold your credentials). Terminate TLS at
+the proxy layer.
+
+## Withdrawals need a state machine
+
+This is where an integration built on transparent-chain assumptions breaks. A withdrawal is an exchange with
+the user's wallet that may not complete.
+
+- Starting a send **reserves your outputs immediately**. A queue of incomplete withdrawals will progressively
+  immobilise your hot wallet balance. See [outputs and locking](/concepts/outputs-and-locking).
+- Nothing expires on its own. You decide when to give up, and cancel explicitly.
+- Cancelling requires a reachable node and a transfer that has not yet been posted and observed.
+- The send path blocks for up to four minutes polling the mempool. Do not run it on a request thread.
+
+Model a withdrawal as: created, awaiting counterparty, finalised, posted, confirmed, or cancelled. Set your
+own deadline, since the protocol does not provide one, and cancel on expiry to release the outputs.
+
+## Confirmation depth
+
+Choose your own and err on the side of caution. The target block time is 60 seconds and coinbase maturity is
+1,440 blocks. The protocol does not prescribe a deposit confirmation depth.
+
+:::note[Base the depth on observed behaviour]
+
+Pick a depth from reorg depths actually seen on mainnet rather than by analogy with another chain. The
+maintainers and the block explorer are the sources for that.
+
+:::
+
+## Cold storage
+
+Receiving requires interactive participation, so a receiving wallet has to run and communicate. That makes
+cold storage a harder problem than on a transparent chain, where you can receive to an offline key.
+
+The `file` transport is the natural building block, since it requires no network. Whether it composes into a
+custody procedure that meets your requirements is a question to settle with the maintainers before designing
+around it.
+
+## Before going live
+
+- Your own fully validating node, not a public one.
+- Foreign API never directly exposed.
+- Attribution database backed up and treated as irreplaceable.
+- Withdrawal state machine with explicit expiry and cancellation.
+- Tested on a private chain, including the failure paths. Floonet is not maintained as of August 2026,
+  so run your own local network. See
+  [run a local network](/guides/local-network).
+- Payment proof requirements settled, and the transport chosen to match. See
+  [payment proofs](/concepts/payment-proofs).
+
+## Next
+
+<CardGrid>
+  <Card title="Wallet Owner API" to="/api/wallet-owner">
+    The calls your backend will drive.
+  </Card>
+  <Card title="Outputs and locking" to="/concepts/outputs-and-locking">
+    Why a withdrawal queue can immobilise a hot wallet.
+  </Card>
+</CardGrid>
