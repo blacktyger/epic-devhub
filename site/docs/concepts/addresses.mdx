@@ -61,11 +61,10 @@ A separate key used to prove afterwards that a specific party was the intended r
 transfer. It has to be arranged before the transfer, because the recipient signs the proof as part of
 their round.
 
-Note that `epic-wallet address` currently prints this heading with no value under it on a wallet created
-from the CLI, so if you need a proof address, check that you actually have one before promising a proof
-to a counterparty.
+Confirm the wallet has a proof address before agreeing to supply a proof: `epic-wallet address` prints
+it under this heading.
 
-See [payment proofs](/concepts/payment-proofs), and note that the epicbox transport does not carry them.
+See [payment proofs](/concepts/payment-proofs). Requesting one requires the HTTP transport.
 
 ## Next
 

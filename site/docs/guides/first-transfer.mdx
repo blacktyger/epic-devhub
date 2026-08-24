@@ -145,8 +145,8 @@ An observed round trip took about 1.5 seconds:
 The relay never touches the chain. It is store-and-forward for slate JSON keyed by address, and your own
 node does the posting, which is why a private chain can use any relay.
 
-One harmless-looking error appears when the `send` process exits, because it opened its own short-lived
-subscription and then aborted it:
+The `send` process prints this on exit, after the transfer has completed, as it closes its own
+short-lived subscription:
 
 ```
 ERROR Error reading message Io(Os { code: 10053, kind: ConnectionAborted ... })

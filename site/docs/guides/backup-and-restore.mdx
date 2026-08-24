@@ -28,7 +28,7 @@ SQLite `-wal` and `-shm` files when the wallet is not running.
 
 :::warning[`.api_secret` must match the node's]
 
-The wallet's `.owner_api_secret` regenerates on next run harmlessly. Its `.api_secret` is different: it is
+The wallet's `.owner_api_secret` regenerates on next run. Its `.api_secret` is different: it is
 the credential the wallet presents **to the node**, so it has to match the node's `.api_secret`. Delete it
 and node calls fail until you copy the node's value back in. See
 [authentication](/api/authentication).
@@ -94,7 +94,7 @@ epic-wallet init -w -r
 ```
 
 You will be prompted for the phrase, then for a new password. The phrase is validated on entry, so a
-mistyped word is rejected immediately rather than silently producing an empty wallet.
+mistyped word is rejected before the wallet is created.
 
 `-w` puts the wallet in the current directory. It is a flag on `init` and takes no value, so
 `epic-wallet -w . init` is not valid. To point a later command at a wallet outside `~/.epic/<network>`,
@@ -120,7 +120,7 @@ used:
 epic-wallet scan -s 3400000
 ```
 
-Starting too high silently misses older outputs, so only narrow the range if you are confident.
+Scan from a height at or below the wallet's first output.
 
 :::
 
@@ -144,9 +144,8 @@ device records only the transfers it participated in. Their histories will diver
 the correct balance while missing transfers and status details recorded on the other. Running `scan`
 repairs output and balance state; it does not merge or reconstruct those missing records.
 
-If you had named accounts, recreate them and note that outputs land in the default account after a
-recovery scan. Recreate the account paths in the same order they were originally created so future
-derivation matches:
+A recovery scan puts all outputs in the default account. If you had named accounts, recreate them in
+the order they were originally created so future derivation matches:
 
 ```bash
 epic-wallet account -c savings

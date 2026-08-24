@@ -48,10 +48,7 @@ curl -s -u epic:$(cat ~/.epic/main/.api_secret) \
 
 ## Response shapes
 
-Two fields commonly trip up clients written against other MimbleWimble chains.
-
-**`total_difficulty` is an object, not an integer.** Epic tracks difficulty separately for each
-proof-of-work algorithm:
+`total_difficulty` is an object keyed by proof-of-work algorithm, not an integer:
 
 ```json
 {
@@ -64,9 +61,8 @@ proof-of-work algorithm:
 }
 ```
 
-**Block headers describe their proof with two fields**, `proof`, a string naming the algorithm, and
-`solution`, a tagged union whose shape depends on that algorithm. There is no single scalar solution
-field.
+Block headers describe their proof with two fields: `proof`, a string naming the algorithm, and
+`solution`, a tagged union whose shape follows that algorithm.
 
 `Status` includes `supply`, `max_supply` and `blocks_to_next_halving`, in whole EPIC rather than
 freemen. Reward steps are not all halvings; see [emission](/mining/emission).
@@ -78,16 +74,16 @@ Handle both.
 ## Mining over HTTP
 
 The foreign surface offers a three-step block submission flow as an alternative to Stratum:
-`get_block_template`, `finalize_block_template`, `submit_block`. This is ordinary JSON-RPC over HTTP and
-is often easier to work with than the Stratum socket protocol. See [Stratum](/mining/stratum).
+`get_block_template`, `finalize_block_template`, `submit_block`. It is JSON-RPC over HTTP. See
+[Stratum](/mining/stratum).
 
 ## The v1 REST surface
 
-`/v1` is not an earlier version of `/v2`. It is a different interface style for the same node, and
-both are registered side by side in the same router, served by the same process on the same port at
-the same time: v1 at <Src repo="node" path="api/src/handlers.rs" line={536} />, v2 at
+The node serves REST under `/v1` and JSON-RPC under `/v2`, from the same process on the same port.
+The numbers name two interface styles, not two generations: `/v1` is registered at
+<Src repo="node" path="api/src/handlers.rs" line={536} />, `/v2` at
 <Src repo="node" path="api/src/handlers.rs" line={135} /> and
-<Src repo="node" path="api/src/handlers.rs" line={155} />. Nothing in the code deprecates either one.
+<Src repo="node" path="api/src/handlers.rs" line={155} />.
 
 The difference is where the operation is named.
 
@@ -95,46 +91,27 @@ The difference is where the operation is named.
 | --- | --- | --- |
 | Style | REST | JSON-RPC 2.0 |
 | Operation named by | the URL path | the `method` field in the body |
-| HTTP verb | `GET`, `POST` for the few that mutate | `POST` only |
-| Number of URLs | one per operation | three in total |
-| Result | the payload directly | wrapped in `result.Ok` or `result.Err` |
-| Credential | Basic auth across the whole prefix | per surface |
+| HTTP verb | `GET`, `POST` to mutate | `POST` |
+| URLs | one per operation | `/v2/foreign`, `/v2/owner`, `/v2/tor` |
+| Result | the payload | the payload inside `result.Ok` |
+| Credential | Basic auth across the `/v1` prefix | per surface |
 
-Three consequences catch people out.
+Both surfaces return the same payloads. `GET /v1/status` and `get_status` on `/v2/owner` produce
+identical bodies, so the [JSON-RPC pages](#full-method-reference) document the response shapes for
+both, and the table below maps each route onto its method.
 
-**There is no `/v2/status`.** On v2 the path never names the operation, so the only paths that exist
-are `/v2/foreign`, `/v2/owner` and `/v2/tor`. Status is a `method`, `get_status`, sent to `/v2/owner`.
-
-**`GET /v2/foreign` returns 404.** The JSON-RPC handlers implement `POST` and nothing else, so a
-browser pointed at a v2 path gets a 404 even though the path is correct. Verified against node
-<Ver k="node" /> on 2026-08-24.
-
-**The two surfaces return the same data.** `GET /v1/status` and `get_status` on `/v2/owner` produce
-identical bodies, field for field. That is why there is no separate v1 method reference here: the
-[JSON-RPC pages](#full-method-reference) document the payloads, and the table below maps each route
-onto its method.
-
-### The node's own route index is not authoritative
-
-`GET /`, `GET /v1/` and `GET /v2/` all return the same hardcoded list of v1 routes, from
-<Src repo="node" path="api/src/handlers.rs" line={446} />. It is a fixed string list, not a live
-reflection of the router, so it drifts: `/v1/kerneldownload` is a registered route
-(<Src repo="node" path="api/src/handlers.rs" line={546} />) and does not appear in it.
-
-That list is served before any credential check on `/` and `/v2/`, so it answers without
-authentication even on a node whose `/v1` requires it. Harmless in itself, since it is a static
-string, but it means a route index you fetched is a starting point rather than the truth.
+`GET /`, `GET /v1/` and `GET /v2/` return a list of v1 routes, from
+<Src repo="node" path="api/src/handlers.rs" line={446} />.
 
 ### Routes
 
-Verbs are as the node's own index reports them. The right-hand column is the JSON-RPC method that
+Verbs are as the node's route index reports them. The right-hand column is the JSON-RPC method that
 returns the same thing, and its surface.
 
 <details>
 <summary>Every v1 route and its JSON-RPC equivalent</summary>
 
-The router registers 19 patterns. Three of them are wildcards, so the concrete forms below are what
-you can actually call.
+The router registers 19 patterns, three of them wildcards. The concrete forms are below.
 
 | Route | Verb | JSON-RPC equivalent |
 | --- | --- | --- |
@@ -164,15 +141,11 @@ you can actually call.
 | `/v1/peers/onion_addresses` | GET | `get_onion_addresses`, owner |
 | `/v1/version` | GET | `get_version`, foreign |
 | `/v1/mining/block_template` | GET | `get_block_template`, foreign |
-| `/v1/kerneldownload` | GET | none, and absent from the node's own index |
-
-The `txhashset` family is where v1 reaches furthest past JSON-RPC. v2 covers output ranges with
-`get_unspent_outputs` and PMMR positions with `get_pmmr_indices`, but no method returns the
-txhashset roots. If you need those, v1 is the surface that has them.
+| `/v1/kerneldownload` | GET | none |
 
 </details>
 
-A worked call, against a node with no `api_secret` configured so that no credential is sent:
+A call against a node with no `api_secret` set:
 
 ```bash
 curl -s http://127.0.0.1:3413/v1/status
@@ -196,8 +169,7 @@ curl -s http://127.0.0.1:3413/v1/status
 }
 ```
 
-Captured on a local usernet chain at height 1439 on 2026-08-24. Note the payload arrives directly,
-with no `result.Ok` wrapper: that wrapper is a JSON-RPC construct and v1 has no equivalent.
+Captured on a local usernet chain at height 1439 on 2026-08-24.
 
 ## Full method reference
 

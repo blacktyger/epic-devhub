@@ -118,7 +118,7 @@ Reasoning is in [what this version does not cover](/start#what-this-version-does
 | `wallet_data/wallet.seed` | Encrypted master key | **Yes. This is the wallet** |
 | `wallet_data/db/sqlite/epic.db` | Output and transaction database | Yes. `scan` rebuilds outputs but not history |
 | `wallet_data/saved_txs/` | Stored transaction objects | Yes, if you may need `repost` |
-| `.owner_api_secret` | Owner listener credential | Regenerates harmlessly |
+| `.owner_api_secret` | Owner listener credential | Regenerates on next run |
 | `.api_secret` | The credential the wallet presents to the node | Must match the node's |
 | Log file | Diagnostics. Off by default; set `log_to_file = true` | No |
 

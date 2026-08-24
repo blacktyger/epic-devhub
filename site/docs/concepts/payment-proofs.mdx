@@ -37,9 +37,7 @@ Retrieval and verification are `retrieve_payment_proof` and `verify_payment_proo
 
 ## Choose the transport accordingly
 
-Epicbox uses slate V2, and payment proofs are a V3 field. A proof requested on a transfer sent over
-epicbox is silently dropped. The HTTP transport returns an error instead. If you need payment proofs,
-send over HTTP.
+Epicbox uses slate V2, and payment proofs are a V3 field. To request a proof, send over HTTP.
 
 ## Verification
 

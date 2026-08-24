@@ -68,7 +68,7 @@ log_file_path = "/home/you/wallets/bob/epic-wallet.log"
 | `api_listen_port` | u16 | `3415`, 13415 floonet, 23415 usernet | Foreign API port, used by `listen` |
 | `owner_api_listen_port` | u16, optional | `3420` on every network | Owner API port |
 | `owner_api_interface` | string, optional | `127.0.0.1` | Owner API bind address. Emitted commented out |
-| `api_secret_path` | string, optional | `<wallet dir>/.owner_api_secret` | Basic auth secret presented on the owner listener. Note that the middleware on this listener is built for the Foreign path, so this is not what guards `/v3/owner`; the wallet password is. See [authentication](/api/authentication) |
+| `api_secret_path` | string, optional | `<wallet dir>/.owner_api_secret` | Basic auth secret for the Foreign path on the owner listener. `/v3/owner` takes a token from `open_wallet`; see [authentication](/api/authentication) |
 | `node_api_secret_path` | string, optional | `<wallet dir>/.api_secret` | Basic auth secret the wallet presents when calling the node |
 | `check_node_api_http_addr` | string | `http://127.0.0.1:3413` | Node the wallet queries. Override per run with `-r` |
 | `owner_api_include_foreign` | bool, optional | `false` | Serve the Foreign API on the Owner API port, for single-port environments |

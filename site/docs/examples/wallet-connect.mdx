@@ -272,15 +272,14 @@ rather than `outputs`.
 <Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={174} kind="struct" name="RetrieveOutputsResult" />
 and <Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={196} kind="struct" name="Pager" />.
 
-Note that `retrieve_summary_info` is different: it still returns a two-element array of
-`[validated_against_node, WalletInfo]`.
+`retrieve_summary_info` returns a two-element array of `[validated_against_node, WalletInfo]`.
 
 ### Validate account names before you pass them
 
-:::warning[An unrecognised account name does not error]
+:::note[Account names]
 
-Passing a `dest_acct_name` or account label the wallet does not know falls back to the default account
-silently. Validate account names against `accounts` before using them.
+An account label the wallet does not know resolves to the default account. Validate names against
+`accounts` before passing them.
 
 :::
 

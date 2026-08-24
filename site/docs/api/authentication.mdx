@@ -19,29 +19,18 @@ foreign ones open because counterparties must reach them. TLS termination is lef
 | Wallet Owner `/v3/owner` | <Ver k="ports.walletOwner" /> | Token from `open_wallet` | You, from the same machine |
 | Wallet Foreign `/v2/foreign` | <Ver k="ports.walletForeign" /> | None | A counterparty paying you |
 
-The node's `/v1` is REST rather than JSON-RPC, and is a different interface style rather than an older
-one. Its credential covers the entire prefix, including the chain reads that are open on
-`/v2/foreign`, so the same query can need a credential on one surface and not the other. See
-[the v1 REST surface](/api/node#the-v1-rest-surface).
+The two Foreign surfaces take no credential by design: an interactive transfer needs the receiving
+side reachable by a stranger. The wallet's Foreign API receives a slate, returns a partially signed
+one, builds a coinbase for a miner configured to pay this wallet, and reports its version.
 
-Both node surfaces take their secret from the same `api_secret_path` file, and the middleware only
-exists when that file resolves. A config relocated out of `~/.epic` can name a secret file that
-nothing creates, which leaves `/v1` and `/v2/owner` answering without a credential and logs nothing
-about it. Check by fetching `/v1/status` with no credentials: a 401 means the middleware is active.
+The node's `/v1` credential covers the whole prefix, including the chain reads that are open on
+`/v2/foreign`. See [the v1 REST surface](/api/node#the-v1-rest-surface).
 
-The two Foreign surfaces are open because that is what "foreign" means. An interactive transfer
-cannot start if the receiving side demands a shared secret from a stranger, so the wallet's Foreign
-API takes a slate from anyone and the node's accepts chain queries and transaction pushes. What
-limits them is what they can do: the wallet's Foreign API receives a slate, returns a
-partially signed one, builds a coinbase for a miner configured to pay this wallet, and reports its
-version. It cannot spend, read your balance, or list your outputs.
-
-Put the surfaces you use on an interface you control, terminate TLS in front of them, and rate-limit
-anything you expose.
+Both node surfaces read the same `api_secret_path` file, which the node creates on first run.
 
 ## Owner access on the wallet
 
-Use `/v3/owner`, and treat the token as the credential that matters.
+Use `/v3/owner`.
 
 ```bash
 # 1. establish the encrypted channel, 2. open the wallet, 3. call methods with the token
@@ -50,19 +39,9 @@ curl -d '{"jsonrpc":"2.0","method":"init_secure_api","params":{"ecdh_pubkey":"..
 ```
 
 Every method on `/v3/owner` takes a `token`, and a token comes from `open_wallet`, which needs the
-wallet password. The <Src repo="wallet" path="controller/src/controller.rs" line={143} /> Basic-auth
-middleware on this listener is built for the `/v2/foreign` path, so `api_secret_path` is not what
-guards `/v3/owner`. The wallet password is the effective credential.
-
-:::danger[Keep the owner port on loopback]
-
-`owner_api_listen_interface` defaults to `127.0.0.1` and should stay there. The listener also mounts
-the legacy `/v2/owner` route, whose methods take no token at all
-(<Fn repo="wallet" path="api/src/owner_rpc.rs" line={507} name="init_send_tx" />), so anything that
-can reach the port can build a spend. If you need remote access, tunnel to loopback rather than
-binding the port outward.
-
-:::
+wallet password. The wallet password is the credential for this surface.
+`owner_api_listen_interface` defaults to `127.0.0.1`; for remote access, tunnel to loopback. The
+listener is built at <Src repo="wallet" path="controller/src/controller.rs" line={143} />.
 
 The full method list, and which calls move value, is on the
 [wallet Owner API page](/api/wallet-owner).

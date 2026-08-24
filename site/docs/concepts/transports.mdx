@@ -76,9 +76,8 @@ The wire protocol is documented in [the epicbox reference](/api/epicbox).
 
 ## http
 
-The sender posts the slate directly to the receiver's listener. Lowest latency, and the only transport
-that refuses to silently drop a slate field, which makes it the right choice when correctness matters
-more than convenience.
+The sender posts the slate directly to the receiver's listener. Lowest latency, and it carries every
+slate V3 field, including payment proofs.
 
 ```bash
 # receiver
