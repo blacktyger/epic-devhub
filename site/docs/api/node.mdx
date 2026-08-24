@@ -16,14 +16,8 @@ default, split across two surfaces.
 Credentials, and which of these expects one, are covered once in
 [authentication and TLS](/api/authentication).
 
-:::note[Scope of this reference]
-
-The node also serves an older REST surface under `/v1`. It still works, and it is not documented here.
-Everything below uses JSON-RPC, which is where the current clients and the maintained methods are. If
-you need the REST routes, the node emits its own route index at
-<Src repo="node" path="api/src/handlers.rs" line={448} />.
-
-:::
+The same listener also serves a REST surface under `/v1`. The version numbers name two interface
+styles, not two generations: see [the v1 REST surface](#the-v1-rest-surface).
 
 ## Which JSON-RPC method lives where
 
@@ -87,6 +81,124 @@ The foreign surface offers a three-step block submission flow as an alternative 
 `get_block_template`, `finalize_block_template`, `submit_block`. This is ordinary JSON-RPC over HTTP and
 is often easier to work with than the Stratum socket protocol. See [Stratum](/mining/stratum).
 
+## The v1 REST surface
+
+`/v1` is not an earlier version of `/v2`. It is a different interface style for the same node, and
+both are registered side by side in the same router, served by the same process on the same port at
+the same time: v1 at <Src repo="node" path="api/src/handlers.rs" line={536} />, v2 at
+<Src repo="node" path="api/src/handlers.rs" line={135} /> and
+<Src repo="node" path="api/src/handlers.rs" line={155} />. Nothing in the code deprecates either one.
+
+The difference is where the operation is named.
+
+| | `/v1` | `/v2` |
+| --- | --- | --- |
+| Style | REST | JSON-RPC 2.0 |
+| Operation named by | the URL path | the `method` field in the body |
+| HTTP verb | `GET`, `POST` for the few that mutate | `POST` only |
+| Number of URLs | one per operation | three in total |
+| Result | the payload directly | wrapped in `result.Ok` or `result.Err` |
+| Credential | Basic auth across the whole prefix | per surface |
+
+Three consequences catch people out.
+
+**There is no `/v2/status`.** On v2 the path never names the operation, so the only paths that exist
+are `/v2/foreign`, `/v2/owner` and `/v2/tor`. Status is a `method`, `get_status`, sent to `/v2/owner`.
+
+**`GET /v2/foreign` returns 404.** The JSON-RPC handlers implement `POST` and nothing else, so a
+browser pointed at a v2 path gets a 404 even though the path is correct. Verified against node
+<Ver k="node" /> on 2026-08-24.
+
+**The two surfaces return the same data.** `GET /v1/status` and `get_status` on `/v2/owner` produce
+identical bodies, field for field. That is why there is no separate v1 method reference here: the
+[JSON-RPC pages](#full-method-reference) document the payloads, and the table below maps each route
+onto its method.
+
+### The node's own route index is not authoritative
+
+`GET /`, `GET /v1/` and `GET /v2/` all return the same hardcoded list of v1 routes, from
+<Src repo="node" path="api/src/handlers.rs" line={446} />. It is a fixed string list, not a live
+reflection of the router, so it drifts: `/v1/kerneldownload` is a registered route
+(<Src repo="node" path="api/src/handlers.rs" line={546} />) and does not appear in it.
+
+That list is served before any credential check on `/` and `/v2/`, so it answers without
+authentication even on a node whose `/v1` requires it. Harmless in itself, since it is a static
+string, but it means a route index you fetched is a starting point rather than the truth.
+
+### Routes
+
+Verbs are as the node's own index reports them. The right-hand column is the JSON-RPC method that
+returns the same thing, and its surface.
+
+<details>
+<summary>Every v1 route and its JSON-RPC equivalent</summary>
+
+The router registers 19 patterns. Three of them are wildcards, so the concrete forms below are what
+you can actually call.
+
+| Route | Verb | JSON-RPC equivalent |
+| --- | --- | --- |
+| `/v1/` | GET | none, this is the route index |
+| `/v1/status` | GET | `get_status`, owner |
+| `/v1/chain` | GET | `get_tip`, foreign |
+| `/v1/chain/validate` | GET | `validate_chain`, owner |
+| `/v1/chain/compact` | POST | `compact_chain`, owner |
+| `/v1/blocks/<hash\|height>` | GET | `get_block`, foreign |
+| `/v1/headers/<hash\|height\|commit>` | GET | `get_header`, foreign |
+| `/v1/chain/kernels/<excess>?min_height=&max_height=` | GET | `get_kernel`, foreign |
+| `/v1/chain/outputs/byids?id=` | GET | `get_outputs`, foreign |
+| `/v1/chain/outputs/byheight?start_height=&end_height=` | GET | `get_outputs`, foreign |
+| `/v1/txhashset/roots` | GET | none |
+| `/v1/txhashset/lastoutputs?n=` | GET | none |
+| `/v1/txhashset/lastrangeproofs` | GET | none |
+| `/v1/txhashset/lastkernels` | GET | `get_last_n_kernels`, foreign |
+| `/v1/txhashset/outputs?start_index=&max=` | GET | `get_unspent_outputs`, foreign |
+| `/v1/txhashset/merkleproof?n=` | GET | `include_merkle_proof` on `get_outputs`, foreign |
+| `/v1/pool` | GET | `get_pool_size` and `get_stempool_size`, foreign |
+| `/v1/pool/push_tx` | POST | `push_transaction`, foreign |
+| `/v1/peers/all` | GET | `get_peers`, owner |
+| `/v1/peers/connected` | GET | `get_connected_peers`, owner |
+| `/v1/peers/<addr>` | GET | `get_peers` with a `peer_addr`, owner |
+| `/v1/peers/<addr>/ban` | POST | `ban_peer`, owner |
+| `/v1/peers/<addr>/unban` | POST | `unban_peer`, owner |
+| `/v1/peers/onion_addresses` | GET | `get_onion_addresses`, owner |
+| `/v1/version` | GET | `get_version`, foreign |
+| `/v1/mining/block_template` | GET | `get_block_template`, foreign |
+| `/v1/kerneldownload` | GET | none, and absent from the node's own index |
+
+The `txhashset` family is where v1 reaches furthest past JSON-RPC. v2 covers output ranges with
+`get_unspent_outputs` and PMMR positions with `get_pmmr_indices`, but no method returns the
+txhashset roots. If you need those, v1 is the surface that has them.
+
+</details>
+
+A worked call, against a node with no `api_secret` configured so that no credential is sent:
+
+```bash
+curl -s http://127.0.0.1:3413/v1/status
+```
+
+```json
+{
+  "protocol_version": 2,
+  "user_agent": "MW/Epic 4.0.3",
+  "connections": 0,
+  "tip": {
+    "height": 1439,
+    "last_block_pushed": "9abbd80483f9b082a9362ebac0aba5619bdba7cf647cb15f5ed33102faf3cd1b",
+    "prev_block_to_last": "6ceed7ff0ff7da1d44b01dc03189edeb1323bfa6d3625768520dd1a0498a0735",
+    "total_difficulty": {"cuckaroo": 1440, "cuckatoo": 1440, "randomx": 1440, "progpow": 1440}
+  },
+  "sync_status": "no_sync",
+  "supply": 23024,
+  "max_supply": 21000000,
+  "blocks_to_next_halving": 479521
+}
+```
+
+Captured on a local usernet chain at height 1439 on 2026-08-24. Note the payload arrives directly,
+with no `result.Ok` wrapper: that wrapper is a JSON-RPC construct and v1 has no equivalent.
+
 ## Full method reference
 
 Per method, with editable request and shell-command tabs plus a response panel:
@@ -108,8 +220,8 @@ Per method, with editable request and shell-command tabs plus a response panel:
 
 ## Source
 
-- <Src repo="node" path="api/src/owner_rpc.rs" line={73} /> defines the eight owner methods
-- <Src repo="node" path="api/src/foreign_rpc.rs" line={125} /> defines the foreign methods
+- <Src repo="node" path="api/src/owner_rpc.rs" line={29} /> defines the eight owner methods
+- <Src repo="node" path="api/src/foreign_rpc.rs" line={37} /> defines the foreign methods
 - <Src repo="node" path="api/src/types.rs" /> defines every response shape
 - <Src repo="node" path="api/src/auth.rs" /> is the Basic auth middleware
 

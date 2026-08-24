@@ -50,6 +50,13 @@
           - cell
           - cell
           - cell
+        - row
+          - cell
+            - code
+          - cell
+          - cell
+          - cell
+          - cell
             - strong
         - row
           - cell
@@ -68,6 +75,8 @@
     - paragraph
       - code
       - code
+      - link
+    - paragraph
       - code
       - link
     - heading [level=2]

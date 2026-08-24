@@ -314,7 +314,7 @@ println!("mempool: {pool}, peers: {}", peers.as_array().map_or(0, |p| p.len()));
 <details>
 <summary>Full JSON-RPC method list, by surface</summary>
 
-`/v2/owner`, defined in <Src repo="node" path="api/src/owner_rpc.rs" line={73} />:
+`/v2/owner`, defined in <Src repo="node" path="api/src/owner_rpc.rs" line={29} />:
 
 ```
 get_status          validate_chain      compact_chain
@@ -322,7 +322,7 @@ get_peers           get_connected_peers ban_peer
 unban_peer          get_onion_addresses
 ```
 
-`/v2/foreign`, defined in <Src repo="node" path="api/src/foreign_rpc.rs" line={125} />:
+`/v2/foreign`, defined in <Src repo="node" path="api/src/foreign_rpc.rs" line={37} />:
 
 ```
 get_header          get_block           get_blocks

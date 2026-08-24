@@ -1,16 +1,23 @@
 /**
- * Checks that every `src` citation in rpcSpec.js points at the line where that method is
- * actually declared.
+ * Checks that every source citation resolves to what it claims.
  *
- * rpcSpec.js states the rule itself: "`src` cites the declaration, and the reference pages turn
- * it into a pinned link". A citation is the one claim on a docs page a reader cannot verify
- * cheaply, because following it means opening a Rust file in another repository. So it is exactly
- * the claim most likely to rot unnoticed, and the whole page's credibility rests on it.
+ * Two kinds are checked, from two places:
  *
- * This found 26 wrong citations on its first run: every node method carried one placeholder line
- * per file, so eight owner methods all pointed at owner_rpc.rs:73 and eighteen foreign methods
- * all pointed at foreign_rpc.rs:125. The pages rendered "DECLARED IN api/src/foreign_rpc.rs:125"
- * under four different methods on a single page, which is how it was spotted.
+ *   rpcSpec.js `src`   the line must declare that method. rpcSpec.js states the rule itself: "`src`
+ *                      cites the declaration, and the reference pages turn it into a pinned link".
+ *   MDX `<Fn name=>`   the line must declare that name.
+ *   MDX `<Src>`        no symbol is named, so only the file and the line's existence can be checked.
+ *
+ * A citation is the one claim on a docs page a reader cannot verify cheaply, because following it
+ * means opening a Rust file in another repository. So it is exactly the claim most likely to rot
+ * unnoticed, and the whole page's credibility rests on it.
+ *
+ * This found 30 wrong citations in rpcSpec.js on its first run: every node method carried one
+ * placeholder line per file, so eight owner methods all pointed at owner_rpc.rs:73 and eighteen
+ * foreign methods all pointed at foreign_rpc.rs:125. The pages rendered "DECLARED IN
+ * api/src/foreign_rpc.rs:125" under four different methods on a single page, which is how it was
+ * spotted. The same two placeholder lines had been copied by hand into two MDX pages, where the
+ * first version of this script could not see them, which is why it now reads the pages too.
  *
  * Needs the upstream clones next to epic-devdocs. Without them it skips rather than fails, so it
  * is a local gate and harmless in CI, where the clones do not exist.
@@ -106,6 +113,72 @@ for (const method of methods) {
 const bad = results.filter((r) => r.state !== 'ok');
 const wrong = results.filter((r) => r.state === 'wrong-line');
 
+/**
+ * Citations written by hand in the MDX pages.
+ *
+ * `<Fn>` names a symbol, so its line can be checked properly. `<Src>` names only a file and a line,
+ * so all that can be checked is that the file exists and is long enough. That is weak, and it is
+ * still worth doing: it catches a renamed file and a citation past the end of one.
+ */
+async function checkPages() {
+  const out = [];
+  const docs = path.join(SITE, 'docs');
+  const walk = async (dir) => {
+    for (const entry of await fs.readdir(dir, {withFileTypes: true})) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) await walk(full);
+      else if (entry.name.endsWith('.mdx')) {
+        const text = await readFileRetry(fs, full, 'utf8');
+        const rel = path.relative(docs, full);
+        const tag = /<(Src|Fn)\s+([^>]*?)\/>/g;
+        for (const m of text.matchAll(tag)) {
+          const attrs = m[2];
+          const repo = /repo="([^"]+)"/.exec(attrs)?.[1];
+          const file = /path="([^"]+)"/.exec(attrs)?.[1];
+          const line = Number(/line=\{(\d+)\}/.exec(attrs)?.[1]);
+          const name = /name="([^"]+)"/.exec(attrs)?.[1];
+          if (!repo || !file || !line) continue;
+          if (missing.includes(repo)) continue;
+          let source;
+          try {
+            source = await read(repo, file);
+          } catch {
+            out.push({where: rel, cite: `${file}:${line}`, problem: 'file does not exist'});
+            continue;
+          }
+          const lines = source.split(/\r?\n/);
+          if (line > lines.length) {
+            out.push({
+              where: rel,
+              cite: `${file}:${line}`,
+              problem: `file has only ${lines.length} lines`,
+            });
+            continue;
+          }
+          if (name) {
+            // A qualified name like TransactionBody::weight is declared as `fn weight`, so only the
+            // last segment appears in the source line.
+            const symbol = name.split('::').pop();
+            const hits = declarationLines(source, symbol);
+            const decl = new RegExp(`\\b(fn|struct|enum|trait|const|static|type)\\s+${symbol}\\b`);
+            if (!hits.includes(line) && !decl.test(lines[line - 1])) {
+              out.push({
+                where: rel,
+                cite: `${file}:${line}`,
+                problem: `does not declare ${symbol}${hits.length ? `, which is at ${hits.join(' and ')}` : ''}`,
+              });
+            }
+          }
+        }
+      }
+    }
+  };
+  await walk(docs);
+  return out;
+}
+
+const pageProblems = missing.length === Object.keys(CLONES).length ? [] : await checkPages();
+
 if (process.argv.includes('--fix')) {
   if (wrong.length === 0) {
     console.log('nothing to fix');
@@ -155,9 +228,14 @@ for (const r of bad) {
 
 if (bad.length) {
   console.log(`\n${bad.length} bad citation(s). Rerun with --fix to apply the located lines.`);
-  process.exit(1);
 }
-if (skipped === results.length && results.length === 0) {
-  console.log('nothing checked');
+
+if (pageProblems.length) {
+  console.log(`\npage citations, ${pageProblems.length} problem(s):`);
+  for (const p of pageProblems) console.log(`  ${p.where}: ${p.cite} ${p.problem}`);
+} else {
+  console.log('page citations: every <Src> file resolves and every <Fn> line declares its name');
 }
+
+if (bad.length || pageProblems.length) process.exit(1);
 console.log('every citation points at a declaration');

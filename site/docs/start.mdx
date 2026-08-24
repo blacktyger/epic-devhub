@@ -30,6 +30,9 @@ background thread. Set `use_tor_listener = false` in `epic-wallet.toml`, or pass
 Tor operation is not documented or runtime-verified here; its configuration keys remain listed in the
 [wallet](/reference/wallet-config) and [node](/reference/node-config) references.
 
-**Older API surfaces.** The node still answers REST requests under `/v1`, and the wallet still mounts an
-unencrypted `/v2/owner`. Both work and neither is documented here. Current work belongs on the node's
-JSON-RPC surfaces and the wallet's `/v3/owner`. See [the API overview](/api/).
+**The wallet's unencrypted `/v2/owner`.** It still responds and it takes no token. Current work belongs
+on the wallet's `/v3/owner`. See [the API overview](/api/).
+
+The node's REST surface under `/v1` *is* covered: it is a different interface style rather than an
+older one, and [the node API page](/api/node#the-v1-rest-surface) maps every route onto its JSON-RPC
+equivalent.

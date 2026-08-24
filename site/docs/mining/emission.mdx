@@ -43,7 +43,7 @@ Emission steps down at era boundaries rather than following a smooth curve:
 | Era 6 onward | repeating steps | 1,460 days each | 0.15625 EPIC, halving each step |
 
 The per-era values are in
-<Fn repo="node" path="core/src/consensus.rs" line={110} name="fast_total_supply" />. Note that the base
+<Fn repo="node" path="core/src/consensus.rs" line={104} name="fast_total_supply" />. Note that the base
 reward is not what the miner receives: the foundation levy comes off it first. On a local chain at era 1
 heights, a mined block credited the wallet 14.5792 EPIC, which is 16 EPIC less the 8.88% era 1 levy.
 

@@ -31,6 +31,7 @@ whether you need chain data or key operations.
 
 | Surface | Where | Protocol | Default port | Can spend |
 | --- | --- | --- | --- | --- |
+| Node `/v1/*` | node | REST, chain reads and administration | <Ver k="ports.nodeApi" /> | No |
 | Node `/v2/owner` | node | JSON-RPC 2.0, node administration | <Ver k="ports.nodeApi" /> | No |
 | Node `/v2/foreign` | node | JSON-RPC 2.0, chain reads and tx submission | <Ver k="ports.nodeApi" /> | No |
 | Wallet Owner `/v3/owner` | wallet | JSON-RPC 2.0, encrypted | <Ver k="ports.walletOwner" /> | **Yes** |
@@ -39,9 +40,14 @@ whether you need chain data or key operations.
 
 Documented against node <Ver k="node" /> and wallet <Ver k="wallet" />.
 
-Two older surfaces exist and are out of scope here: the node's REST routes under `/v1`, and the wallet's
-unencrypted `/v2/owner`. Both still respond. The wallet's `/v2/owner` has no token requirement and is
-covered by the warning in [authentication](/api/authentication).
+The node's `/v1` and `/v2` are two interface styles rather than two generations: REST, where the URL
+names the operation, and JSON-RPC, where the body does. Both are live on the same port and neither is
+deprecated. The [node API page](/api/node#the-v1-rest-surface) covers the distinction and maps every
+v1 route onto its JSON-RPC method.
+
+One surface is genuinely superseded rather than merely different: the wallet's unencrypted `/v2/owner`.
+It still responds, it has no token requirement, and it is covered by the warning in
+[authentication](/api/authentication).
 
 ## Choosing a surface
 

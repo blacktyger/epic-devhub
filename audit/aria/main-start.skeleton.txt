@@ -79,9 +79,12 @@
       - link
     - paragraph
       - strong
+        - code
       - code
+      - link
+    - paragraph
       - code
-      - code
+      - emphasis
       - link
     - link
     - time

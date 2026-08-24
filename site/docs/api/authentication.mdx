@@ -6,17 +6,28 @@ description: Which Epic API surfaces expect a credential, which are open because
 
 # API authentication and TLS
 
-Epic ships four HTTP surfaces. It protects the owner-facing ones with credentials and leaves the
+Epic ships five HTTP surfaces. It protects the owner-facing ones with credentials and leaves the
 foreign ones open because counterparties must reach them. TLS termination is left to the operator.
 
-## The four surfaces
+## The surfaces
 
 | Surface | Default port | Credential | Who is meant to call it |
 | --- | --- | --- | --- |
+| Node `/v1/*` | <Ver k="ports.nodeApi" /> | Basic, `api_secret_path`, across the whole prefix | You, from the same machine |
 | Node `/v2/owner` | <Ver k="ports.nodeApi" /> | Basic, `api_secret_path` | You, from the same machine |
 | Node `/v2/foreign` | <Ver k="ports.nodeApi" /> | Optional Basic, `foreign_api_secret_path` | Anything that reads the chain |
 | Wallet Owner `/v3/owner` | <Ver k="ports.walletOwner" /> | Token from `open_wallet` | You, from the same machine |
 | Wallet Foreign `/v2/foreign` | <Ver k="ports.walletForeign" /> | None | A counterparty paying you |
+
+The node's `/v1` is REST rather than JSON-RPC, and is a different interface style rather than an older
+one. Its credential covers the entire prefix, including the chain reads that are open on
+`/v2/foreign`, so the same query can need a credential on one surface and not the other. See
+[the v1 REST surface](/api/node#the-v1-rest-surface).
+
+Both node surfaces take their secret from the same `api_secret_path` file, and the middleware only
+exists when that file resolves. A config relocated out of `~/.epic` can name a secret file that
+nothing creates, which leaves `/v1` and `/v2/owner` answering without a credential and logs nothing
+about it. Check by fetching `/v1/status` with no credentials: a 401 means the middleware is active.
 
 The two Foreign surfaces are open because that is what "foreign" means. An interactive transfer
 cannot start if the receiving side demands a shared secret from a stranger, so the wallet's Foreign
