@@ -216,17 +216,19 @@ html {
     var(--epic-page-gutter) + var(--epic-navbar-brand-slot) + var(--epic-navbar-item-inset)
   );
   --epic-content-max: var(--ifm-container-width, 1140px);
-  /* The one gap under the navbar. Sidebar first row, breadcrumb row and contents panel all
-     start this far below the navbar's bottom edge, and the two sticky ones pin at that same
-     distance, so nothing moves as they detach. 16px measured too tight against a 60px navbar
-     and, on the breadcrumb, was invisible: the row's own padding already supplied that much,
-     so the box moved and the text did not. verify-runtime.mjs reads this token and asserts
-     both states match it. */
-  --epic-doc-top-gap: 1.5rem;
-  /* Where the clear band ends, measured from the viewport top. The navbar's strip, the sidebar's
-     fill, the sticky offsets and the page wash all key off this, so there is one number for the
-     line everything starts on. */
-  --epic-doc-strip-bottom: calc(var(--ifm-navbar-height) + var(--epic-doc-top-gap));
+  /* The one gap left under the navbar, and it belongs to the contents panel alone. The sidebar
+     and the breadcrumb row start on the navbar's bottom edge instead, so the left panel and the
+     navbar read as a single charcoal shape and the breadcrumb is the top ink of the middle
+     column, sitting on the panel's top line.
+
+     The contents panel keeps its distance because it is a bordered enclosure, and a bordered box
+     welded to the navbar reads as a tab rather than a panel. 16px measured too tight against a
+     60px navbar, so it keeps 24. verify-runtime.mjs reads this token and asserts the panel
+     matches it both at rest and pinned, while the other two columns sit on zero. */
+  --epic-toc-top-gap: 1.5rem;
+  /* Where the page wash starts, measured from the viewport top. There is no clear band to keep
+     it out of any more, so it opens on the navbar's bottom edge. */
+  --epic-doc-wash-start: var(--ifm-navbar-height);
 }
 
 @media (min-width: 1440px) {
@@ -2382,27 +2384,22 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
   --ifm-menu-link-padding-horizontal: 0.5rem;
 }
 
-/* The three columns have to start their visible box on one line, and for two of them that box is
-   filled: the sidebar's active row and the active breadcrumb chip both paint a background. Line
-   up the boxes and the text follows, because both sit about 6px inside their own box: link box at
-   the gap puts its label 6px lower, chip box at the gap puts its text 5.6px lower.
+/* The sidebar's first row starts on the navbar's bottom edge, so the panel's fill and the navbar
+   read as one charcoal shape and the first label is that shape's top ink. The breadcrumb row lands
+   on the same line, which is what keeps the left column and the middle column agreeing.
 
-   Aligning the sidebar's label to the chip's box instead is wrong and looks it. That put the link
-   box 6px above the line, and on a page where the first sidebar row is the active one, that row's
-   filled box sits visibly squashed against the navbar.
+   Infima's own 0.5rem padding-top goes to zero rather than being traded for a margin, because the
+   menu is the scrolling element: any offset expressed as padding leaves the scroll track, and with
+   it a scrollbar thumb, starting above the first row. Scoped to desktop because below 997px the
+   sidebar is a full-height drawer with no navbar above it.
 
-   The offset is a margin, not padding, because the menu is the scrolling element: as padding it
-   left the scroll track, and with it a bright scrollbar thumb, starting at the navbar's bottom
-   edge. Infima's own 0.5rem padding-top goes to zero for the same reason. Scoped to desktop
-   because below 997px the sidebar is a full-height drawer with no navbar above it.
-
-   The sidebar's flat fill and the theme's own `border-right` both still start at the viewport
-   top, and both are left alone: the navbar's strip paints over that band, so neither reaches the
-   navbar. An earlier pass replaced the fill with a hard-stop gradient and the border with an
-   ::after, which worked and was two more moving parts than the strip needs. */
+   This replaces a 1.5rem clear band that the navbar painted over as an opaque strip so it survived
+   scrolling. Band and strip are both gone. The container's flat fill and the theme's own
+   `border-right` still start at the viewport top and are still left alone, because the navbar is
+   opaque and covers that stretch. */
 @media (min-width: 997px) {
   .theme-doc-sidebar-container .menu {
-    margin-top: var(--epic-doc-top-gap);
+    margin-top: 0;
     padding-top: 0;
   }
 }
@@ -2451,12 +2448,13 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
 @media (min-width: 997px) {
   .theme-doc-toc-desktop {
     position: sticky;
-    /* One gap below the navbar, the same distance the breadcrumb row keeps, so the two columns
-       start on the same line. `top` is a minimum distance from the viewport top, so this is
-       also where sticky clamps the panel once it detaches: at rest and pinned agree, and the
-       docs container's own padding-top is what supplies the gap before any scrolling. */
-    top: calc(var(--ifm-navbar-height) + var(--epic-doc-top-gap));
-    max-height: calc(100vh - var(--ifm-navbar-height) - var(--epic-doc-top-gap) - 1rem);
+    /* The panel keeps a gap below the navbar where the other two columns no longer do, because it
+       is a bordered enclosure. `top` is a minimum distance from the viewport top, so this is also
+       where sticky clamps the panel once it detaches: at rest and pinned agree. The gap before any
+       scrolling comes from the contents column's own padding-top, since the docs row now pulls
+       itself flush to the navbar. */
+    top: calc(var(--ifm-navbar-height) + var(--epic-toc-top-gap));
+    max-height: calc(100vh - var(--ifm-navbar-height) - var(--epic-toc-top-gap) - 1rem);
     display: flex;
     flex-direction: column;
   }
@@ -2581,19 +2579,26 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
 }
 
 /* ---- Docs content column top -------------------------------------------
-   The column has to start on the same line as the sidebar and the contents panel. Infima gives
-   the container inside <main> a fixed 1rem through `padding-top--md`, declared `!important`
-   inside `@layer docusaurus.infima`, and that cannot be overridden from here: for `!important`
-   declarations the layer order inverts, so an unlayered `!important` is the weakest of all. Two
-   earlier attempts lost to it silently, and the first still measured as correct because sticky
-   was clamping the panel and the row down to the gap line and hiding that layout put them 8px
-   above it.
+   The breadcrumb is the top ink of the middle column and starts on the navbar's bottom edge, on
+   the same line as the sidebar's first label. Infima gives the container inside <main> a fixed
+   1rem through `padding-top--md`, declared `!important` inside `@layer docusaurus.infima`, and
+   that cannot be overridden from here: for `!important` declarations the layer order inverts, so
+   an unlayered `!important` is the weakest of all. Two earlier attempts lost to it silently.
 
-   So the remainder goes on the row instead, which Infima does not touch. The subtraction uses the
-   same token Infima's own spacing scale is built from, so the two cannot drift. Scoped to doc
-   pages, since the landing page composes its own top spacing. */
+   So the row pulls itself back over that padding with a negative margin, which Infima does not
+   touch, using the same token Infima's own spacing scale is built from so the two cannot drift.
+   The contents column then puts its own gap back, because that panel keeps its distance from the
+   navbar. Scoped to doc pages, since the landing page composes its own top spacing. */
 html[class*='docs-doc-id'] main .container.padding-top--md > .row {
-  padding-top: calc(var(--epic-doc-top-gap) - var(--ifm-spacing-vertical));
+  margin-top: calc(-1 * var(--ifm-spacing-vertical));
+  padding-top: 0;
+}
+
+/* The contents column, `col col--3` in DocItem/Layout. Its padding is what holds the panel off the
+   navbar at rest; the sticky `top` above holds it there once it detaches. Below 997px this column
+   is not rendered at all, so the rule is inert on mobile. */
+html[class*='docs-doc-id'] main .container.padding-top--md > .row > .col--3 {
+  padding-top: var(--epic-toc-top-gap);
 }
 
 /* ---- Breadcrumbs -------------------------------------------------------
@@ -2601,18 +2606,17 @@ html[class*='docs-doc-id'] main .container.padding-top--md > .row {
    the Infima default pill. The active-item contrast fix documented earlier in
    this file still applies.
 
-   Not sticky, and that is the point. A sticky row needs an opaque background so article text
-   does not scroll through it, and an opaque background between the navbar and the row fills the
-   clear band, which is the whole reason the sidebar and this row read as glued to the navbar
-   while the contents panel did not. The panel gets away with sticking because nothing scrolls
-   in its column. Here the choice is a clear band or a sticky row, not both, and the band is
-   what was asked for. The navbar carries the site nav on every page and stays sticky.
+   Not sticky. A sticky row needs an opaque background so article text does not scroll through it,
+   and this row now sits directly on the navbar's bottom edge, where a second opaque strip would
+   read as a thicker navbar on every page. It scrolls away instead. The contents panel gets away
+   with sticking because nothing scrolls in its column. The navbar carries the site nav on every
+   page and stays sticky.
 
    No top padding and no bottom rule either. The row previously carried 0.55rem above the chips
-   and a hairline below, which made the strip read as a 74px band bounded by the navbar's line at
-   the top and its own at the bottom, with the chips low inside it. That is why it looked tall
-   and uncentred. Without the rule there is no band, so the chip is simply the top ink of this
-   column and lands on the same line as the sidebar's first label and the panel's top edge. */
+   and a hairline below, which made it read as a 74px band bounded by the navbar's line at the top
+   and its own at the bottom, with the chips low inside it. That is why it looked tall and
+   uncentred. Without the rule there is no band, so the chip is simply the top ink of this column
+   and lands on the same line as the sidebar's first label. */
 .theme-doc-breadcrumbs {
   /* Slimmer than Infima's 0.4rem, which put the row at 31px of chip alone, without squashing it. */
   --ifm-breadcrumb-padding-vertical: 0.35rem;
@@ -2739,15 +2743,15 @@ html[data-theme='light'][class*='docs-doc-page'] .theme-doc-markdown::before {
    colour and settles into it, which stops a long reference page reading as one
    flat slab without putting anything behind the words.
 
-   It starts at zero on the gap line and ramps in over the next few rem, rather than opening at
-   full strength there. The navbar's strip paints the band in flat base colour, so a wash that
-   arrives at full alpha immediately below it puts a visible step across the page at that line.
-   Ramping makes the strip's bottom edge invisible while keeping the lift over the reading area. */
+   It starts at zero on the navbar's bottom edge and ramps in over the next few rem, rather than
+   opening at full strength there. A wash that arrives at full alpha immediately under the navbar
+   puts a visible step across the page on that line. Ramping keeps the lift over the reading area
+   without drawing that step. */
 body {
   background-image: linear-gradient(
     to bottom,
-    rgba(255, 249, 249, 0) var(--epic-doc-strip-bottom),
-    rgba(255, 249, 249, 0.032) calc(var(--epic-doc-strip-bottom) + 6rem),
+    rgba(255, 249, 249, 0) var(--epic-doc-wash-start),
+    rgba(255, 249, 249, 0.032) calc(var(--epic-doc-wash-start) + 6rem),
     rgba(255, 249, 249, 0) 40rem
   );
   background-repeat: no-repeat;
@@ -2760,8 +2764,8 @@ body {
 [data-theme='light'] body {
   background-image: linear-gradient(
     to bottom,
-    rgba(138, 90, 29, 0) var(--epic-doc-strip-bottom),
-    rgba(138, 90, 29, 0.05) calc(var(--epic-doc-strip-bottom) + 6rem),
+    rgba(138, 90, 29, 0) var(--epic-doc-wash-start),
+    rgba(138, 90, 29, 0.05) calc(var(--epic-doc-wash-start) + 6rem),
     rgba(138, 90, 29, 0) 40rem
   );
 }
@@ -2796,26 +2800,10 @@ body {
   );
 }
 
-/* The clear band under the navbar, carried by the navbar so it exists at every scroll position.
-   The band cannot simply be empty space: with nothing opaque there, page content scrolls up into
-   it and touches the navbar again, so the gap would only exist at the top of the page. Putting
-   it here rather than on a column covers all three at once, sidebar included, and inherits the
-   navbar's sticky behaviour and z-index for free.
-
-   It is base colour, and the page wash starts below it for that reason: an opaque strip over a
-   washed page is a visible seam, which is what made the sidebar and breadcrumb row look welded
-   to the navbar. It is a ::before so tree order puts it under ::after, which keeps the gradient
-   hairline painting on top of it. */
-.navbar::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  height: var(--epic-doc-top-gap);
-  pointer-events: none;
-  background-color: var(--ifm-background-color);
-}
+/* There is deliberately no ::before here. It used to paint a 1.5rem opaque strip below the navbar
+   so a clear band under it survived scrolling. The band is gone: the sidebar and the breadcrumb
+   now start on the navbar's bottom edge, and a strip there would cover both. Reinstating it is a
+   regression, and verify-runtime.mjs asserts the pseudo-element paints nothing. */
 
 /* ---- Scrollbars --------------------------------------------------------
    Infima ships a 7px bar with a #f1f1f1 track and a `silver` thumb. Those are light-mode greys

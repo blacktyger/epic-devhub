@@ -162,13 +162,13 @@ const out = {};
     };
     return {
       scrollY: window.scrollY,
-      // The gap under the navbar is a token, so it is read from the page rather than
+      // The gap above the contents panel is a token, so it is read from the page rather than
       // hard-coded here. A probe element converts the declared length to px without
-      // assuming a root font size.
-      navGap: (() => {
+      // assuming a root font size. The sidebar and the breadcrumb are expected on zero.
+      tocGap: (() => {
         const probe = document.createElement('div');
         probe.style.cssText =
-          'position:absolute;visibility:hidden;height:var(--epic-doc-top-gap)';
+          'position:absolute;visibility:hidden;height:var(--epic-toc-top-gap)';
         document.body.appendChild(probe);
         const h = probe.getBoundingClientRect().height;
         probe.remove();
@@ -181,14 +181,12 @@ const out = {};
       sidebarFirstLink: rect('.theme-doc-sidebar-menu .menu__link'),
       // Top box of the left column: the link box, which is what paints when the row is active,
       // and what has to meet the breadcrumb chip's box on one line. Measuring the label inside it
-      // instead put the box 6px above the line, where an active first row looks squashed against
-      // the navbar.
+      // instead put the box 6px above that line.
       sidebarInkTop: rect('.theme-doc-sidebar-menu .menu__link')?.top ?? null,
-      // The band under the navbar has to be clear across the full width, so the sidebar's
-      // scroll box starts on the gap rather than being padded from the navbar's edge: as
-      // padding, the scroll track and its thumb crossed the band. The container's own
-      // `border-right` is off for the same reason, replaced by an ::after that starts on the
-      // gap, and the theme's declaration wins on order unless the class is doubled.
+      // The menu is the scrolling element and starts on the navbar's bottom edge, so its scroll
+      // track cannot begin above the first row. The container's own `border-right` is off in dark
+      // mode for a separate reason, and the theme's declaration wins on order unless the class is
+      // doubled.
       sidebarScrollBox: rect('.theme-doc-sidebar-container .menu'),
       sidebarBorderRight: (() => {
         const el = document.querySelector('.theme-doc-sidebar-container');
@@ -198,22 +196,20 @@ const out = {};
       crumbText: rect('.breadcrumbs__item:first-child .breadcrumbs__link'),
       crumbsPosition: pos('.theme-doc-breadcrumbs'),
       crumbGlyphLeft: contentLeft('.breadcrumbs__item:first-child .breadcrumbs__link'),
-      // The band under the navbar has to be covered by the navbar's own strip, or the gap exists
-      // only at scroll position zero: with nothing opaque there, page content scrolls up into it
-      // and touches the navbar again. And the strip has to be the navbar's, not a column's: an
-      // earlier pass had the sidebar's fill and the breadcrumb's ::before painting that band from
-      // the viewport top, which read as both surfaces welded to the navbar even though all three
-      // columns started on the right line. Reported as "there is a gap but the background still
-      // touches the navbar", which was correct.
+      // The navbar used to paint an opaque strip below itself, to keep a clear band alive while
+      // the page scrolled. The band is gone: the sidebar's first row and the breadcrumb chip now
+      // start on the navbar's bottom edge, so a strip of any height would cover both. This asserts
+      // the pseudo-element paints nothing.
       //
-      // Measured on the pseudo-element rather than by hit testing, because the strip carries
-      // `pointer-events: none` and elementFromPoint cannot see it.
+      // Measured on the pseudo-element rather than by hit testing, because such a strip carried
+      // `pointer-events: none` and elementFromPoint could not see it.
       navbarStrip: (() => {
         const navbar = document.querySelector('.navbar');
         if (!navbar) return null;
         const cs = getComputedStyle(navbar, '::before');
         return {
-          height: parseFloat(cs.height),
+          height: parseFloat(cs.height) || 0,
+          content: cs.content,
           background: cs.backgroundColor,
           zIndex: getComputedStyle(navbar).zIndex,
         };
@@ -255,10 +251,11 @@ const out = {};
       const round = (v) => (v === null || v === undefined ? null : Math.round(v * 100) / 100);
       const crumbToH1 = (atTop.crumbGlyphLeft ?? 0) - (atTop.h1?.left ?? 0);
       const tocToCrumbs = atTop.toc && atTop.crumbs ? atTop.toc.top - atTop.crumbs.top : null;
-      // One line under the navbar, measured on visible ink. The contents panel shows its border
-      // box, the sidebar shows a label inside a padded link, and the breadcrumb shows a chip
-      // inside a padded row. An earlier pass aligned the three boxes, measured them as aligned,
-      // and the page still looked wrong, because the ink was on 84, 90 and 93.
+      // One line under the navbar, measured on visible ink. The sidebar shows a label inside a
+      // padded link and the breadcrumb shows a chip inside a padded row, and those two meet on the
+      // navbar's bottom edge. The contents panel shows its border box and keeps the one remaining
+      // gap. An earlier pass aligned boxes, measured them as aligned, and the page still looked
+      // wrong, because the ink was on 84, 90 and 93.
       const gapUnder = (state, sel) =>
         state[sel] && state.navbar ? state[sel].top - state.navbar.bottom : null;
       const gapUnderValue = (state, value) =>
@@ -270,7 +267,7 @@ const out = {};
       const tocGapAtRest = gapUnder(atTop, 'toc');
       const tocGapPinned = gapUnder(scrolled, 'toc');
       const entry = {
-        navGap: round(atTop.navGap),
+        tocGap: round(atTop.tocGap),
         navbarBrandLeft: round(atTop.navbarBrandLeft),
         navbarFirstLinkLeft: round(atTop.navbarFirstLinkLeft),
         sidebarFirstLinkLeft: round(atTop.sidebarFirstLinkLeft),
@@ -287,8 +284,6 @@ const out = {};
         sidebarGap: round(sidebarGap),
         sidebarScrollGap: round(sidebarScrollGap),
         sidebarBorderRight: atTop.sidebarBorderRight,
-        bandPaintersAtRest: atTop.bandPainters ?? null,
-        bandPaintersScrolled: scrolled.bandPainters ?? null,
         navbarStrip: atTop.navbarStrip,
         tocGapAtRest: round(tocGapAtRest),
         tocGapPinned: round(tocGapPinned),
@@ -310,21 +305,17 @@ const out = {};
           `${where}: breadcrumb glyph is ${entry.crumbToH1}px off the h1 left edge`,
         );
       }
-      // The band has to be the navbar's own opaque strip, exactly the gap tall. Anything thinner
-      // leaves content scrolling into the gap; a translucent strip lets it show through.
+      // The navbar must paint nothing below itself. A strip there covers the sidebar's first row
+      // and the breadcrumb chip, both of which now start on the navbar's bottom edge.
       const strip = atTop.navbarStrip;
-      if (!strip || Math.abs(strip.height - atTop.navGap) > 1) {
+      if (strip && strip.height > 0.5 && strip.content !== 'none') {
         stickyProblems.push(
-          `${where}: navbar strip is ${strip ? `${strip.height}px` : 'absent'}, expected ${entry.navGap}px, so content scrolls into the gap`,
-        );
-      } else if (!/^rgb\(/.test(strip.background)) {
-        stickyProblems.push(
-          `${where}: navbar strip background is ${strip.background}, which is not opaque, so content shows through the gap`,
+          `${where}: navbar paints a ${strip.height}px ::before strip below itself, which covers the sidebar's first row and the breadcrumb`,
         );
       }
-      if (crumbsGapAtRest === null || Math.abs(crumbsGapAtRest - atTop.navGap) > 1.5) {
+      if (crumbsGapAtRest === null || Math.abs(crumbsGapAtRest) > 1.5) {
         stickyProblems.push(
-          `${where}: breadcrumb ink sits ${entry.crumbsGapAtRest}px under the navbar at rest, expected ${entry.navGap}px`,
+          `${where}: breadcrumb chip sits ${entry.crumbsGapAtRest}px under the navbar at rest, expected 0`,
         );
       }
       // One left edge for the whole page: the sidebar label lines up with the navbar logo.
@@ -334,34 +325,39 @@ const out = {};
         );
       }
       if (name === 'desktop') {
-        if (tocToCrumbs === null || Math.abs(tocToCrumbs) > 1) {
+        // The panel keeps the gap the other two columns gave up, so it sits that far below the
+        // breadcrumb rather than level with it.
+        if (tocToCrumbs === null || Math.abs(tocToCrumbs - atTop.tocGap) > 1.5) {
           stickyProblems.push(
-            `${where}: table of contents top is ${entry.tocToCrumbs}px off the breadcrumb top`,
+            `${where}: table of contents top is ${entry.tocToCrumbs}px under the breadcrumb top, expected ${entry.tocGap}px`,
           );
         }
-        if (tocGapAtRest === null || Math.abs(tocGapAtRest - atTop.navGap) > 1.5) {
+        if (tocGapAtRest === null || Math.abs(tocGapAtRest - atTop.tocGap) > 1.5) {
           stickyProblems.push(
-            `${where}: contents panel edge sits ${entry.tocGapAtRest}px under the navbar at rest, expected ${entry.navGap}px`,
+            `${where}: contents panel edge sits ${entry.tocGapAtRest}px under the navbar at rest, expected ${entry.tocGap}px`,
           );
         }
-        if (tocGapPinned === null || Math.abs(tocGapPinned - atTop.navGap) > 1.5) {
+        if (tocGapPinned === null || Math.abs(tocGapPinned - atTop.tocGap) > 1.5) {
           stickyProblems.push(
-            `${where}: pinned contents panel sits ${entry.tocGapPinned}px under the navbar, expected ${entry.navGap}px`,
+            `${where}: pinned contents panel sits ${entry.tocGapPinned}px under the navbar, expected ${entry.tocGap}px`,
           );
         }
-        if (sidebarGap === null || Math.abs(sidebarGap - atTop.navGap) > 1.5) {
+        if (sidebarGap === null || Math.abs(sidebarGap) > 1.5) {
           stickyProblems.push(
-            `${where}: sidebar first label sits ${entry.sidebarGap}px under the navbar, expected ${entry.navGap}px`,
+            `${where}: sidebar first label sits ${entry.sidebarGap}px under the navbar, expected 0`,
           );
         }
         if (sidebarScrollGap === null || sidebarScrollGap < 0) {
           stickyProblems.push(
-            `${where}: sidebar scroll box starts ${entry.sidebarScrollGap}px under the navbar, so its scrollbar crosses the clear band`,
+            `${where}: sidebar scroll box starts ${entry.sidebarScrollGap}px under the navbar, so its scrollbar thumb runs above the first row`,
           );
         }
+        // Dark mode keeps the left column borderless by decision: the fill and the content column
+        // read as one surface, and the sidebar's edge is the scroll boundary rather than a rule.
+        // Light mode paints the charcoal panel's edge instead, and is not measured here.
         if (entry.sidebarBorderRight !== '0px') {
           stickyProblems.push(
-            `${where}: sidebar container has a ${entry.sidebarBorderRight} right border, which runs up behind the navbar and crosses the clear band`,
+            `${where}: sidebar container has a ${entry.sidebarBorderRight} right border in dark mode, expected none`,
           );
         }
         if (entry.tocPosition !== 'sticky' || !entry.tocVisibleWhenScrolled) {
