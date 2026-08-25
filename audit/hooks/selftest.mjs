@@ -69,11 +69,11 @@ const restore = () => {
 
 const presentationPayload = {
   tool_name: 'str_replace',
-  tool_input: {path: 'c:/Users/patry/epic/devdocs-public/site/src/css/custom.css', oldStr: 'a', newStr: 'b'},
+  tool_input: {path: 'c:/Users/patry/epic/epic-devhub/site/src/css/custom.css', oldStr: 'a', newStr: 'b'},
 };
 const contentPayload = {
   tool_name: 'fs_write',
-  tool_input: {path: 'devdocs-public/site/docs/concepts/mimblewimble.mdx', text: 'x'},
+  tool_input: {path: 'epic-devhub/site/docs/concepts/mimblewimble.mdx', text: 'x'},
 };
 const unrelatedPayload = {
   tool_name: 'fs_write',

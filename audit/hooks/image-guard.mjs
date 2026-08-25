@@ -186,7 +186,7 @@ lines.push(`The limit is ${MAX_IMAGE_EDGE} pixels on either axis. The rejection 
 lines.push('stays in history, so every later request in the session fails the same way and the session');
 lines.push('has to be abandoned. That already happened once here, on a full-page docs screenshot.');
 lines.push('');
-lines.push('Instead, from devdocs-public/audit, capture the page as tiles and read those:');
+lines.push('Instead, from epic-devhub/audit, capture the page as tiles and read those:');
 lines.push('  npm run page:live -- /the/route       (dev server on 3001, no build)');
 lines.push('  npm run page -- /the/route            (site/build; add --theme light, --width 1440)');
 lines.push('Or check what is already on disk:');

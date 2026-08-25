@@ -17,7 +17,7 @@ if [ -z "$TARGET" ]; then
 fi
 
 REMOTE_BASE="${REMOTE_BASE:-/var/www}"
-NAME="${NAME:-epic-devdocs}"
+NAME="${NAME:-epic-devhub}"
 STAMP="$(date -u +%Y%m%d-%H%M%S)"
 RELEASE="$REMOTE_BASE/$NAME-releases/$STAMP"
 

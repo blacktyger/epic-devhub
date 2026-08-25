@@ -65,6 +65,10 @@ function undimNamespace(theme) {
 }
 
 export const lightPrismTheme = undimNamespace(
+  /* Not currently wired into docusaurus.config.js. Light mode's code blocks became charcoal on
+     2026-08-26, so both modes render darkPrismTheme; this stays because the recolour() call below
+     is also the guard that fails the build if the upstream GitHub theme changes under us, and
+     because reversing the chrome decision needs these measured values back. */
   recolour(themes.github, {
   // comment, prolog, doctype, cdata. Comments in these pages carry instructions
   // ("# Debian/Ubuntu", "# REST"), so they are content. 2.71 / 2.37 -> 6.33 / 5.54

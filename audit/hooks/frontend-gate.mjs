@@ -37,7 +37,7 @@ const ROOT = path.resolve(AUDIT, '..');
  * The directory this repository sits in.
  *
  * Only used to shorten a path for display. Kiro invokes this hook from the private workspace
- * root, so a payload path arrives as `devdocs-public/site/...`, and resolving it needs the
+ * root, so a payload path arrives as `epic-devhub/site/...`, and resolving it needs the
  * parent. When the repository is cloned on its own the parent is whatever it was cloned into,
  * which still produces a readable relative path.
  */
@@ -169,7 +169,7 @@ if (MODE === 'status') {
   const harness = newestHarnessRun();
   if (harness.at === 0) {
     console.log(
-      'docs harness: no results recorded yet. From devdocs-public/audit run "npm run budget" (seconds), "npm run aria", "npm run keyboard", then "npm run check" for the full axe sweep.',
+      'docs harness: no results recorded yet. From epic-devhub/audit run "npm run budget" (seconds), "npm run aria", "npm run keyboard", then "npm run check" for the full axe sweep.',
     );
     process.exit(0);
   }
@@ -179,7 +179,7 @@ if (MODE === 'status') {
     console.log(`docs harness: results current, newest ${harness.which} about ${age}h old.`);
   } else {
     console.log(
-      `docs harness: ${markers.length} frontend file(s) changed since the last run (${harness.which}, ${age}h old). Look at routes with "npm run page:live -- /route" from devdocs-public/audit, which needs no build. Run the full checks when a change batch closes or before a commit, not per edit.`,
+      `docs harness: ${markers.length} frontend file(s) changed since the last run (${harness.which}, ${age}h old). Look at routes with "npm run page:live -- /route" from epic-devhub/audit, which needs no build. Run the full checks when a change batch closes or before a commit, not per edit.`,
     );
   }
   process.exit(0);
@@ -208,7 +208,7 @@ if (MODE === 'advise') {
       [
         'This edit touches a presentation surface of the docs site.',
         'Design intent lives in .kiro/skills/epic-frontend-design (SKILL.md plus references/); read it rather than inferring the visual language from the CSS.',
-        'Do not build to look at the result. A Docusaurus dev server runs on http://localhost:3001 and hot-reloads, and "npm run page:live -- /route" from devdocs-public/audit screenshots it as readable tiles in seconds with no build.',
+        'Do not build to look at the result. A Docusaurus dev server runs on http://localhost:3001 and hot-reloads, and "npm run page:live -- /route" from epic-devhub/audit screenshots it as readable tiles in seconds with no build.',
         'A cosmetic tweak needs no verification at all: change it and say what changed. Save the build and the harness for closing a batch, for a commit, or for a claim you have made about rendered geometry or contrast, which still needs one real browser measurement.',
       ].join(' '),
     );
@@ -220,7 +220,7 @@ if (MODE === 'advise') {
       'This edit writes a docs page, which is a rendered surface with a required shape.',
       'Read the "Writing or editing a docs page" section of .kiro/skills/epic-frontend-design/SKILL.md and assign the route class (narrative or lookup) before writing: it decides the page shape, and a lookup page written in narrative voice is the most common way a reference becomes unusable.',
       'The MDX primitives in references/components.md are required, not optional: <Ver> for any version, port or consensus constant, <Src> or <Fn> for any claim about implementation behaviour, <Risk> on anything that spends, locks, cancels, finalises or posts, and groupId="lang" on language tab sets.',
-      'Gate for a content-only edit is "npm run build" in devdocs-public/site, because broken links and anchors are build failures there.',
+      'Gate for a content-only edit is "npm run build" in epic-devhub/site, because broken links and anchors are build failures there.',
     ].join(' '),
   );
   process.exit(0);
@@ -263,12 +263,12 @@ if (MODE === 'gate') {
     lines.push('Say what is unverified and rerun with EPIC_SKIP_FRONTEND_GATE=1. He watches the dev');
     lines.push('server on http://localhost:3001 and has already seen the change.');
     lines.push('');
-    lines.push('To look at a route without building, from devdocs-public/audit:');
+    lines.push('To look at a route without building, from epic-devhub/audit:');
     lines.push('  npm run page:live -- /the/route');
     lines.push('');
-    lines.push('When the batch is closed, or before a commit, from devdocs-public/site:');
+    lines.push('When the batch is closed, or before a commit, from epic-devhub/site:');
     lines.push('                                npm run build');
-    lines.push('then from devdocs-public/audit:  npm run budget');
+    lines.push('then from epic-devhub/audit:  npm run budget');
     lines.push('                                npm run aria');
     lines.push('                                npm run keyboard');
     lines.push('                                npm run check      (several minutes, every route)');
@@ -284,7 +284,7 @@ if (MODE === 'gate') {
     if (content.length > 8) lines.push(`  and ${content.length - 8} more`);
     lines.push('');
     lines.push(
-      'Run "npm run build" in devdocs-public/site. Broken links and anchors are build failures there, so this is the check that catches them.',
+      'Run "npm run build" in epic-devhub/site. Broken links and anchors are build failures there, so this is the check that catches them.',
     );
   }
   lines.push('');

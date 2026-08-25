@@ -1,5 +1,5 @@
 {
-  "name": "devdocs-audit",
+  "name": "epic-devhub-audit",
   "version": "0.0.0",
   "private": true,
   "description": "Browser-driven visual and accessibility checks for the docs site. Kept out of site/package.json so the shipped site has no test-only dependencies.",

@@ -2,7 +2,7 @@
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import codeImport from 'remark-code-import';
-import {darkPrismTheme, lightPrismTheme} from './src/data/prism-themes.js';
+import {darkPrismTheme} from './src/data/prism-themes.js';
 import {versions} from './src/data/versions.js';
 import assistantDevProxy from './plugins/assistant-dev-proxy.js';
 
@@ -29,7 +29,7 @@ const config = {
   // The repository these pages are edited in, which is not an EpicCash repository. Upstream code
   // is cited by pinned link instead, from src/data/versions.js.
   organizationName: 'blacktyger',
-  projectName: 'devdocs-public',
+  projectName: 'epic-devhub',
 
   // Broken links and anchors fail the build. The site this replaces shipped a NodeJS sample
   // with a URL-breaking typo and a stylesheet that never loaded, both caught by nobody.
@@ -112,7 +112,7 @@ const config = {
           sidebarPath: './sidebars.js',
           // Joined with the page's path relative to this directory, so the trailing `site/`
           // matters: without it every Edit link 404s.
-          editUrl: 'https://github.com/blacktyger/devdocs-public/tree/main/site/',
+          editUrl: 'https://github.com/blacktyger/epic-devhub/tree/main/site/',
           // Whole-file imports only. remark-code-import also supports #L3-L6 line ranges,
           // which silently drift the moment the source file is edited, so every include
           // below pulls a complete file that stands on its own.
@@ -225,7 +225,13 @@ const config = {
         // Not prismThemes.github / prismThemes.vsDark directly: both fail WCAG AA on several
         // token types, and because prism-react-renderer emits token colours as inline styles,
         // CSS cannot correct them. See src/data/prism-themes.js for the measured ratios.
-        theme: lightPrismTheme,
+        //
+        // Both modes render the dark theme. Light mode's code blocks are charcoal #1b1a18 as of
+        // the 2026-08-26 light-mode direction, so a light syntax theme would be unreadable on
+        // them, and the surface cannot be forced back to paper because the theme's own `plain`
+        // style arrives as an inline attribute. lightPrismTheme is kept in prism-themes.js with
+        // its measured ratios in case the chrome decision is reversed.
+        theme: darkPrismTheme,
         darkTheme: darkPrismTheme,
         additionalLanguages: [
           'rust',

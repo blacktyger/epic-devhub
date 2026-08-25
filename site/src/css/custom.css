@@ -694,19 +694,23 @@ div[class^='announcementBar'] a:hover {
   font-size: 12px;
 }
 
+/* Warm greys, not the cool #8c8c8c / #767676 defaults these had: a diagram sitting
+   on warm paper with cool strokes is the same temperature mismatch the light-mode
+   rewrite removed everywhere else. #7a736a measures 4.94:1 on the paper, so the
+   lifelines stay well past the 3:1 a meaningful graphic needs. */
 [data-theme='light'] .epicSvg .epicParty rect {
-  fill: #ffffff;
-  stroke: #8c8c8c;
+  fill: var(--epic-s2);
+  stroke: #8a8378;
 }
 [data-theme='light'] .epicSvg .epicTrace {
   stroke: var(--ifm-color-primary);
 }
 [data-theme='light'] .epicSvg .epicTraceDim,
 [data-theme='light'] .epicSvg .epicLifeline {
-  stroke: #767676;
+  stroke: #7a736a;
 }
 [data-theme='light'] .epicSvg .epicTraceHead {
-  fill: #767676;
+  fill: #7a736a;
 }
 
 .epicDiagram {
@@ -1329,37 +1333,37 @@ div[class^='announcementBar'] a:hover {
   stroke: rgba(0, 0, 0, 0.45);
 }
 [data-theme='light'] .seLabel {
-  fill: #1c1e21;
+  fill: #221f1a;
 }
 [data-theme='light'] .seSub,
 [data-theme='light'] .seRound,
 [data-theme='light'] .seChainLabel {
-  fill: #525860;
+  fill: #675e54;
 }
 /* Light mode for the slate: the body and cells are named, not addressed as `.seSlate rect`, which
    also matched the two signature cells and painted them over. */
 [data-theme='light'] .seSlateBody {
-  fill: #ffffff;
-  stroke: #8f5e1f;
+  fill: var(--epic-s1);
+  stroke: #8a5a1d;
 }
 [data-theme='light'] .seSlateRule,
 [data-theme='light'] .seSlateExcess,
 [data-theme='light'] .seCell {
-  stroke: #8f5e1f;
+  stroke: #8a5a1d;
 }
 [data-theme='light'] .seCell--first,
 [data-theme='light'] .seSlate.isWhole .seCell--second {
-  fill: #8f5e1f;
+  fill: #8a5a1d;
 }
 [data-theme='light'] .seCell--second {
   fill: transparent;
 }
 [data-theme='light'] .seDot.isActive .seDotMark {
-  background: #8f5e1f;
-  border-color: #8f5e1f;
+  background: #8a5a1d;
+  border-color: #8a5a1d;
 }
 [data-theme='light'] .seCaptionCount {
-  color: #8f5e1f;
+  color: #8a5a1d;
 }
 @media (prefers-reduced-motion: no-preference) {
   [data-theme='light'] .seParty rect {
@@ -2749,12 +2753,16 @@ body {
   background-repeat: no-repeat;
 }
 
+/* Light mode lifts with warmth rather than dimming with cool grey. The previous
+   value was rgba(28, 30, 33, 0.035), the ink colour, which greyed the top of the
+   reading column and made paper look dirty: light mode's only depth device was
+   working against it. */
 [data-theme='light'] body {
   background-image: linear-gradient(
     to bottom,
-    rgba(28, 30, 33, 0) var(--epic-doc-strip-bottom),
-    rgba(28, 30, 33, 0.035) calc(var(--epic-doc-strip-bottom) + 6rem),
-    rgba(28, 30, 33, 0) 40rem
+    rgba(138, 90, 29, 0) var(--epic-doc-strip-bottom),
+    rgba(138, 90, 29, 0.05) calc(var(--epic-doc-strip-bottom) + 6rem),
+    rgba(138, 90, 29, 0) 40rem
   );
 }
 
@@ -2839,9 +2847,9 @@ body {
 }
 
 [data-theme='light'] {
-  --epic-scrollbar-thumb: rgba(28, 30, 33, 0.18);
-  --epic-scrollbar-thumb-hover: rgba(28, 30, 33, 0.32);
-  --epic-scrollbar-thumb-active: rgba(143, 94, 31, 0.55);
+  --epic-scrollbar-thumb: rgba(34, 31, 26, 0.18);
+  --epic-scrollbar-thumb-hover: rgba(34, 31, 26, 0.32);
+  --epic-scrollbar-thumb-active: rgba(138, 90, 29, 0.55);
 }
 
 html {
@@ -3221,92 +3229,183 @@ html[class*='docs-doc-id-examples/'],
 
 
 /* ===========================================================================
-   LIGHT MODE — complete rewrite 2026-08-23
+   LIGHT MODE — charcoal chrome on warm paper, 2026-08-26
    ===========================================================================
-   Design decisions:
-   - Base is warm off-white #faf9f7 (cream warmth matching dark mode's #fff9f9
-     text). Pure #ffffff reads clinical; the warmth connects the two themes.
-   - Surfaces step DARKER as they lift (per visual-language.md). Four levels:
-     s1 #faf9f7, s2 #f3f2ef, s3 #eae8e4, s4 #dfdcd7.
-   - Body text #1c1e21 measures 16.71:1 on base. Secondary #525860 at 7.18:1.
-   - Gold accent is #8f5e1f (already in :root), measuring 5.54:1 on base.
-   - Corner ticks use the accessible gold, not the bright gradient.
-   - Lines are warm grey, not cool Infima defaults.
+   Replaces the 2026-08-23 light mode, which was measured and found to be one
+   white sheet: #faf9f7 covered 86 to 92% of the first viewport, the surface one
+   step above it was 1.06:1 away, the sidebar and the navbar painted the page
+   colour exactly, and the three highest-traffic colours (#1c1e21 ink, #525860
+   secondary, #f6f8fa code) were cool Infima and GitHub defaults sitting on warm
+   paper. The measurement is in visual/explain/light-mode-character.html.
+
+   Direction taken, of the five compared there: warm paper, recessed surfaces,
+   charcoal chrome.
+
+   1. Paper, not white. Base #f8f5ef at 96.6 L*, warmth +9.
+   2. Elevation runs DOWN on paper. An object is recessed into the sheet rather
+      than floated above it, because there is nothing above 96 L* to move into:
+      s2 sits 4.1 L* below the page, s3 7.9 below. Dark mode still steps upward,
+      so the two modes disagree here on purpose.
+   3. Chrome is charcoal. The navbar, the doc sidebar, the footer and every code
+      block hold #1b1a18. That is the only way real gold #f6d471 can appear in
+      light mode at all: on paper it measures 1.32:1 and is unusable, while on
+      the chrome it is 12.07:1.
+   4. Two accents, not one. #8a5a1d is gold-as-text at 5.42:1. --epic-mark
+      #b87a2a at 3.30:1 is gold-as-mark, the lightest amber clearing the 3:1 a
+      state-carrying non-text mark needs. Before, one brown did both jobs and so
+      read as prose.
+   5. Warm ink. #221f1a at 15.09:1, secondary #675e54 at 5.84:1. Headings take
+      weight 650 in light only, because light text on a dark field blooms and the
+      same weight reads thinner on paper. Montserrat here is variable, 100 900.
+
+   Every ratio in this block was computed with the WCAG formula from these hex
+   values before being written. Chrome islands are implemented by redeclaring the
+   same token names with dark values on the island root, so a component inside
+   one is correct without being enumerated.
    =========================================================================== */
 
 [data-theme='light'] {
-  --ifm-background-color: #faf9f7;
-  --ifm-background-surface-color: #f3f2ef;
-  --ifm-font-color-base: #1c1e21;
-  --ifm-heading-color: #1c1e21;
-  --ifm-color-content-secondary: #525860;
-  --ifm-toc-border-color: #ddd9d3;
-  --ifm-table-stripe-background: rgba(0, 0, 0, 0.025);
-  --ifm-code-background: rgba(143, 94, 31, 0.06);
-  --docusaurus-highlighted-code-line-bg: rgba(143, 94, 31, 0.08);
-  --epic-s1: #faf9f7;
-  --epic-s2: #f3f2ef;
-  --epic-s3: #eae8e4;
-  --epic-s4: #dfdcd7;
-  --epic-line: #ddd9d3;
-  --epic-line-strong: #c4bfb8;
+  --ifm-background-color: #f8f5ef;
+  --ifm-background-surface-color: #efe9dd;
+  --ifm-font-color-base: #221f1a;
+  --ifm-heading-color: #221f1a;
+  --ifm-heading-font-weight: 650;
+  --ifm-color-content-secondary: #675e54;
+  /* One brown for accent text across the whole light side, at 5.42:1. It was
+     #8f5e1f from :root, close enough to be indistinguishable and far enough to
+     drift, so the token names the value every light rule below uses. */
+  --ifm-color-primary: #8a5a1d;
+  --ifm-toc-border-color: #d5ccbb;
+  --ifm-table-stripe-background: rgba(34, 31, 26, 0.03);
+  --ifm-code-background: rgba(138, 90, 29, 0.07);
+  /* The highlighted line sits on charcoal now, so it lifts with gold rather than
+     tinting with brown. */
+  --docusaurus-highlighted-code-line-bg: rgba(246, 212, 113, 0.14);
+  --epic-s1: #f8f5ef;
+  --epic-s2: #efe9dd;
+  --epic-s3: #e6dece;
+  --epic-s4: #ddd3c0;
+  --epic-line: #d5ccbb;
+  --epic-line-strong: #b7ac98;
+  /* Gold as a mark rather than as text: 3.30:1 on paper, so it may carry an
+     active state, a current position or a focus ring. Never body text. */
+  --epic-mark: #b87a2a;
+  --epic-chrome: #1b1a18;
+  --epic-chrome-ink: #f7f2e8;
+  --epic-chrome-dim: #b3aa9c;
+  --epic-chrome-line: #322e29;
+}
+
+/* ---- Chrome islands -------------------------------------------------------
+   The navbar, the doc sidebar, the footer and every code block are charcoal in
+   light mode, so inside them the palette is the dark one. Rather than restating
+   every component's colours, the island redeclares the tokens its children
+   already read: .epicAsk-control takes --epic-s3 and --epic-line, the theme
+   toggle takes --ifm-color-content-secondary and --ifm-color-primary, the
+   language label on a code block takes the secondary colour, and none of them
+   needs a rule of its own.
+
+   --ifm-color-primary is gold inside an island and brown outside it, which is
+   what keeps a focus ring visible on both surfaces.
+
+   Measured on #1b1a18: ink 15.59:1, dim 7.57:1, menu link 10.38:1, gold
+   12.07:1. */
+[data-theme='light'] .navbar,
+[data-theme='light'] .navbar-sidebar,
+[data-theme='light'] .theme-doc-sidebar-container,
+[data-theme='light'] .theme-code-block,
+[data-theme='light'] .footer {
+  --ifm-font-color-base: #f7f2e8;
+  --ifm-heading-color: #f7f2e8;
+  --ifm-color-content-secondary: var(--epic-chrome-dim);
+  --ifm-color-primary: #f6d471;
+  --ifm-menu-color: #cfc7ba;
+  --ifm-menu-color-background-hover: rgba(247, 242, 232, 0.06);
+  --ifm-menu-color-background-active: rgba(246, 212, 113, 0.1);
+  --ifm-navbar-link-color: #f7f2e8;
+  --ifm-navbar-link-hover-color: #f6d471;
+  --ifm-navbar-search-input-background-color: #17171b;
+  --ifm-navbar-search-input-color: #f7f2e8;
+  --ifm-navbar-search-input-placeholder-color: #8f8f8f;
+  --epic-s1: #1b1a18;
+  --epic-s2: #201f1c;
+  --epic-s3: #262421;
+  --epic-s4: #2e2b27;
+  --epic-line: var(--epic-chrome-line);
+  --epic-line-strong: #443f38;
+  --ifm-toc-border-color: var(--epic-chrome-line);
+  /* An 18%-black thumb is invisible on charcoal. */
+  --epic-scrollbar-thumb: rgba(247, 242, 232, 0.18);
+  --epic-scrollbar-thumb-hover: rgba(247, 242, 232, 0.32);
+  --epic-scrollbar-thumb-active: rgba(246, 212, 113, 0.55);
+  color-scheme: dark;
+  color: var(--epic-chrome-ink);
 }
 
 [data-theme='light'] .navbar {
-  background-color: #faf9f7;
-  border-bottom-color: var(--epic-line);
+  background-color: var(--epic-chrome);
+  border-bottom-color: var(--epic-chrome-line);
 }
+/* Real gold on the navbar hairline, which light mode could not carry before. */
 [data-theme='light'] .navbar::after {
   background-image: linear-gradient(
-    to right, transparent 0%, #8f5e1f 14%, rgba(143, 94, 31, 0.35) 42%, transparent 72%
+    to right, transparent 0%, #f6d471 14%, rgba(246, 212, 113, 0.35) 42%, transparent 72%
   );
 }
 
 /* Light search */
 [data-theme='light'] .navbar__search-input,
 [data-theme='light'] .navbar__search-input:hover {
-  border: 1px solid rgba(0, 0, 0, 0.12) !important;
-  background-color: rgba(0, 0, 0, 0.025) !important;
-  color: #1c1e21;
+  border: 1px solid var(--epic-chrome-line) !important;
+  background-color: rgba(247, 242, 232, 0.04) !important;
+  color: #f7f2e8;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 [data-theme='light'] .navbar__search-input:focus,
 [data-theme='light'] .navbar__search-input:focus-visible {
-  border: 1px solid rgba(143, 94, 31, 0.5) !important;
-  background-color: rgba(143, 94, 31, 0.04) !important;
-  box-shadow: 0 0 0 1px rgba(143, 94, 31, 0.12) !important;
+  border: 1px solid rgba(246, 212, 113, 0.6) !important;
+  background-color: rgba(246, 212, 113, 0.06) !important;
+  box-shadow: 0 0 0 1px rgba(246, 212, 113, 0.2) !important;
   outline: none !important;
 }
 
 /* Light sidebar */
+[data-theme='light'] .theme-doc-sidebar-container,
+[data-theme='light'] .navbar-sidebar {
+  background-color: var(--epic-chrome);
+}
 [data-theme='light'] .theme-doc-sidebar-container {
-  background-color: #faf9f7;
-  border-right: 1px solid var(--epic-line);
+  border-right: 1px solid var(--epic-chrome-line);
 }
 [data-theme='light'] .menu__link--active {
-  border-left-color: #8f5e1f;
-  color: #8f5e1f;
+  border-left-color: #f6d471;
+  color: #f6d471;
   font-weight: 600;
 }
-[data-theme='light'] .menu__link:hover { color: #6b4518; }
-[data-theme='light'] .menu__list .menu__list { border-left-color: var(--epic-line); }
+[data-theme='light'] .menu__link:hover { color: #f7f2e8; }
+[data-theme='light'] .menu__list .menu__list { border-left-color: var(--epic-chrome-line); }
 
-/* Light TOC */
+/* Light TOC. A recessed panel on the paper, not another sheet at the same value.
+   Ticks and the current row take --epic-mark, which is the gold that clears 3:1
+   on this surface; the label text stays #8a5a1d because text needs 4.5:1. */
 [data-theme='light'] .theme-doc-toc-desktop {
   border-color: var(--epic-line);
-  background: #f7f6f3;
+  background: var(--epic-s2);
 }
 [data-theme='light'] .theme-doc-toc-desktop::before,
-[data-theme='light'] .theme-doc-toc-desktop::after { border-color: #8f5e1f; }
+[data-theme='light'] .theme-doc-toc-desktop::after { border-color: var(--epic-mark); }
 [data-theme='light'] .epicTocHeader { border-bottom-color: var(--epic-line); }
-[data-theme='light'] .epicTocCount { color: #8f5e1f; }
+[data-theme='light'] .epicTocCount { color: #8a5a1d; }
 [data-theme='light'] .epicTocList .table-of-contents__link { color: var(--ifm-color-content-secondary); }
 [data-theme='light'] .epicTocList .table-of-contents__link:hover {
-  color: #1c1e21; background: rgba(143, 94, 31, 0.04);
+  color: #221f1a; background: rgba(138, 90, 29, 0.05);
 }
 [data-theme='light'] .epicTocList .table-of-contents__link--active {
-  color: #8f5e1f; border-left-color: #8f5e1f; background: rgba(143, 94, 31, 0.06);
+  /* #7a4a12, not the #8a5a1d accent: composited over the 9% mark tint the accent
+     measured 4.47:1 and axe failed it by 0.03. This is the prose-link brown at
+     5.66:1 on the same composite. */
+  color: #7a4a12; border-left-color: var(--epic-mark); background: rgba(184, 122, 42, 0.09);
 }
 [data-theme='light'] .epicTocList > .table-of-contents > li:not(:last-child) { border-bottom-color: var(--epic-line); }
 [data-theme='light'] .epicTocList .table-of-contents .table-of-contents { border-left-color: var(--epic-line); }
@@ -3316,74 +3415,112 @@ html[class*='docs-doc-id-examples/'],
   color-scheme: light;
 }
 
-/* Light code blocks */
-[data-theme='light'] .theme-code-block { border-color: var(--epic-line); background: #f5f4f1; }
-[data-theme='light'] .theme-code-block pre { background: #f5f4f1; }
-[data-theme='light'] .theme-code-block div[class*='codeBlockTitle'] {
-  color: var(--ifm-color-content-secondary); background: #edecea; border-bottom-color: var(--epic-line);
+/* Light code blocks are charcoal, which is the direction's load-bearing move: the
+   most looked-at object on a documentation page stops being the one place light
+   mode looks borrowed, and the syntax colours stop being GitHub's cool set on a
+   warm page.
+
+   The `pre` needs !important. prism-react-renderer writes the theme's `plain`
+   style as an inline attribute on that element, and an author !important
+   declaration is the only thing in the cascade that beats it. The token colours
+   inside it cannot be reached from CSS at all, which is why both modes now
+   render darkPrismTheme; see src/data/prism-themes.js and docusaurus.config.js. */
+[data-theme='light'] .theme-code-block {
+  border-color: var(--epic-chrome-line);
+  background: var(--epic-chrome);
+  /* Docusaurus paints the copy and word-wrap buttons with --prism-background-color
+     and borders them with --ifm-color-emphasis-300. Left alone in light mode that
+     gave a #1e1e1e button with a #dadde1 cool border sitting on the warm charcoal
+     block: measured in the browser, not inferred. The !important is needed because
+     CodeBlock writes --prism-background-color as an inline style on this very
+     element, from the theme object, so a class-level declaration loses to it. */
+  --prism-background-color: var(--epic-chrome) !important;
+  --ifm-color-emphasis-300: #443f38;
 }
-[data-theme='light'] code { color: #6b4518; background: rgba(143, 94, 31, 0.06); border: 1px solid rgba(143, 94, 31, 0.15); }
+[data-theme='light'] .theme-code-block pre { background: var(--epic-chrome) !important; }
+[data-theme='light'] .theme-code-block div[class*='codeBlockTitle'] {
+  color: var(--epic-chrome-dim); background: #201f1c; border-bottom-color: var(--epic-chrome-line);
+}
+/* Inline code stays on the paper side. It is set in prose, at prose size, and a
+   charcoal chip mid-sentence reads as redaction. */
+[data-theme='light'] code { color: #6b4518; background: rgba(138, 90, 29, 0.07); border: 1px solid rgba(138, 90, 29, 0.16); }
 
 /* Light cards */
-[data-theme='light'] .epicCard, [data-theme='light'] .card { background: #f7f6f3; border-color: var(--epic-line); }
-[data-theme='light'] .epicCard:hover, [data-theme='light'] .card:hover { border-color: #8f5e1f; background: rgba(143, 94, 31, 0.035); }
+[data-theme='light'] .epicCard, [data-theme='light'] .card { background: var(--epic-s2); border-color: var(--epic-line); }
+[data-theme='light'] .epicCard:hover, [data-theme='light'] .card:hover { border-color: var(--epic-mark); background: rgba(184, 122, 42, 0.06); }
 
 /* Light details */
-[data-theme='light'] .markdown details { background: #f7f6f3; border-color: var(--epic-line); }
-[data-theme='light'] .markdown details::before, [data-theme='light'] .markdown details::after { border-color: #8f5e1f; }
-[data-theme='light'] .markdown details > summary:hover { color: #8f5e1f; }
+[data-theme='light'] .markdown details { background: var(--epic-s2); border-color: var(--epic-line); }
+[data-theme='light'] .markdown details::before, [data-theme='light'] .markdown details::after { border-color: var(--epic-mark); }
+[data-theme='light'] .markdown details > summary:hover { color: #8a5a1d; }
 
 /* Light diagram source */
-[data-theme='light'] .epicDiagramSource { background: #f7f6f3; border-color: var(--epic-line); }
-[data-theme='light'] .epicDiagramSource::before, [data-theme='light'] .epicDiagramSource::after { border-color: #8f5e1f; }
+[data-theme='light'] .epicDiagramSource { background: var(--epic-s2); border-color: var(--epic-line); }
+[data-theme='light'] .epicDiagramSource::before, [data-theme='light'] .epicDiagramSource::after { border-color: var(--epic-mark); }
 
-/* Light admonitions */
+/* Light admonitions. The note blue moved from #2b6cb0 to #28629f: on the new
+   surface the old value measured 4.48:1, missing AA by 0.02, and admonition
+   headings are content. */
 [data-theme='light'] .theme-admonition {
-  background-color: #f7f6f3; color: #1c1e21; border: 1px solid var(--epic-line); border-left-width: 2px; box-shadow: none;
+  background-color: var(--epic-s2); color: #221f1a; border: 1px solid var(--epic-line); border-left-width: 2px; box-shadow: none;
 }
 [data-theme='light'] .theme-admonition-note, [data-theme='light'] .theme-admonition-info,
-[data-theme='light'] .theme-admonition-secondary { --ifm-alert-border-color: #2b6cb0; border-left-color: #2b6cb0; }
+[data-theme='light'] .theme-admonition-secondary { --ifm-alert-border-color: #28629f; border-left-color: #28629f; }
 [data-theme='light'] .theme-admonition-tip, [data-theme='light'] .theme-admonition-success { --ifm-alert-border-color: #237032; border-left-color: #237032; }
-[data-theme='light'] .theme-admonition-warning, [data-theme='light'] .theme-admonition-caution { --ifm-alert-border-color: #8f5e1f; border-left-color: #8f5e1f; }
+[data-theme='light'] .theme-admonition-warning, [data-theme='light'] .theme-admonition-caution { --ifm-alert-border-color: #8a5a1d; border-left-color: #8a5a1d; }
 [data-theme='light'] .theme-admonition-danger { --ifm-alert-border-color: #b02020; border-left-color: #b02020; }
 [data-theme='light'] .theme-admonition div[class*='admonitionHeading'] { color: var(--ifm-alert-border-color); }
-[data-theme='light'] .theme-admonition strong { color: #1c1e21; }
-[data-theme='light'] .theme-admonition code { color: #1c1e21; background: rgba(0, 0, 0, 0.05); border: 1px solid rgba(0, 0, 0, 0.1); }
+[data-theme='light'] .theme-admonition strong { color: #221f1a; }
+[data-theme='light'] .theme-admonition code { color: #221f1a; background: rgba(34, 31, 26, 0.06); border: 1px solid rgba(34, 31, 26, 0.12); }
 [data-theme='light'] .theme-admonition a { color: var(--ifm-alert-border-color); text-decoration: underline; text-underline-offset: 2px; }
+/* A code block nested in an admonition is still a code block, so it is charcoal
+   here too rather than reverting to the admonition's surface. */
 [data-theme='light'] .theme-admonition pre,
-[data-theme='light'] .theme-admonition div[class^='codeBlockContainer'] { background-color: #faf9f7; border: 1px solid var(--epic-line); }
+[data-theme='light'] .theme-admonition div[class^='codeBlockContainer'] { background-color: var(--epic-chrome); border: 1px solid var(--epic-chrome-line); }
 
-/* Light source links */
-[data-theme='light'] .epicSrc code { color: #8f5e1f; border-color: rgba(143, 94, 31, 0.3); }
-[data-theme='light'] .epicSrc:hover code { border-color: #8f5e1f; background: rgba(143, 94, 31, 0.06); }
+/* Light source links. #7a4a12, not the #8a5a1d accent: a source chip carries the
+   accent tint as its own background, and inside an admonition the composite is
+   #e3ddd1, where #8a5a1d measured 4.36:1 and axe failed it on two pages. */
+[data-theme='light'] .epicSrc code { color: #7a4a12; border-color: rgba(138, 90, 29, 0.32); }
+[data-theme='light'] .epicSrc:hover code { border-color: #8a5a1d; background: rgba(138, 90, 29, 0.07); }
 
 /* Light tabs */
 [data-theme='light'] .tabs-container .tabs { border-bottom-color: var(--epic-line); }
-[data-theme='light'] .tabs__item--active { background: rgba(143, 94, 31, 0.07); border-bottom-color: #8f5e1f; color: #8f5e1f; }
+[data-theme='light'] .tabs__item--active { background: rgba(138, 90, 29, 0.08); border-bottom-color: var(--epic-mark); color: #8a5a1d; }
 
-/* Light footer */
-[data-theme='light'] .footer { background: #f0eeeb; border-top: 1px solid var(--epic-line); color: #525860; }
-[data-theme='light'] .footer__title { color: #1c1e21; }
-[data-theme='light'] .footer__link-item { color: #525860; }
-[data-theme='light'] .footer__link-item:hover { color: #8f5e1f; }
+/* Light table header. It had no fill at all, so a reference table's header row
+   was separated from its body by a 1.34:1 hairline and nothing else. */
+[data-theme='light'] .markdown table thead th {
+  background: var(--epic-s3);
+  color: var(--ifm-color-content-secondary);
+}
+
+/* Light footer. Charcoal, so the page is framed top and bottom by the same
+   chrome rather than fading into a second near-white band. */
+[data-theme='light'] .footer { background: var(--epic-chrome); border-top: 1px solid var(--epic-chrome-line); color: var(--epic-chrome-dim); }
+[data-theme='light'] .footer__title { color: #f7f2e8; }
+[data-theme='light'] .footer__link-item { color: var(--epic-chrome-dim); }
+[data-theme='light'] .footer__link-item:hover { color: #f6d471; }
+[data-theme='light'] .epicFooterBy { color: #8f877b; }
 
 /* Light pagination */
 [data-theme='light'] .pagination-nav__link { border-color: var(--epic-line); }
-[data-theme='light'] .pagination-nav__link:hover { border-color: #8f5e1f; }
+[data-theme='light'] .pagination-nav__link:hover { border-color: var(--epic-mark); }
 
 /* Light breadcrumbs */
 [data-theme='light'] .breadcrumbs__link { color: var(--ifm-color-content-secondary); }
-[data-theme='light'] .breadcrumbs__item--active .breadcrumbs__link { color: #1c1e21; }
+[data-theme='light'] .breadcrumbs__item--active .breadcrumbs__link { color: #221f1a; }
 
 /* Light journey progress */
-[data-theme='light'] .journeyProgress { background: #f7f6f3; border-color: var(--epic-line); }
-[data-theme='light'] .journeyProgress::before, [data-theme='light'] .journeyProgress::after { border-color: #8f5e1f; }
+[data-theme='light'] .journeyProgress { background: var(--epic-s2); border-color: var(--epic-line); }
+[data-theme='light'] .journeyProgress::before, [data-theme='light'] .journeyProgress::after { border-color: var(--epic-mark); }
 
-/* Light instrument ticks */
-[data-theme='light'] .epic-ticked::before, [data-theme='light'] .epic-ticked::after { border-color: #8f5e1f; }
+/* Light instrument ticks. A tick is a mark, not text, so it takes --epic-mark:
+   #b87a2a at 3.30:1 reads as gold where #8f5e1f read as a smudge. */
+[data-theme='light'] .epic-ticked::before, [data-theme='light'] .epic-ticked::after { border-color: var(--epic-mark); }
 
 /* Light list markers */
-[data-theme='light'] .markdown > ol > li::marker { color: #8f5e1f; }
+[data-theme='light'] .markdown > ol > li::marker { color: #8a5a1d; }
 [data-theme='light'] .markdown > ul > li::marker { color: var(--epic-line-strong); }
 
 /* Light section rule */
@@ -3396,32 +3533,33 @@ html[class*='docs-doc-id-examples/'],
 [data-theme='light'] .markdown a:not(.epicCard):not(.epicSrc):not(.hash-link):not([class*='card']):hover { color: #5c3610; }
 
 /* Light meta/eyebrow */
-[data-theme='light'] .epic-meta b { color: #8f5e1f; }
+[data-theme='light'] .epic-meta b { color: #8a5a1d; }
 
-/* Light search dropdown */
-[data-theme='light'] [class*='dropdownMenu'] { border-color: var(--epic-line); background: #ffffff; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08); }
+/* Light search dropdown. Paper, not #ffffff: the dropdown is the one surface that
+   was still pure white, and against the new base it read as a hole. */
+[data-theme='light'] [class*='dropdownMenu'] { border-color: var(--epic-line); background: #fbf9f4; box-shadow: 0 8px 24px rgba(34, 31, 26, 0.1); }
 
 /* Light journey lifecycle */
-[data-theme='light'] .journeyLifecycleNode.isActive circle { fill: rgba(143, 94, 31, 0.08); stroke: #8f5e1f; }
-[data-theme='light'] .journeyLifecycleNode.isActive text { fill: #8f5e1f; }
+[data-theme='light'] .journeyLifecycleNode.isActive circle { fill: rgba(184, 122, 42, 0.1); stroke: var(--epic-mark); }
+[data-theme='light'] .journeyLifecycleNode.isActive text { fill: #8a5a1d; }
 
 /* Light doc page background wash */
 [data-theme='light'] html[class*='docs-doc-page'] .main-wrapper::before {
-  background-image: radial-gradient(55% 72% at 28% 0%, rgba(143, 94, 31, 0.04) 0%, transparent 68%),
-    radial-gradient(48% 62% at 78% 4%, rgba(143, 94, 31, 0.02) 0%, transparent 72%);
+  background-image: radial-gradient(55% 72% at 28% 0%, rgba(138, 90, 29, 0.05) 0%, transparent 68%),
+    radial-gradient(48% 62% at 78% 4%, rgba(138, 90, 29, 0.025) 0%, transparent 72%);
 }
 
 /* Light mobile search */
 @media (max-width: 996px) {
   [data-theme='light'] .navbar__search-input {
-    border-color: rgba(143, 94, 31, 0.3) !important;
+    border-color: rgba(246, 212, 113, 0.28) !important;
     box-shadow: none !important;
   }
   /* Same defect as the dark mobile block: focus needs to look different from rest. */
   [data-theme='light'] .navbar__search-input:focus,
   [data-theme='light'] .navbar__search-input:focus-visible {
     border-color: var(--ifm-color-primary) !important;
-    box-shadow: 0 0 0 2px rgba(143, 94, 31, 0.25) !important;
+    box-shadow: 0 0 0 2px rgba(246, 212, 113, 0.3) !important;
   }
 }
 

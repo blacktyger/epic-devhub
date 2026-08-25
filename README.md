@@ -16,6 +16,11 @@ examples/   runnable example clients in Python, JavaScript, Rust and shell
 deploy/     nginx config and the publish script for self-hosting
 ```
 
+Self-contained. `npm ci` and `npm run build` in `site/` need nothing outside this repository, and
+the harness in `audit/` runs the same way. Two checks look for optional siblings and skip rather
+than fail when they are absent: `npm run sources` wants the upstream clones, and the documentation
+assistant wants a service that is developed separately. Both are named below.
+
 ## Build it
 
 Node 20 or newer. Nothing else.
@@ -49,6 +54,21 @@ contrast by reading CSS reported zero failures on a build that had 1,113.
 
 `npm run sources` needs `epic-server` and `epic-wallet` cloned beside this repository. Without them it
 skips rather than pretending to pass.
+
+## The documentation assistant
+
+Pages carry an assistant panel under `site/src/components/Assistant/`. The service behind it is not
+in this repository: the panel calls a relative `/api/chat`, which nginx proxies in production and
+`site/plugins/assistant-dev-proxy.js` proxies to `127.0.0.1:7771` in development.
+
+Without that service the panel reports that the API is not routed on this origin and the rest of the
+site is unaffected. It does not hang and it does not fail the build, so a clone with no assistant is
+a working clone.
+
+Two things about it are deliberate and should stay that way. The panel calls a relative path because
+the site CSP is `connect-src 'self'`, so a split origin cannot work. And the proxy is scoped to
+`/api/chat` rather than `/api/`, because the documentation has its own `/api/` section of 16
+reference pages and a broader rule returns JSON for every one of them.
 
 ## Rules the content follows
 
@@ -93,6 +113,9 @@ The Edit link on every page points here. Two things to know before opening a pul
 
 1. If you change a fact, cite the source. `repo/path/file.rs:line` against a tagged release.
 2. If you change anything that renders, run the checks in `audit/`. CI runs the same ones.
+3. Nothing here may depend on a path outside this repository. The site was written from private
+   research notes, and reintroducing a reference to them breaks a standalone clone. Where a comment
+   would have cited one, it says what it knows instead.
 
 Upstream code lives in [EpicCash/epic](https://github.com/EpicCash/epic) and
 [EpicCash/epic-wallet](https://github.com/EpicCash/epic-wallet). This repository documents them and is

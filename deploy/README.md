@@ -6,7 +6,7 @@ that repeatable rather than remembered.
 
 | File | What it is |
 | --- | --- |
-| `nginx.conf` | Server block for `devdocs.epiccash.com`, serving `/var/www/epic-devdocs` |
+| `nginx.conf` | Server block for `devdocs.epiccash.com`, serving `/var/www/epic-devhub` |
 | `publish.sh` | Build locally, upload as a timestamped release, swap a symlink, reload nginx |
 
 ## First-time server setup
@@ -16,19 +16,19 @@ block without reading each one.
 
 ```bash
 sudo apt update && sudo apt install -y nginx certbot python3-certbot-nginx rsync
-sudo mkdir -p /var/www/epic-devdocs-releases /var/www/certbot
-sudo chown -R "$USER":"$USER" /var/www/epic-devdocs-releases
+sudo mkdir -p /var/www/epic-devhub-releases /var/www/certbot
+sudo chown -R "$USER":"$USER" /var/www/epic-devhub-releases
 ```
 
-`publish.sh` writes each build to `/var/www/epic-devdocs-releases/<utc-timestamp>/` and then points
-`/var/www/epic-devdocs` at it as a symlink. That is the path `nginx.conf` uses as its root, so the
+`publish.sh` writes each build to `/var/www/epic-devhub-releases/<utc-timestamp>/` and then points
+`/var/www/epic-devhub` at it as a symlink. That is the path `nginx.conf` uses as its root, so the
 symlink must exist before the first reload. The first `publish.sh` run creates it.
 
 Install the server block, then get a certificate:
 
 ```bash
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/epic-devdocs
-sudo ln -s /etc/nginx/sites-available/epic-devdocs /etc/nginx/sites-enabled/epic-devdocs
+sudo cp deploy/nginx.conf /etc/nginx/sites-available/epic-devhub
+sudo ln -s /etc/nginx/sites-available/epic-devhub /etc/nginx/sites-enabled/epic-devhub
 sudo nginx -t
 sudo certbot --nginx -d devdocs.epiccash.com
 ```
@@ -63,9 +63,9 @@ in the publish path re-checks it.
 Releases are kept, so a rollback is a symlink swap and needs no rebuild:
 
 ```bash
-ls -1t /var/www/epic-devdocs-releases
-ln -sfn /var/www/epic-devdocs-releases/<older-stamp> /var/www/epic-devdocs.new
-mv -Tf /var/www/epic-devdocs.new /var/www/epic-devdocs
+ls -1t /var/www/epic-devhub-releases
+ln -sfn /var/www/epic-devhub-releases/<older-stamp> /var/www/epic-devhub.new
+mv -Tf /var/www/epic-devhub.new /var/www/epic-devhub
 sudo systemctl reload nginx
 ```
 

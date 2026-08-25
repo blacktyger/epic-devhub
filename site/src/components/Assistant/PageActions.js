@@ -93,8 +93,8 @@ export default function PageActions() {
 
       {/*
         "View Markdown" is deliberately absent. It needs real /route.md files, which Docusaurus 3.10.2
-        cannot emit, so it needs either a post-build plugin or a new dependency. That decision is open;
-        see research/52-assistant-frontend-spec.md, W6. Copy page needs neither and ships now.
+        cannot emit, so it needs either a post-build plugin or a new dependency. That decision is
+        still open. Copy page needs neither and ships now.
       */}
 
       <span ref={statusRef} className="epicChat-srOnly" role="status" aria-live="polite" />

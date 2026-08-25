@@ -66,9 +66,11 @@
   );
 }
 [data-theme='light'] .ixMast::after {
+  /* 0.035, not 0.02. On the old near-white base a 2% warm bloom was invisible,
+     which is cost with no benefit; on #f8f5ef it is a light source. */
   background-image: radial-gradient(
     62% 80% at 16% 0%,
-    rgba(143, 94, 31, 0.02) 0%,
+    rgba(138, 90, 29, 0.035) 0%,
     transparent 64%
   );
 }
@@ -1304,7 +1306,7 @@
   color: var(--epic-gold-light);
 }
 [data-theme='light'] .jtDialPct {
-  color: #8f5e1f;
+  color: #8a5a1d;
 }
 .jtDialNote {
   margin-top: 0.35rem;
