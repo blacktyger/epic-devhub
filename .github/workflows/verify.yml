@@ -55,6 +55,16 @@ jobs:
         working-directory: audit
 
       # These three compare against committed baselines and fail the job on a regression.
+      # Classifies which chunks are fetched only on interaction, by loading real routes in a browser
+      # and recording what arrives before and after opening the assistant. budget.mjs needs this to
+      # tell an on-demand chunk from a route chunk, and it fails closed: without the list, the
+      # assistant's 144.6 kB markdown pipeline is measured against the 64 kB route ceiling and the
+      # build fails for a page-load cost that does not exist. The list lives under audit/results/,
+      # which is gitignored, so CI has to produce it rather than read it.
+      - name: Classify on-demand chunks
+        run: npm run chunk-cost
+        working-directory: audit
+
       - name: Size budget
         run: npm run budget
         working-directory: audit
