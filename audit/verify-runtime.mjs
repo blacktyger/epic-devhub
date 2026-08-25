@@ -216,6 +216,12 @@ const out = {};
       })(),
       h1: rect('article h1'),
       article: rect('article'),
+      // The navbar's ask/search control and the contents panel are one column to the eye, so their
+      // right edges have to be the same x. Both resolve to the navbar's inner right edge, which is
+      // why neither needs a formula: the control's slot is the last child of `.navbar__items--right`
+      // and Infima zeroes its right padding. A negative margin on the slot once pushed the control
+      // 12px past that edge on every page.
+      searchControl: rect('.epicAsk-control'),
       toc: rect('.theme-doc-toc-desktop'),
       tocPosition: pos('.theme-doc-toc-desktop'),
       // The header must stay in view, which is the reason the list scrolls rather than
@@ -266,6 +272,8 @@ const out = {};
       const sidebarScrollGap = gapUnder(atTop, 'sidebarScrollBox');
       const tocGapAtRest = gapUnder(atTop, 'toc');
       const tocGapPinned = gapUnder(scrolled, 'toc');
+      const searchToToc =
+        atTop.searchControl && atTop.toc ? atTop.searchControl.right - atTop.toc.right : null;
       const entry = {
         tocGap: round(atTop.tocGap),
         navbarBrandLeft: round(atTop.navbarBrandLeft),
@@ -288,6 +296,9 @@ const out = {};
         tocGapAtRest: round(tocGapAtRest),
         tocGapPinned: round(tocGapPinned),
         tocToCrumbs: round(tocToCrumbs),
+        searchRight: round(atTop.searchControl?.right),
+        tocRight: round(atTop.toc?.right),
+        searchToToc: round(searchToToc),
         crumbsPosition: atTop.crumbsPosition,
         tocPosition: scrolled.tocPosition,
         tocVisibleWhenScrolled: scrolled.toc
@@ -340,6 +351,15 @@ const out = {};
         if (tocGapPinned === null || Math.abs(tocGapPinned - atTop.tocGap) > 1.5) {
           stickyProblems.push(
             `${where}: pinned contents panel sits ${entry.tocGapPinned}px under the navbar, expected ${entry.tocGap}px`,
+          );
+        }
+        // Right edge of the navbar control against the right edge of the panel below it. Asserted at
+        // 1440 only: above roughly 1620 the docs container has room to centre itself inside <main>,
+        // so the panel moves left of the navbar's inner edge and no navbar rule follows it without
+        // reproducing the grid's column maths.
+        if (searchToToc === null || Math.abs(searchToToc) > 1) {
+          stickyProblems.push(
+            `${where}: navbar search control right edge is ${entry.searchToToc}px off the contents panel right edge`,
           );
         }
         if (sidebarGap === null || Math.abs(sidebarGap) > 1.5) {

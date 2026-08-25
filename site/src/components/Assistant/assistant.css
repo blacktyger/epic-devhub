@@ -125,14 +125,17 @@
   opacity: 0.8;
 }
 
-/* Pulls the control flush with the navbar's inner right edge.
-   Docusaurus wraps the search slot in a container carrying
-   `--ifm-navbar-item-padding-horizontal` on both sides, which left this control 12px short of the
-   contents panel's right edge on every documentation page. A negative margin here rather than
-   overriding that container, because its class is a hashed CSS module name and this element is ours. */
-.navbar__search {
-  margin-right: calc(-1 * var(--ifm-navbar-item-padding-horizontal));
-}
+/* No horizontal offset on the search slot, deliberately. Docusaurus wraps it in a container with
+   `--ifm-navbar-item-padding-horizontal` on both sides, but Infima then zeroes the right padding of
+   the last child of `.navbar__items--right`, which this is. So the slot already ends on the navbar's
+   inner right edge, which is the same x as the contents panel's right edge on a docs page and the
+   content's right edge on the landing page.
+
+   A `margin-right: calc(-1 * var(--ifm-navbar-item-padding-horizontal))` used to sit here to
+   correct padding that Infima had already removed. It pushed the control 12px past the site's right
+   edge on every page, so the control and the panel under it missed each other by 12px and the
+   control sat 4px from the window edge. Measured at 1280, 1440 and 1532: control right and panel
+   right now agree exactly. Do not reinstate it. */
 
 /* Below the desktop navbar breakpoint the label and the shortcut both go: the
    row is tight, and a shortcut is no use on a touch keyboard anyway. The mark
@@ -145,12 +148,6 @@
   .epicAsk-controlLabel,
   .epicAsk-hint {
     display: none;
-  }
-
-  /* The container's padding is wanted again once the control is icon-only and the navbar is a
-     drawer, so the flush-right offset is desktop only. */
-  .navbar__search {
-    margin-right: 0;
   }
 }
 
