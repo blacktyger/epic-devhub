@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useLocation} from '@docusaurus/router';
 import Markdown from './Markdown';
-import {ask, sessionLimits} from './transport';
+import {ask, sessionLimits, modelChoices, selectedModel, selectModel, liveDataAvailable, prepare} from './transport';
 import {consumeIntent, subscribeSeed} from './store';
 import {pickSuggestions} from './suggestions';
 import {createPacer} from './reveal';
@@ -61,6 +61,15 @@ export default function Panel({onClose}) {
   const [remaining, setRemaining] = useState(null);
   const [notice, setNotice] = useState(null); // {kind, message, sections?}
   const [reducedMotion, setReducedMotion] = useState(false);
+  /**
+   * Which model the composer offers, and which one is selected.
+   *
+   * Held in state rather than read from the transport on every render because the list only exists
+   * after the session handshake, which happens on the first question. Until then the picker is absent
+   * rather than showing a guess that the server might not accept.
+   */
+  const [models, setModels] = useState(null);
+  const [model, setModel] = useState(null);
 
   const logRef = useRef(null);
   const inputRef = useRef(null);
@@ -106,6 +115,24 @@ export default function Panel({onClose}) {
 
   useEffect(() => {
     inputRef.current?.focus();
+  }, []);
+
+  /* ---------------------------------------------------------------- handshake on open */
+
+  /**
+   * Warms the session so the picker has something to show and the first answer starts sooner.
+   *
+   * Guarded against a panel unmounted mid-handshake, which is the ordinary case of a reader opening
+   * the assistant and immediately pressing Escape.
+   */
+  useEffect(() => {
+    let live = true;
+    prepare().then(() => {
+      if (!live) return;
+      setModels(modelChoices());
+      setModel(selectedModel());
+    });
+    return () => { live = false; };
   }, []);
 
   useEffect(() => {
@@ -193,7 +220,7 @@ export default function Panel({onClose}) {
     setTurns((prev) => [
       ...prev,
       {id: userId, role: 'user', text, state: 'done'},
-      {id: botId, role: 'assistant', text: '', citations: [], sources: [], state: 'working'},
+      {id: botId, role: 'assistant', text: '', citations: [], sources: [], activity: [], state: 'working'},
     ]);
     setStatus('working');
     announce('Working on an answer');
@@ -245,6 +272,39 @@ export default function Panel({onClose}) {
               break;
             case 'citations':
               patch({citations: data.citations ?? []});
+              break;
+            /*
+             * The model has stopped to read live data.
+             *
+             * Shown rather than hidden, for two reasons. A node request plus a GitHub request is a
+             * second or two of silence in the middle of a streaming answer, and unexplained silence in
+             * a chat interface reads as a hang. And it is provenance: a reader who is told a height
+             * came from a live check deserves to see that a live check happened.
+             *
+             * Kept visible after the answer completes. The lines are one dim row each and they are the
+             * only durable record in the interface that this answer was not purely documentation.
+             */
+            case 'tool':
+              if (data.phase === 'start') {
+                patch2(setTurns, botId, (t) => ({
+                  activity: [
+                    ...(t.activity ?? []),
+                    ...(data.calls ?? []).map((c) => ({
+                      name: c.name, group: c.group, label: c.label, state: 'running',
+                    })),
+                  ],
+                }));
+                const first = data.calls?.[0]?.label;
+                if (first) announce(first);
+              } else {
+                patch2(setTurns, botId, (t) => ({
+                  activity: (t.activity ?? []).map((a) => {
+                    const done = (data.calls ?? []).find((c) => c.name === a.name && a.state === 'running');
+                    return done ? {...a, state: done.ok ? 'done' : 'failed'} : a;
+                  }),
+                }));
+              }
+              followIfAtEdge();
               break;
             case 'done':
               // Held until the reveal catches up.
@@ -372,8 +432,9 @@ export default function Panel({onClose}) {
         <div>
           <h2 className="epicChat-title">Docs assistant</h2>
           <p className="epicChat-scope">
-            Answers from the Epic developer documentation, and it knows which page you are on. It can
-            be wrong, so check the linked section.
+            {liveDataAvailable()
+              ? 'Answers from the Epic developer documentation, and it can check the live chain and the EpicCash repositories. It can be wrong, so check the linked section.'
+              : 'Answers from the Epic developer documentation, and it knows which page you are on. It can be wrong, so check the linked section.'}
           </p>
         </div>
         <button
@@ -428,10 +489,28 @@ export default function Panel({onClose}) {
               <p className="epicChat-userText">{turn.text}</p>
             ) : (
               <div className="epicChat-answer">
-                {turn.state === 'working' && !turn.text && (
+                {turn.state === 'working' && !turn.text && !turn.activity?.length && (
                   <p className="epicChat-thinking">
                     <span className="epicChat-shimmer">Reading the documentation</span>
                   </p>
+                )}
+
+                {turn.activity?.length > 0 && (
+                  <ul className="epicChat-activity" aria-label="Live data checked for this answer">
+                    {turn.activity.map((a, i) => (
+                      <li
+                        key={`${a.name}-${i}`}
+                        className="epicChat-activityItem"
+                        data-state={a.state}
+                        data-group={a.group}>
+                        <span className="epicChat-activityDot" aria-hidden="true" />
+                        <span className={a.state === 'running' ? 'epicChat-shimmer' : undefined}>
+                          {a.label}
+                        </span>
+                        {a.state === 'failed' && <span className="epicChat-activityFail"> (unavailable)</span>}
+                      </li>
+                    ))}
+                  </ul>
                 )}
 
                 {turn.text && (
@@ -565,11 +644,54 @@ export default function Panel({onClose}) {
         </span>
       </p>
 
-      <p className="epicChat-foot">
-        {remaining
-          ? `${remaining.requests} question${remaining.requests === 1 ? '' : 's'} left in this session`
-          : 'Answers are generated and can be wrong. Verify against the linked page.'}
-      </p>
+      {/*
+        Footer row: the model picker on the left, status on the right.
+
+        A native <select> rather than a custom listbox. Two options with short labels is exactly the
+        case the platform control handles better than anything hand-built: it gets keyboard support,
+        touch behaviour, the mobile wheel and screen reader semantics for free, and this project has no
+        appetite for reimplementing any of that. The label is visually hidden because the value itself
+        reads as the label once it is on screen, and the note beside it carries the reason to change it.
+
+        Disabled mid-answer. Switching model with a stream in flight would leave the picker disagreeing
+        with the answer being written, and the reader would reasonably read the new value as applying to
+        the text they are watching arrive.
+      */}
+      <div className="epicChat-footRow">
+        {models?.choices?.length > 1 && (
+          <div className="epicChat-modelPick">
+            <label htmlFor="epicChat-model" className="epicChat-srOnly">
+              Which model answers your questions
+            </label>
+            <select
+              id="epicChat-model"
+              className="epicChat-model"
+              value={model ?? models.default ?? ''}
+              disabled={busy}
+              onChange={(event) => {
+                setModel(event.target.value);
+                selectModel(event.target.value);
+              }}>
+              {models.choices.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+            <span className="epicChat-modelNote">
+              {models.choices.find((m) => m.id === (model ?? models.default))?.note ?? ''}
+            </span>
+          </div>
+        )}
+
+        <p className="epicChat-foot">
+          {remaining
+            ? `${remaining.requests} question${remaining.requests === 1 ? '' : 's'} left`
+            : liveDataAvailable()
+              ? 'Can check the live chain and GitHub. Answers can be wrong, so verify against the linked page.'
+              : 'Answers are generated and can be wrong. Verify against the linked page.'}
+        </p>
+      </div>
     </div>
   );
 }

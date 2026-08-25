@@ -881,9 +881,135 @@ body[data-epicchat-drag] {
   padding: 0.5rem 1rem 0;
 }
 
+/* --------------------------------------------------------------- live data activity
+
+   One dim row per live check, sitting above the answer text.
+
+   Deliberately quiet. It is progress feedback while a call runs and provenance afterwards, and neither
+   job wants to compete with the answer for attention. The dot carries the state so the row does not
+   have to change colour or weight as it completes: a row that restyles itself mid-answer draws the eye
+   exactly when the reader should be reading the text below it. */
+
+.epicChat-activity {
+  margin: 0.3rem 0 0.5rem;
+  padding: 0;
+  list-style: none;
+  font-size: var(--epic-t-micro);
+  color: var(--ifm-color-content-secondary);
+}
+
+.epicChat-activityItem {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0.15rem 0;
+}
+
+.epicChat-activityDot {
+  flex: none;
+  width: 0.35rem;
+  height: 0.35rem;
+  /* Baseline alignment on a flex item with no text needs the nudge; without it the dot sits on the
+     text baseline rather than beside the middle of the line. */
+  transform: translateY(-0.15em);
+  border-radius: 50%;
+  background: var(--ifm-color-content-secondary);
+  opacity: 0.5;
+}
+
+.epicChat-activityItem[data-state='running'] .epicChat-activityDot {
+  background: var(--epic-gold-deep);
+  opacity: 1;
+  animation: epicChat-caret 1.4s ease-in-out infinite;
+}
+
+.epicChat-activityItem[data-state='done'] .epicChat-activityDot {
+  background: var(--epic-gold-deep);
+  opacity: 0.7;
+}
+
+.epicChat-activityItem[data-state='failed'] .epicChat-activityDot {
+  background: var(--ifm-color-danger);
+  opacity: 0.7;
+}
+
+.epicChat-activityFail {
+  opacity: 0.8;
+}
+
+/* --------------------------------------------------------------- footer row
+
+   The model picker and the status line share one row, picker left and status right, so the composer
+   does not gain a third stacked line of small print. */
+
+.epicChat-footRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+  padding: 0.35rem 1rem 0.7rem;
+}
+
+.epicChat-modelPick {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+/* A native select, restyled rather than replaced. It keeps platform keyboard, touch and screen reader
+   behaviour, which a custom listbox would have to reimplement for no gain on a two-option choice. */
+.epicChat-model {
+  padding: 0.1rem 1.1rem 0.1rem 0.35rem;
+  border: 1px solid var(--epic-line);
+  border-radius: 4px;
+  background: transparent;
+  /* The platform arrow is replaced because its colour cannot be controlled and reads wrong on the dark
+     surface. Drawn as a background chevron, with appearance:none to remove the original. */
+  background-image: linear-gradient(45deg, transparent 50%, var(--ifm-color-content-secondary) 50%),
+    linear-gradient(135deg, var(--ifm-color-content-secondary) 50%, transparent 50%);
+  background-position: right 0.5rem center, right 0.28rem center;
+  background-size: 0.22rem 0.22rem, 0.22rem 0.22rem;
+  background-repeat: no-repeat;
+  -webkit-appearance: none;
+  appearance: none;
+  color: var(--ifm-font-color-base);
+  font-family: inherit;
+  font-size: var(--epic-t-micro);
+  cursor: pointer;
+}
+
+.epicChat-model:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.epicChat-model:focus-visible {
+  outline: 2px solid var(--epic-gold-deep);
+  outline-offset: 1px;
+}
+
+.epicChat-modelNote {
+  font-size: var(--epic-t-micro);
+  color: var(--ifm-color-content-secondary);
+  opacity: 0.75;
+  /* Truncates rather than wraps, so a longer note never pushes the status line onto a third row. */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Below this the row stacks, and the note is the first thing to go: the picker's own labels already
+   say which model is which, so the note is the least load-bearing part of the row. */
+@media (max-width: 26rem) {
+  .epicChat-modelNote {
+    display: none;
+  }
+}
+
 .epicChat-foot {
   margin: 0;
-  padding: 0.35rem 1rem 0.7rem;
   font-size: var(--epic-t-micro);
   color: var(--ifm-color-content-secondary);
 }
@@ -900,6 +1026,11 @@ body[data-epicchat-drag] {
   }
 
   .epicChat-caret {
+    animation: none;
+    opacity: 1;
+  }
+
+  .epicChat-activityItem[data-state='running'] .epicChat-activityDot {
     animation: none;
     opacity: 1;
   }

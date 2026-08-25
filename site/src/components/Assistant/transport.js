@@ -13,8 +13,17 @@
 
 const API = '/api/chat';
 
-let session = null; // { token, expiresAt, limits }
+let session = null; // { token, expiresAt, limits, models, liveData }
 let minting = null; // in-flight promise, so concurrent sends share one handshake
+
+/**
+ * The reader's model choice, held for the page's lifetime.
+ *
+ * A module variable for the same reason the session token is one: nothing is written to the reader's
+ * device, so ePrivacy Article 5(3) never engages and the site needs no consent banner. A reload
+ * therefore returns to the default, which is a fair price for not having a cookie dialogue.
+ */
+let chosenModel = null;
 
 /* ------------------------------------------------------------------ proof of work */
 
@@ -127,8 +136,47 @@ async function ensureSession() {
   return minting;
 }
 
+/**
+ * Runs the handshake before the reader asks anything.
+ *
+ * Two reasons to do this on panel open rather than on first question. The session response carries the
+ * model list, and a picker that appears only after the first answer is a picker nobody uses for their
+ * first question. And it moves the proof-of-work solve, a few hundred milliseconds on a slow phone,
+ * off the path between pressing Enter and seeing text.
+ *
+ * Failure is deliberately swallowed. Opening the panel is not the moment to show a handshake error;
+ * asking is, and `ask` runs the same handshake and reports properly.
+ */
+export function prepare() {
+  return ensureSession().catch(() => null);
+}
+
 export function sessionLimits() {
   return session?.limits ?? null;
+}
+
+/**
+ * The models the server will accept, or null before the handshake has happened.
+ *
+ * Read from the session response rather than listed here. The server owns the allowlist that decides
+ * which model a request may name, so a hard-coded list in the panel would offer a choice the server
+ * rejects the first time the two disagree.
+ */
+export function modelChoices() {
+  return session?.models ?? null;
+}
+
+/** Whether this deployment can read live chain and GitHub data, for what the panel says it does. */
+export function liveDataAvailable() {
+  return Boolean(session?.liveData);
+}
+
+export function selectedModel() {
+  return chosenModel ?? session?.models?.default ?? null;
+}
+
+export function selectModel(id) {
+  chosenModel = id;
 }
 
 /* ------------------------------------------------------------------ ask */
@@ -166,7 +214,10 @@ export async function ask({ question, history, signal, onEvent }) {
       accept: 'text/event-stream',
       authorization: `Bearer ${s.token}`,
     },
-    body: JSON.stringify({ question, history }),
+    // The model travels in the body rather than a header, because the server treats a header override
+    // as the admin path and rejects it without a token. Omitted when nothing has been chosen, so the
+    // server applies its own default rather than the panel guessing at one.
+    body: JSON.stringify({ question, history, ...(selectedModel() ? { model: selectedModel() } : {}) }),
     signal,
   });
 
