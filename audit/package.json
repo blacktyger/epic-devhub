@@ -26,6 +26,8 @@
     "images": "node hooks/image-guard.mjs scan",
     "prism": "node prism-contrast.mjs",
     "journey": "node journey.mjs",
+    "controls": "node controls.mjs",
+    "controls:live": "node controls.mjs --live",
     "hooks:test": "node hooks/selftest.mjs"
   },
   "devDependencies": {

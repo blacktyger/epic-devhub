@@ -170,8 +170,11 @@
 .epicPageActions-button {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.65rem;
+  /* `sm` on the control scale in custom.css. This row sits directly under the page title, so it is
+     secondary chrome and takes the dense size, but it still clears the 24px target floor. */
+  min-height: var(--epic-control-sm);
+  gap: var(--epic-space-4);
+  padding: 0 var(--epic-space-12);
   font: inherit;
   font-size: 0.75rem;
   white-space: nowrap;

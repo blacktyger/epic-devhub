@@ -838,21 +838,28 @@
 }
 .ixSnippetTabs {
   display: flex;
-  gap: 0.15rem;
+  gap: var(--epic-space-4);
 }
 /* Second control row: the platform set for the selected binary. Its own row because the head
    already holds the Node and Wallet tabs, and two switches on one line wrapped badly at 27rem. */
 .ixSnippetPlatforms {
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.15rem 0.5rem;
-  padding: 0.5rem 0.7rem 0;
+  gap: var(--epic-space-4) var(--epic-space-8);
+  padding: var(--epic-space-8) var(--epic-space-12) 0;
 }
+/* Both of the panel's control types are `sm`, so the head row and the platform row read as one
+   toolbar rather than three sizes stacked. Height comes from min-height plus centring, not from
+   padding: padding-driven height is what produced 23.9px and 21.7px in the same panel, and both were
+   under the 24px floor of WCAG 2.2 SC 2.5.8. */
 .ixSnippetTab {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--epic-control-sm);
   font-family: var(--ifm-font-family-monospace);
   font-size: 0.68rem;
   letter-spacing: 0.03em;
-  padding: 0.28rem 0.5rem;
+  padding: 0 var(--epic-space-8);
   color: var(--ifm-color-content-secondary);
   background: none;
   border: 1px solid transparent;
@@ -929,13 +936,16 @@
   border-top: 1px solid var(--ifm-toc-border-color);
 }
 .ixSnippetCopy {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--epic-control-sm);
   justify-self: start;
   margin-left: auto;
   font-family: var(--ifm-font-family-monospace);
   font-size: 0.66rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 0.24rem 0.55rem;
+  padding: 0 var(--epic-space-8);
   color: var(--ifm-font-color-base);
   background: none;
   border: 1px solid var(--ifm-toc-border-color);
@@ -974,16 +984,15 @@
 @media (max-width: 600px) {
   .ixSnippetTab,
   .ixSnippetCopy {
-    /* 2rem, not the 2.75rem the removed project links used. Two switch rows plus a copy button
-       at 44px each put roughly 120px of chrome above three lines of code, which reads as a
-       header with a snippet attached rather than the reverse. 32px still clears the 24px
-       minimum target size in WCAG 2.2 AA (2.5.8). */
-    min-height: 2rem;
+    /* `md`, not `lg`. Two switch rows plus a copy button at 44px each put roughly 120px of chrome
+       above three lines of code, which reads as a header with a snippet attached rather than the
+       reverse. A thumb gets the step up from `sm`, which is what the touch case is for. */
+    min-height: var(--epic-control-md);
   }
 
   /* Tighter chrome on a narrow screen, for the same reason. */
   .ixSnippetHead {
-    padding: 0.5rem 0.7rem;
+    padding: var(--epic-space-8) var(--epic-space-12);
   }
   .ixSnippetPlatforms {
     padding: 0.35rem 0.6rem;

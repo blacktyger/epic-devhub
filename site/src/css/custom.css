@@ -129,6 +129,61 @@
 
   --epic-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --epic-dur: 220ms;
+
+  /* ---- Spacing and control scale ---------------------------------------
+     Added 2026-08-26. Before it there were 15 distinct control heights on four
+     routes, 11 vertical paddings, 10 horizontal paddings and 9 font sizes, all
+     measured in a browser. Two tabs and a copy button in one panel came out
+     23.9, 23.9 and 21.7 pixels tall, and five controls sat under the 24px floor
+     WCAG 2.2 SC 2.5.8 sets at level AA. Nobody chose any of that: it is what
+     fractional rem padding does when there is no scale to snap to.
+
+     4px grid, which is what Carbon, GOV.UK, VA.gov and the rest converge on.
+     Tokens are named for the pixel value they carry at the 16px root this site
+     uses, so a wrong one is visible on sight and needs no lookup. The value is
+     still rem, so a reader who scales text scales the layout with it.
+
+     Never write a raw length for padding, margin or gap in this project. If a
+     value is not on this scale, either use the nearest step or add a step here
+     and say why. audit/controls.mjs measures the rendered result and fails on
+     anything off the scale, so a literal that drifts is caught in the browser
+     rather than in review. */
+  --epic-space-2: 0.125rem;
+  --epic-space-4: 0.25rem;
+  --epic-space-6: 0.375rem;
+  --epic-space-8: 0.5rem;
+  --epic-space-12: 0.75rem;
+  --epic-space-16: 1rem;
+  --epic-space-20: 1.25rem;
+  --epic-space-24: 1.5rem;
+  --epic-space-32: 2rem;
+  --epic-space-40: 2.5rem;
+  --epic-space-48: 3rem;
+  --epic-space-64: 4rem;
+
+  /* Control heights. Three sizes and one special case, and every one of them
+     clears the 24px target floor.
+
+     sm  28px  a control inside a panel or a toolbar: snippet tabs, copy, the
+               page action row, carousel dots. Dense, but still hittable.
+     md  32px  the default. The navbar ask field, the theme toggle, a sidebar
+               row, a request/response tab. Use this unless there is a reason.
+     lg  40px  a control that carries a section: the platform tab set on a
+               documentation page.
+     rail 48px the fold tab on the sidebar rail, which is vertical and so reads
+               as a height rather than a size. It is the only 48 on the site.
+
+     44px is the AAA figure and the one Adrian Roselli recommends regardless of
+     conformance target. It is not the default here because this is a dense
+     reference interface driven by a pointer, and 44 everywhere would cost the
+     density the lookup pages exist for. Anything a thumb uses on mobile takes
+     lg or larger. */
+  --epic-control-sm: 1.75rem;
+  --epic-control-md: 2rem;
+  --epic-control-lg: 2.5rem;
+  --epic-control-rail: 3rem;
+  /* The floor, for anything that has to be checked against it in CSS. */
+  --epic-target-min: 1.5rem;
 }
 
 [data-theme='dark'] {
@@ -1164,13 +1219,16 @@ div[class^='announcementBar'] a:hover {
   margin: 1rem 0 0;
   padding: 0;
 }
+/* A row, not a control chip. Its height follows its text, because a step wraps to two lines at a
+   narrow width, so it takes grid padding and no min-height. audit/controls.mjs holds it to the 24px
+   target floor and deliberately does not pin its height. */
 .seListBtn {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.6rem;
+  gap: var(--epic-space-8);
   align-items: baseline;
   width: 100%;
-  padding: 0.3rem 0;
+  padding: var(--epic-space-4) 0;
   font-family: inherit;
   font-size: 0.86rem;
   line-height: 1.5;
@@ -1233,8 +1291,9 @@ div[class^='announcementBar'] a:hover {
 .sePlay {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.6rem 0.25rem 0.45rem;
+  min-height: var(--epic-control-sm);
+  gap: var(--epic-space-4);
+  padding: 0 var(--epic-space-8);
   font-family: var(--ifm-font-family-monospace);
   font-size: 0.72rem;
   color: var(--ifm-color-content-secondary);
@@ -1260,14 +1319,15 @@ div[class^='announcementBar'] a:hover {
 .seDots {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.1rem;
+  gap: var(--epic-space-16);
   margin-top: 0;
 }
 .seDot {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.3rem 0;
+  min-height: var(--epic-control-sm);
+  gap: var(--epic-space-8);
+  padding: 0;
   font-family: var(--ifm-font-family-monospace);
   font-size: 0.72rem;
   color: var(--ifm-color-content-secondary);
@@ -2872,7 +2932,28 @@ html[class*='docs-doc-id'] main .container.padding-top--md > .row > .col--3 {
   border-radius: 0;
   font-family: var(--ifm-font-family-monospace);
   font-size: 0.8125rem;
-  padding: 0.5rem 0.9rem;
+  /* `lg` on the control scale: this set carries a whole section of a page, and it is the one control
+     a thumb reaches for on a phone. Height from min-height, not padding. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--epic-control-lg);
+  padding: 0 var(--epic-space-16);
+}
+
+/* The code block's buttons are the theme's own: copy, and toggle word wrap. They came out 32.8px on
+   one page and 34px on another, because each was padding around an icon and the two icons differ in
+   height. Square, `md`, and square-cornered, which is the geometry every other enclosure here uses.
+
+   Matched through the button group rather than the button's own class: in this Docusaurus version the
+   copy button ships `clean-btn` and nothing else, so there is no per-button hook to aim at. */
+div[class*='buttonGroup'] > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--epic-control-md);
+  height: var(--epic-control-md);
+  padding: 0;
+  border-radius: 0;
 }
 
 
@@ -4054,7 +4135,10 @@ html[class*='docs-doc-id-examples/'],
 }
 .epicRpcTab {
   align-self: stretch;
-  padding: 0.55rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--epic-control-md);
+  padding: 0 var(--epic-space-12);
   border: 0;
   border-right: 1px solid var(--epic-line);
   border-bottom: 2px solid transparent;
@@ -4068,12 +4152,12 @@ html[class*='docs-doc-id-examples/'],
   background: var(--ifm-background-color);
 }
 .epicRpcCopy {
-  /* 24px is the WCAG 2.2 target-size floor. The button's text is small by design, so the height
-     comes from min-height rather than from padding. */
-  min-height: 26px;
+  /* Height from min-height rather than padding, because the label is deliberately small and padding
+     would make its size a side effect of its text. `sm` on the control scale. */
+  min-height: var(--epic-control-sm);
   display: inline-flex;
   align-items: center;
-  padding: 0.2rem 0.5rem;
+  padding: 0 var(--epic-space-8);
   border: 1px solid var(--epic-line-strong);
 }
 .epicRpcCopy:hover {
