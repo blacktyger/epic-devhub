@@ -2482,13 +2482,16 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
   .theme-doc-sidebar-container .menu {
     margin-top: 0;
     padding-top: 0;
-    /* A gutter for the fold tab, exactly as wide as the folded strip. Without it the tab floated over
-       the scrolling menu: three link rows ran under it, so 38px of each was unclickable, and the
-       menu's 10px scrollbar sat beneath the arrow, which is the band that showed next to the glyph.
+    /* A gutter for the fold tab, and clear space between the tab and the scroll rail. Without the
+       gutter the tab floated over the scrolling menu: three link rows ran under it, so 38px of each
+       was unclickable, and the menu's scrollbar sat beneath the arrow. With a 30px gutter the thumb
+       ended 3px from the arrow, and a 4px bright capsule that close to a 20px glyph reads as one
+       cluttered object rather than two controls. 2.75rem puts 14px of nothing between them.
+
        Margin rather than padding, because the scrollbar rides the border box and padding does not
-       move it. The reserved width is the same token the folded column uses, so the two states cannot
-       disagree about where the arrow sits. */
-    margin-right: var(--doc-sidebar-hidden-width, 30px);
+       move it. The tab itself stays 30px wide and flush right, so its arrow is still centred 15px in
+       from the column's edge, which is where the folded strip puts its own. */
+    margin-right: 2.75rem;
   }
 }
 

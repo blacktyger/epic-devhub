@@ -161,6 +161,17 @@
   }
 }
 
+/* On a full-HD screen the title column had a few hundred pixels of nothing in it while the snippet
+   still clipped its longest line, a 100-character curl to a release asset. 32rem gives the code 80px
+   more and leaves the title track around 720px at the 1320px content cap, which is still more measure
+   than the title uses. The line is long enough that it scrolls either way; this is about the balance
+   between the two halves, not about fitting it. */
+@container page (min-width: 1400px) {
+  .ixMastGrid {
+    grid-template-columns: minmax(0, 1fr) 32rem;
+  }
+}
+
 /* Instrument panel. Square, corner-ticked, monospace, because every value in it is data. */
 .ixPanel {
   position: relative;
