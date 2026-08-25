@@ -56,6 +56,14 @@
 
   --epic-gold-light: #f6d471;
   --epic-gold-deep: #c98a3e;
+  /* Corner ticks. A tick is decoration that frames an enclosure, so it is one token rather than a
+     colour repeated per component: the contents panel, a diagram frame, a details block, the
+     journey rail and anything carrying `.epic-ticked` all read it. Light mode overrides it to
+     charcoal, which is the only place the two modes disagree about a tick.
+
+     Distinct from --epic-mark, which is a state: an active row, a current position, a focus ring.
+     Those stay gold in both modes because their colour carries meaning. */
+  --epic-tick: var(--epic-gold-deep);
   --epic-gradient-gold: linear-gradient(93.95deg, #f6d471 0%, #c98a3e 100%);
   --epic-gradient-surface: linear-gradient(71.88deg, #000000 70%, #313133 100%);
 
@@ -1360,6 +1368,73 @@ div[class^='announcementBar'] a:hover {
 [data-theme='light'] .seCell--second {
   fill: transparent;
 }
+
+/* Everything the dark figure draws in gold or in near-white, restated for paper. Each of these was
+   invisible in light mode, and the reason is in the values: rgba(255, 249, 249, *) on #f8f5ef is
+   nothing at all, and #f6d471 measures 1.32:1 there. So the node box had no outline in any state,
+   the relay box appeared only as a pale yellow ghost, the chain blocks were absent, and the four
+   active outlines that carry "holding", "held", "posting" and "signed" did not read. Only the two
+   party boxes and the slate had light overrides, which is why they looked right and nothing else did.
+
+   One accent for the whole figure: #8a5a1d at 5.32:1, the brown the slate outline above already
+   uses. A second amber would read as a second meaning. */
+[data-theme='light'] .seNode rect,
+[data-theme='light'] .seRelay rect {
+  fill: rgba(0, 0, 0, 0.02);
+  stroke: rgba(0, 0, 0, 0.45);
+}
+
+/* Offline reads dimmer than online, as it does in dark mode. The `.seParty rect` override above
+   sets one stroke for both states, which flattened that difference on paper. Never colour alone:
+   the outline also goes dashed and the label under it reads "offline". */
+[data-theme='light'] .seParty.is-offline rect,
+[data-theme='light'] .seNode.is-offline rect {
+  fill: transparent;
+  stroke: rgba(0, 0, 0, 0.3);
+}
+
+/* The four active outlines. */
+[data-theme='light'] .seRelay.isHolding rect {
+  stroke: #8a5a1d;
+  fill: rgba(138, 90, 29, 0.07);
+}
+[data-theme='light'] .seParty.isHeld rect {
+  stroke: #8a5a1d;
+  fill: rgba(138, 90, 29, 0.08);
+}
+[data-theme='light'] .seNode.isPosting rect {
+  stroke: #8a5a1d;
+}
+[data-theme='light'] .seSlate.isWhole .seSlateBody {
+  stroke: #8a5a1d;
+}
+
+/* The chain. Settled blocks are a line on paper, the minted block and the confirmed one take the
+   accent. `url(#epicGold)` cannot be reused here: the gradient measures 1.44:1 to 2.92:1 on paper.
+   The selector carries `.seNode` so it stays above the offline rule, which would otherwise put a
+   dashed 0.3 stroke on five 13x9 rects. */
+[data-theme='light'] .seNode .seNodeBlocks rect {
+  fill: var(--epic-line-strong);
+  stroke: none;
+}
+[data-theme='light'] .seNode.isPosting .seNodeBlockNew,
+[data-theme='light'] .seNode .seNodeBlockNew.isConfirmed {
+  fill: #8a5a1d;
+}
+[data-theme='light'] .seTrackNode.isLive {
+  stroke: rgba(138, 90, 29, 0.55);
+}
+
+/* Lamps. #6fbf8b is a dark-mode green and measures 1.90:1 on paper, so present and absent were
+   nearly the same dot. #2f7d4f is 4.54:1, and the grey offline lamp already measures 4.87:1. */
+[data-theme='light'] .sePartyLamp,
+[data-theme='light'] .seNodeLamp {
+  fill: #2f7d4f;
+}
+[data-theme='light'] .seParty.is-offline .sePartyLamp,
+[data-theme='light'] .seNode.is-offline .seNodeLamp {
+  fill: #6b6b6b;
+}
 [data-theme='light'] .seDot.isActive .seDotMark {
   background: #8a5a1d;
   border-color: #8a5a1d;
@@ -2432,10 +2507,10 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
   border-radius: 0;
   background-color: var(--epic-s1);
   background-image:
-    linear-gradient(var(--epic-gold-deep), var(--epic-gold-deep)),
-    linear-gradient(var(--epic-gold-deep), var(--epic-gold-deep)),
-    linear-gradient(var(--epic-gold-deep), var(--epic-gold-deep)),
-    linear-gradient(var(--epic-gold-deep), var(--epic-gold-deep));
+    linear-gradient(var(--epic-tick), var(--epic-tick)),
+    linear-gradient(var(--epic-tick), var(--epic-tick)),
+    linear-gradient(var(--epic-tick), var(--epic-tick)),
+    linear-gradient(var(--epic-tick), var(--epic-tick));
   background-position: left top, left top, right bottom, right bottom;
   background-repeat: no-repeat;
   background-size: 9px 1px, 1px 9px, 9px 1px, 1px 9px;
@@ -3278,6 +3353,11 @@ html[class*='docs-doc-id-examples/'],
   /* Gold as a mark rather than as text: 3.30:1 on paper, so it may carry an
      active state, a current position or a focus ring. Never body text. */
   --epic-mark: #b87a2a;
+  /* Corner ticks go charcoal on paper, the same charcoal the navbar and the sidebar hold, so a
+     ticked enclosure is framed by the page's own chrome colour rather than by a second amber that
+     competes with every state mark on the screen. 15.09:1 on s2, so contrast is not the constraint
+     here; distinguishing decoration from state is. */
+  --epic-tick: var(--epic-chrome);
   --epic-chrome: #1b1a18;
   --epic-chrome-ink: #f7f2e8;
   --epic-chrome-dim: #b3aa9c;
@@ -3375,14 +3455,19 @@ html[class*='docs-doc-id-examples/'],
 [data-theme='light'] .menu__list .menu__list { border-left-color: var(--epic-chrome-line); }
 
 /* Light TOC. A recessed panel on the paper, not another sheet at the same value.
-   Ticks and the current row take --epic-mark, which is the gold that clears 3:1
-   on this surface; the label text stays #8a5a1d because text needs 4.5:1. */
+   The current row takes --epic-mark, the gold that clears 3:1 on this surface; the
+   label text stays #8a5a1d because text needs 4.5:1. The corner ticks come from the
+   base rule's four gradients and take --epic-tick, charcoal here.
+
+   `background-color`, not the `background` shorthand. The shorthand reset background-image to
+   none, which silently deleted all four corner ticks in light mode while leaving the override
+   below them looking like it did something. It did not: this element paints its ticks with
+   gradients, not with ::before and ::after, so a border-color override on those had nothing to
+   colour. */
 [data-theme='light'] .theme-doc-toc-desktop {
   border-color: var(--epic-line);
-  background: var(--epic-s2);
+  background-color: var(--epic-s2);
 }
-[data-theme='light'] .theme-doc-toc-desktop::before,
-[data-theme='light'] .theme-doc-toc-desktop::after { border-color: var(--epic-mark); }
 [data-theme='light'] .epicTocHeader { border-bottom-color: var(--epic-line); }
 [data-theme='light'] .epicTocCount { color: #8a5a1d; }
 [data-theme='light'] .epicTocList .table-of-contents__link { color: var(--ifm-color-content-secondary); }
@@ -3439,12 +3524,12 @@ html[class*='docs-doc-id-examples/'],
 
 /* Light details */
 [data-theme='light'] .markdown details { background: var(--epic-s2); border-color: var(--epic-line); }
-[data-theme='light'] .markdown details::before, [data-theme='light'] .markdown details::after { border-color: var(--epic-mark); }
+[data-theme='light'] .markdown details::before, [data-theme='light'] .markdown details::after { border-color: var(--epic-tick); }
 [data-theme='light'] .markdown details > summary:hover { color: #8a5a1d; }
 
 /* Light diagram source */
 [data-theme='light'] .epicDiagramSource { background: var(--epic-s2); border-color: var(--epic-line); }
-[data-theme='light'] .epicDiagramSource::before, [data-theme='light'] .epicDiagramSource::after { border-color: var(--epic-mark); }
+[data-theme='light'] .epicDiagramSource::before, [data-theme='light'] .epicDiagramSource::after { border-color: var(--epic-tick); }
 
 /* Light admonitions. The note blue moved from #2b6cb0 to #28629f: on the new
    surface the old value measured 4.48:1, missing AA by 0.02, and admonition
@@ -3501,11 +3586,12 @@ html[class*='docs-doc-id-examples/'],
 
 /* Light journey progress */
 [data-theme='light'] .journeyProgress { background: var(--epic-s2); border-color: var(--epic-line); }
-[data-theme='light'] .journeyProgress::before, [data-theme='light'] .journeyProgress::after { border-color: var(--epic-mark); }
+[data-theme='light'] .journeyProgress::before, [data-theme='light'] .journeyProgress::after { border-color: var(--epic-tick); }
 
-/* Light instrument ticks. A tick is a mark, not text, so it takes --epic-mark:
-   #b87a2a at 3.30:1 reads as gold where #8f5e1f read as a smudge. */
-[data-theme='light'] .epic-ticked::before, [data-theme='light'] .epic-ticked::after { border-color: var(--epic-mark); }
+/* Light instrument ticks. A corner tick frames an enclosure, so it takes --epic-tick, charcoal on
+   paper. It was --epic-mark, which put a second amber next to every active row and current-position
+   mark and made decoration compete with state. State marks still take --epic-mark. */
+[data-theme='light'] .epic-ticked::before, [data-theme='light'] .epic-ticked::after { border-color: var(--epic-tick); }
 
 /* Light list markers */
 [data-theme='light'] .markdown > ol > li::marker { color: #8a5a1d; }
