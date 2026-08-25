@@ -38,6 +38,7 @@ export const PORTS = {
   page: 7779,
   journey: 7780,
   scratch: 7782,
+  vitals: 7784,
 };
 
 /**

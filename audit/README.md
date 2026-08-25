@@ -60,6 +60,9 @@ npm run page -- /some/route     # one built route as readable tiles, prints thei
 npm run images                  # refuse-list check: any image too large to read
 npm run prism                   # contrast maths for the Prism token colours
 npm run journey                 # the newcomer walk: eight declared stages, then a lookup
+npm run vitals                  # Core Web Vitals in a real browser, desktop and throttled mobile
+npm run vitals:mobile           # mobile only, which is the profile that decides a verdict
+npm run chunk-cost              # which chunks arrive on load and which only on interaction
 npm run hooks:test              # verify the frontend gate hooks still hold their contract
 ```
 
@@ -194,6 +197,40 @@ it, and `npm run images` reports anything over it as `COSTLY` while only failing
 `npm run images` scans this repository, plus the private working repository and visual channel
 beside it when they are present, and exits non-zero on anything an agent must not read.
 
+## Speed
+
+`npm run vitals` measures Core Web Vitals in a real browser: LCP, INP and CLS, plus FCP, TTFB and
+Total Blocking Time as diagnostics. It reports and never gates, for the same reason there is no
+Lighthouse gate: a gate that fails at random gets switched off, and a switched-off gate looks like
+coverage. `results/vitals.json` holds the numbers.
+
+Two device profiles, because one number hides the answer. Desktop unthrottled is the author's own
+experience and the best case. Mobile is Lighthouse's mobile preset, 4x CPU and Slow 4G at 412x823,
+which is the closest reproducible stand-in for the reader the thresholds were written for. Each
+route gets a fresh context, so every measurement is a cold first visit, which is how a reader
+arriving from a search engine actually experiences the site.
+
+Four things make these numbers trustworthy, and each was wrong in the first version:
+
+- **The server compresses.** `serveBuild(root, port, {gzip: true})`. Measuring uncompressed bytes
+  through an emulated Slow 4G pipe reported JS transfer around 3x too high and a load time to match.
+- **Transfer is read from Resource Timing**, not from `content-length`, which this server often
+  does not send. The first version reported 0.0 kB for everything.
+- **Selectors are this site's own**, `epicThemeToggle-button`, `epicAsk-control`, `epicRpcCopy`,
+  `epicPageActions-ask`. Generic Docusaurus class names silently skipped search and copy on every
+  route, and a measurement that reports nothing reads exactly like one that reports no problem.
+- **Interactions are confirmed**, not just clicked. Opening the assistant reported 16ms, the floor
+  of the browser's 8ms rounding, until the panel itself was checked for having appeared.
+
+CLS uses the session-window algorithm, largest window with a 1s gap and 5s cap, not a sum of every
+shift. Summing is the usual reason a hand-rolled CLS number disagrees with Chrome's.
+
+What it cannot tell you: the real standard is the 75th percentile of real Chrome users over 28 days.
+This is one machine on localhost. Network emulation reproduces transfer time but not DNS, TLS, CDN
+routing or a congested cell, so treat LCP here as a floor that the field number will be worse than.
+The colour-mode toggle reports as skipped on mobile because it lives in the drawer at that width,
+which is a real fact about the layout rather than a gap in the check.
+
 ## Not covered
 
 No Firefox or WebKit, so engine-specific rendering is unverified. No visual regression
@@ -206,4 +243,5 @@ tell the `randomx` crate from the RandomX algorithm and will ask for a link wher
 its findings name their evidence for that reason. It also walks one persona on one route, so a reader
 arriving cold on a reference page from a search engine is not covered. No Lighthouse gate, deliberately: Google's own
 variability guidance says free CI runners are the wrong place to measure performance scores, so
-`budget.mjs` gates bytes instead, which are deterministic.
+`budget.mjs` gates bytes instead, which are deterministic. `vitals.mjs` measures the real metrics
+and reports rather than gating, which is the other half of that decision.

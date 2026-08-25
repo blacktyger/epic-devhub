@@ -1,6 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import {readFileRetry} from './paths.mjs';
 
 const TYPES = {
@@ -38,8 +39,18 @@ const TYPES = {
  * reported as document-title and html-has-lang violations on whichever pages happened to hit
  * it. Two consecutive runs blamed 11 pages and then 7 different ones, which is how a flaky
  * read looks when it is dressed up as an accessibility failure.
+ *
+ * `options.gzip` compresses text responses, off by default.
+ *
+ * Off by default because most checks here read structure and do not care about bytes on the wire,
+ * and an unnecessary compress on every request slows a run over 48 pages. `vitals.mjs` turns it on
+ * and needs it: it emulates Slow 4G, and a real host serves compressed, so measuring uncompressed
+ * bytes through a throttled pipe reports a load time roughly three times worse than any reader
+ * would see. A pessimistic number is still a wrong number.
  */
-export async function serveBuild(root, port) {
+export async function serveBuild(root, port, options = {}) {
+  const useGzip = options.gzip === true;
+  const COMPRESSIBLE = /^(?:text\/|application\/(?:json|xml|javascript))/;
   // Files are read once and held. The build is about 5 MB, and the alternative is thousands of
   // open() calls across a run: under that load Windows starts failing both stat() and read()
   // together for files that plainly exist, the request falls through to the 404 branch, and axe
@@ -79,12 +90,23 @@ export async function serveBuild(root, port) {
 
   const server = http.createServer(async (req, res) => {
     const file = await resolve(req.url);
+    const accepts = (req.headers['accept-encoding'] ?? '').includes('gzip');
     if (file) {
       try {
         const body = await readCached(file);
-        res.writeHead(200, {
-          'Content-Type': TYPES[path.extname(file)] ?? 'application/octet-stream',
-        });
+        const type = TYPES[path.extname(file)] ?? 'application/octet-stream';
+        if (useGzip && accepts && COMPRESSIBLE.test(type)) {
+          const packed = zlib.gzipSync(body, {level: 6});
+          res.writeHead(200, {
+            'Content-Type': type,
+            'Content-Encoding': 'gzip',
+            'Content-Length': packed.length,
+            Vary: 'Accept-Encoding',
+          });
+          res.end(packed);
+          return;
+        }
+        res.writeHead(200, {'Content-Type': type, 'Content-Length': body.length});
         res.end(body);
         return;
       } catch (error) {
