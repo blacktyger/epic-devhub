@@ -1,5 +1,5 @@
 {
-  "name": "epic-devdocs-audit",
+  "name": "devdocs-audit",
   "version": "0.0.0",
   "private": true,
   "description": "Browser-driven visual and accessibility checks for the docs site. Kept out of site/package.json so the shipped site has no test-only dependencies.",
@@ -15,12 +15,15 @@
     "sources:fix": "node spec-sources.mjs --fix",
     "budget": "node budget.mjs",
     "budget:update": "node budget.mjs --update",
+    "chunk-cost": "node chunk-cost.mjs",
     "fast": "node budget.mjs",
     "structure": "node aria-snapshot.mjs && node keyboard.mjs",
     "shots": "node diagnose.mjs",
     "page": "node page-shot.mjs",
+    "page:live": "node page-shot.mjs --live",
     "images": "node hooks/image-guard.mjs scan",
     "prism": "node prism-contrast.mjs",
+    "journey": "node journey.mjs",
     "hooks:test": "node hooks/selftest.mjs"
   },
   "devDependencies": {

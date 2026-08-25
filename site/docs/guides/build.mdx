@@ -87,7 +87,7 @@ cd epic-miner
 cargo build --release
 ```
 
-`--recursive` matters: the RandomX and ProgPow implementations are submodules.
+`--recursive` matters: the [RandomX and ProgPow](/mining/proof-of-work) implementations are submodules.
 
 :::note[Windows: build from the patched fork]
 
@@ -117,7 +117,7 @@ msys perl that ships with Git for Windows.
 Verified on 2026-08-24: a fresh `--recursive` clone of that fork plus `cargo build --release` produces a
 working `epic-miner.exe` on `x86_64-pc-windows-msvc` with Rust 1.89.0, in about five minutes.
 
-A stock Windows build mines RandomX only. No cuckoo plugins are built there, and ProgPow needs the
+A stock Windows build mines RandomX only. No [cuckoo](/mining/proof-of-work) plugins are built there, and ProgPow needs the
 `opencl` or `cuda` feature.
 
 :::

@@ -61,20 +61,40 @@ export const releases = {
     url: `https://github.com/EpicCash/epic/releases/tag/v${versions.node}`,
     latest: 'https://github.com/EpicCash/epic/releases/latest',
     all: 'https://github.com/EpicCash/epic/releases',
+    // Base for a direct asset download. The landing page builds its quick-start commands from
+    // this plus the asset filenames below, so a release bump cannot leave a command pointing at
+    // a version that no longer exists.
+    download: `https://github.com/EpicCash/epic/releases/download/v${versions.node}`,
+    // The directory each archive unpacks into, which is not derivable from the filename: the
+    // Linux tarball and the macOS zip each contain a wrapping directory, and the Windows zip
+    // contains epic.exe with no directory at all.
+    unpacksTo: {
+      linux: `epic-${versions.node}-linux-amd64`,
+      mac: `MacOS-aarch64-${versions.node}`,
+      windows: null,
+    },
     assets: [
-      {platform: 'Linux x86-64', file: `epic-${versions.node}-linux-amd64.tar.gz`},
-      {platform: 'macOS Apple silicon', file: `MacOS-aarch64-${versions.node}.zip`},
-      {platform: 'Windows x86-64', file: `Windows-v${versions.node}.zip`},
+      {key: 'linux', platform: 'Linux x86-64', file: `epic-${versions.node}-linux-amd64.tar.gz`},
+      {key: 'mac', platform: 'macOS Apple silicon', file: `MacOS-aarch64-${versions.node}.zip`},
+      {key: 'windows', platform: 'Windows x86-64', file: `Windows-v${versions.node}.zip`},
     ],
   },
   wallet: {
     url: `https://github.com/EpicCash/epic-wallet/releases/tag/v${versions.wallet}`,
     latest: 'https://github.com/EpicCash/epic-wallet/releases/latest',
     all: 'https://github.com/EpicCash/epic-wallet/releases',
+    download: `https://github.com/EpicCash/epic-wallet/releases/download/v${versions.wallet}`,
     assets: [
-      {platform: 'Archive, all platforms', file: 'epic-wallet-4.0.zip'},
-      {platform: 'Windows binary', file: 'epic-wallet.exe'},
+      // The archive is named for the 4.0 line, not the full 4.0.0 tag, so this filename is
+      // literal rather than built from versions.wallet. It holds a Linux x86-64 ELF binary:
+      // this entry used to read "Archive, all platforms", which was wrong, and became a
+      // published claim once the landing page started building commands from it.
+      {key: 'linux', platform: 'Linux x86-64', file: 'epic-wallet-4.0.zip'},
+      {key: 'windows', platform: 'Windows x86-64', file: 'epic-wallet.exe'},
     ],
+    // Both assets unpack to a bare binary with no wrapping directory, and the Windows asset is
+    // the executable itself rather than an archive.
+    unpacksTo: {linux: null, windows: null},
   },
 };
 

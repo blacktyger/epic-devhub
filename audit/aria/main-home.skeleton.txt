@@ -15,17 +15,47 @@
       - strong
         - link
   - figure
-    - img
+    - group
+    - list
+      - listitem
+        - button
+      - listitem
+        - button
+      - listitem
+        - button
+      - listitem
+        - button
+      - listitem
+        - button
+    - paragraph
+    - button
+    - tablist
+      - tab
+      - tab
+      - tab
+      - tab
+      - tab
   - heading [level=2]
-  - article
-    - heading [level=3]
-    - paragraph
-  - article
-    - heading [level=3]
-    - paragraph
-  - article
-    - heading [level=3]
-    - paragraph
+  - heading [level=2]
+  - paragraph
+  - group
+  - list
+    - listitem
+      - link
+    - listitem
+      - link
+    - listitem
+      - link
+    - listitem
+      - link
+    - listitem
+      - link
+    - listitem
+      - link
+    - listitem
+      - link
+    - listitem
+      - link
   - link
   - heading [level=2]
   - navigation

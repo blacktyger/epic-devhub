@@ -3,10 +3,11 @@ import MDXComponents from '@theme-original/MDXComponents';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import {Risk, Card, CardGrid, Unverified} from '@site/src/components/Epic';
-import {JourneyNav, JourneyOverview, JourneyProgress, SlateLifecycle} from '@site/src/components/Journey';
+import {JourneyNav, JourneyOverview, SlateLifecycle} from '@site/src/components/Journey';
 import {SlateRounds, HandshakeTrace} from '@site/src/components/Diagrams';
 import {RpcGroup, RpcMethod, RpcConsole} from '@site/src/components/Rpc';
 import {Src, Fn, Repo, Ver} from '@site/src/components/Src';
+import PageActions from '@site/src/components/Assistant/PageActions';
 
 /**
  * Wraps every markdown table in its own horizontal scroll container.
@@ -31,10 +32,32 @@ function Table(props) {
   );
 }
 
+/**
+ * Puts the page action row immediately after a documentation page's heading.
+ *
+ * This is the only insertion point that works. Every page in docs/ writes its own `# Heading` inside
+ * the MDX, so the heading is a child of the MDX tree rather than a sibling rendered by
+ * `DocItem/Content`, and nothing above it in the theme can place an element after it.
+ *
+ * `PageActions` renders nothing unless the context provided by the swizzled `DocItem/Content` is
+ * present, so headings on MDX pages under src/pages are unaffected.
+ */
+const OriginalH1 = MDXComponents.h1 ?? 'h1';
+
+function H1(props) {
+  return (
+    <>
+      <OriginalH1 {...props} />
+      <PageActions />
+    </>
+  );
+}
+
 // Registered globally so pages can use them without an import line in every file.
 export default {
   ...MDXComponents,
   table: Table,
+  h1: H1,
   Tabs,
   TabItem,
   Risk,
@@ -43,7 +66,6 @@ export default {
   Unverified,
   JourneyNav,
   JourneyOverview,
-  JourneyProgress,
   SlateLifecycle,
   SlateRounds,
   HandshakeTrace,

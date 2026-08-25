@@ -11,23 +11,50 @@ import {fileURLToPath} from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 export const AUDIT = path.resolve(here, '..');
-export const DEVDOCS = path.resolve(AUDIT, '..');
-export const SITE = path.join(DEVDOCS, 'site');
+export const ROOT = path.resolve(AUDIT, '..');
+export const SITE = path.join(ROOT, 'site');
 export const BUILD = path.join(SITE, 'build');
 export const RESULTS = path.join(AUDIT, 'results');
 export const SHOTS = path.join(AUDIT, 'shots');
 export const ARIA = path.join(AUDIT, 'aria');
 
-/** Ports are per-script so two checks can run at once without colliding. */
+/**
+ * One port per script, so two checks can run at once without colliding.
+ *
+ * Literals on purpose. The numbers are decided by `ports.json` in the private workspace this
+ * repository is developed in, and `node tools/ports.mjs check` there compares that registry
+ * against these literals and fails on a mismatch. Importing the registry from here instead was
+ * tried and reverted: it made the harness unrunnable in CI and for anyone who cloned this
+ * repository on its own, which is the only environment that matters for a public repository.
+ *
+ * Note the gap at 7778. Armoury Crate holds it on the primary development machine.
+ */
 export const PORTS = {
-  check: 3112,
-  shots: 3113,
-  prism: 3114,
-  runtime: 3115,
-  aria: 3116,
-  keyboard: 3117,
-  page: 3118,
+  check: 7773,
+  shots: 7774,
+  runtime: 7775,
+  aria: 7776,
+  keyboard: 7777,
+  page: 7779,
+  journey: 7780,
+  scratch: 7782,
 };
+
+/**
+ * The Docusaurus dev server, which is the cheap way to look at a change.
+ *
+ * `npm start` in `site` hot-reloads, so the browser already has the edit before a production
+ * build would begin. Measuring against it costs nothing, which is the difference between
+ * checking a spacing fix and not bothering.
+ *
+ * The port is assigned, not discovered. Docusaurus defaults to 3000 and steps up when that is
+ * taken, which is how "it settles on 3001 here" became a fact nothing enforced; `site/package.json`
+ * now passes `--port 3001` and the workspace port registry records it as the one fixed port.
+ *
+ * Override with EPIC_DEV_ORIGIN, or with --origin on the scripts that accept it. A build is
+ * still required for anything that reads the built output: budget, and broken links or anchors.
+ */
+export const DEV_ORIGIN = process.env.EPIC_DEV_ORIGIN ?? 'http://localhost:3001';
 
 /**
  * Read a file, retrying briefly on anything except a genuine miss.

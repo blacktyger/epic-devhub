@@ -7,12 +7,16 @@
   - paragraph
   - complementary
     - paragraph
-    - list
-      - listitem
-        - link
-      - listitem
-        - link
-      - listitem
-        - link
-      - listitem
-        - link
+    - group
+      - button
+      - button
+    - group
+      - button
+      - button
+      - button
+      - button
+    - code
+    - paragraph
+    - paragraph
+      - link
+      - link

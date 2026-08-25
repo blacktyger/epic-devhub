@@ -16,11 +16,36 @@ claimed.
 
 ## Running
 
+Two sources for a page, and the cheap one is the default answer. A Docusaurus dev server runs at
+`http://localhost:3001` and hot-reloads, so looking at a change needs no build:
+
 ```bash
-cd ../site && npm run build     # the checks read site/build, they do not build it
 cd ../audit
 npm install
 npx playwright install chromium # once, ~150MB
+
+npm run page:live -- /some/route  # tiles from the dev server, no build, seconds
+```
+
+`DEV_ORIGIN` in `lib/paths.mjs` holds that origin; override it with `EPIC_DEV_ORIGIN` or per call
+with `--origin http://localhost:3005`.
+
+Two npm traps, both discovered by them failing silently. The flag is `--live` rather than `--dev`,
+because npm treats `--dev` as its own deprecated config and drops it, which made the first version
+screenshot a stale build while printing that it had not. And **no flag survives `npm run` at all**:
+npm parses arguments for its own config even after `--`, so `npm run page -- /x --width 768` arrives
+as `/x 768`, and `--width=768` is dropped outright. Anything with a flag is run as
+`node page-shot.mjs` directly. The script warns on an orphaned value rather than proceeding quietly.
+
+```bash
+node page-shot.mjs --live /some/route --theme light --width 1440 --name base
+```
+
+The rest of the checks serve `site/build` in-process and so need a current build:
+
+```bash
+cd ../site && npm run build     # the checks read site/build, they do not build it
+cd ../audit
 
 npm run budget                  # gzip ceilings, no browser, about a second
 npm run sources                 # every rpcSpec.js citation points at a real declaration
@@ -31,9 +56,10 @@ npm run report                  # group the axe findings by distinct cause
 npm run report dark             # or filter to one theme/viewport prefix
 npm run runtime                 # copy button, search, diagrams, mobile overflow
 npm run shots                   # screenshots into shots/
-npm run page -- /some/route     # one route as readable tiles, prints their paths
+npm run page -- /some/route     # one built route as readable tiles, prints their paths
 npm run images                  # refuse-list check: any image too large to read
 npm run prism                   # contrast maths for the Prism token colours
+npm run journey                 # the newcomer walk: eight declared stages, then a lookup
 npm run hooks:test              # verify the frontend gate hooks still hold their contract
 ```
 
@@ -48,11 +74,13 @@ Order matters if you are short of time. `npm run budget` is seconds and catches 
 regression, so run it first. `npm run structure` chains the two browser checks that answer
 "is this page still shaped the way it was" without waiting for a full axe sweep.
 
-Every script starts its own static server in-process on its own port and shuts it down on exit,
-so nothing is left listening and no background process has to be managed. Ports are listed in
-one place, `lib/paths.mjs`, along with every filesystem path the harness uses. Nothing resolves
-against the current working directory and nothing is hardcoded to one machine, because a check
-that only runs on the author's laptop cannot run in CI.
+Every script that reads the built output starts its own static server in-process on its own port
+and shuts it down on exit, so nothing is left listening and no background process has to be
+managed. `npm run page:live` is the exception and owns no server: it drives the dev server the user
+already has running. Ports and origins are listed in one place, `lib/paths.mjs`, along with every
+filesystem path the harness uses. Nothing resolves against the current working directory and
+nothing is hardcoded to one machine, because a check that only runs on the author's laptop cannot
+run in CI.
 
 ## What is covered
 
@@ -102,9 +130,47 @@ reference page a reader cannot check cheaply, which makes it the claim most like
 On its first run it found 30 wrong out of 68: every node method carried a single placeholder line
 per file, so four different methods on one page all rendered "declared in
 api/src/foreign_rpc.rs:125". `npm run sources:fix` rewrites them to the located declaration, and
-the diff should be read rather than trusted. It needs `epic-server` and `epic-wallet` cloned
-beside `epic-devdocs`; without them it reports a skip instead of a pass, so it is a local gate and
+the diff should be read rather than trusted. It needs `epic-server` and `epic-wallet` cloned beside
+this repository; without them it reports a skip instead of a pass, so it is a local gate and
 harmless in CI.
+
+`journey.mjs` walks the site as a developer meeting Epic for the first time, which is the question
+none of the checks above ask: they establish that a page is correct, not that a stranger can get
+through it. The route is imported from `site/src/data/developerJourney.js`, the same eight stages the
+landing page promises, so the check cannot drift from what the site tells a reader to do. Each stage
+declares an `outcome`, which makes it a testable promise. Pages are then measured against the route
+class shapes in the design skill: a narrative page states its prerequisites, shows the output that
+proves each command worked, and closes with the next page by name; a lookup page opens with the
+working context and repeats one strict shape per method with a risk badge and a source citation on
+every entry. The walk ends with a search for a method name, followed to wherever the dropdown
+actually leads.
+
+It writes two files. `results/journey.json` is the evidence, and `results/journey-notes.md` is the
+walk in order as field notes, so the sequence is readable rather than reassembled from a metrics
+dump. The sequence is part of the finding: the same friction costs more in stage 03 than in stage 08.
+Only blockers gate, meaning a dead link, a missing route, a mid-journey dead end, or a spending
+method with no risk marker. Friction and polish are reported and never fail the run, because dressing
+a judgement call as pass/fail invites someone to weaken it for a green tick.
+
+The orientation leg also drives the masthead quick start, because a copy button is a claim about the
+clipboard and nothing else here checks it. It clicks Copy, asserts the payload is non-empty and
+carries no prompt glyph, then cycles every product and platform combination asserting each renders
+commands. The prompt is a separate span precisely so the clipboard stays runnable, and that is only
+true while something measures it.
+
+Six of its first results were the check being wrong rather than the site, and each fix is recorded in
+the source because each is a way this class of check misleads. It reported four terms as unexplained
+on the page that defines them, before concepts pages were exempted from needing a link to themselves.
+It reported that no page explains RandomX, having looked only at headings and concepts routes while
+`/mining/proof-of-work` names it a dozen times under "The three algorithms". It reported two guides as
+stating no prerequisites when one opens "Set up first:" with a link and the other says "required",
+which is why the signal is now structural as well as lexical. It reported "usernet" as unexplained on
+a `/start` row that links straight to the usernet guide, because the paragraph rather than the list
+item was treated as the unit a reader takes in. It reported that the canonical reference for
+`init_send_tx` ranks below an example page, which `verify-runtime.mjs` disproves: it was reading an
+href the dropdown does not carry, so the suggestion is now clicked. And it reported the landing page
+as having nothing copyable after the quick start shipped, because the masthead is a `<header>` outside
+`<main>` and the content root cannot see it.
 
 `hooks/frontend-gate.mjs` is not a check but the gate around the others: it reports harness staleness at
 session start, points at the design skill before a presentation file is edited and at the page-shape rules
@@ -116,10 +182,17 @@ that silently never fires looks exactly like a hook that fires and finds nothing
 is the limit the model API enforces, and exceeding it is not a recoverable error: the refused image stays
 in conversation history, so every later request in the session fails the same way. It happened here on
 2026-08-23, from a throwaway `fullPage: true` screenshot of a guide page that came out 1280x8406, and the
-session had to be abandoned with the work reconstructed from its message log. `npm run page -- /route`
+session had to be abandoned with the work reconstructed from its message log. `npm run page:live -- /route`
 is the replacement, writing tiles through `fullPageTiles` in `lib/shot.mjs`, which refuses to emit a tile
-over the limit and accounts for `deviceScaleFactor` when sizing them. `npm run images` scans everything
-under `epic-devdocs/` and exits non-zero on anything an agent must not read.
+over the limit and accounts for `deviceScaleFactor` when sizing them.
+
+There is a second, softer ceiling. `READ_IMAGE_EDGE` is 2000: an image over it is accepted but expensive,
+and a task that reads four of them spends most of its context on pictures. `TILE_HEIGHT` is 1800 so every
+tile clears it by construction, `fullPageTiles` warns when a device scale factor pushes tiles wider than
+it, and `npm run images` reports anything over it as `COSTLY` while only failing the run at 8000. Gating
+2000 would fail on a screenshot somebody took deliberately at full width, so it reports instead.
+`npm run images` scans this repository, plus the private working repository and visual channel
+beside it when they are present, and exits non-zero on anything an agent must not read.
 
 ## Not covered
 
@@ -128,6 +201,9 @@ baseline, so a layout change is only caught by someone looking at `shots/`. axe-
 roughly a third of WCAG 2.2 A and AA success criteria by the W3C ACT rules count; it cannot
 judge whether alt text is meaningful, whether reading order makes sense, or whether a heading
 describes its section. `keyboard.mjs` records the focus order but does not judge whether that
-order is sensible, which stays a human call. No Lighthouse gate, deliberately: Google's own
+order is sensible, which stays a human call. `journey.mjs` matches vocabulary by string, so it cannot
+tell the `randomx` crate from the RandomX algorithm and will ask for a link where a reader needs none;
+its findings name their evidence for that reason. It also walks one persona on one route, so a reader
+arriving cold on a reference page from a search engine is not covered. No Lighthouse gate, deliberately: Google's own
 variability guidance says free CI runners are the wrong place to measure performance scores, so
 `budget.mjs` gates bytes instead, which are deterministic.

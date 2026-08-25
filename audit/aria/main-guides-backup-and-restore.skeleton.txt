@@ -9,6 +9,9 @@
         - listitem
         - listitem
     - heading [level=1]
+    - button
+    - button
+    - status
     - paragraph
       - strong
       - strong

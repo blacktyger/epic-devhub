@@ -8,6 +8,9 @@ description: Prebuilt Epic node and wallet binaries, with checksum verification 
 Prebuilt binaries are published on GitHub releases. Each archive has a matching
 `<archive-name>-sha256sum.txt` next to it; verify before running.
 
+The Linux binaries need glibc 2.39 or newer, which means Ubuntu 24.04 or later. Both the node and
+the wallet archive link against `GLIBC_2.39`.
+
 If you would rather build from source, see [build the binaries](/guides/build). Building needs only
 rustup and, on Linux and macOS, no system packages.
 
@@ -33,7 +36,7 @@ There is no macOS Intel or Linux ARM build. Those platforms need a source build.
 
 | Platform | Asset |
 | --- | --- |
-| Archive | `epic-wallet-4.0.zip` |
+| Archive, Linux x86-64 | `epic-wallet-4.0.zip` |
 | Windows binary | `epic-wallet.exe` |
 
 The wallet archive is named for the 4.0 line rather than the full `4.0.0` tag. Its checksum file is
@@ -104,7 +107,7 @@ the feature.
 | Desktop GUI wallet | `EpicCash/epic-gui-wallet` |
 | Block explorer | `EpicCash/epic_explorer` |
 | Epicbox relay | <Repo name="epicbox" /> |
-| Docker images | `EpicCash/epic-node-docker`, `EpicCash/epic-node-wallet-docker` |
+| Docker build files | `EpicCash/epic-node-docker`, `EpicCash/epic-node-wallet-docker` |
 
 Mobile wallets are third party. Stack Wallet supports Epic and operates one of the public epicbox
 relays.

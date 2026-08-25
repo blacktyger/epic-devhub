@@ -1,0 +1,321 @@
+/* -----------------------------------------------------------------------------
+   The ask-or-search modal.
+
+   Deliberately a separate stylesheet from assistant.css. This one is imported
+   only by AskModal.js, which is behind a dynamic import, so webpack emits it as
+   its own stylesheet fetched when the modal first opens. assistant.css is
+   reached statically from Root and therefore lands in the payload every page
+   declares, where there are only a few hundred bytes of headroom against the
+   sharedGzip ceiling in audit/budget.json.
+
+   Gold: always through --ifm-color-primary for anything that carries text,
+   because that token flips per theme (#8f5e1f light, #f6d471 dark) while
+   --epic-gold-light does not, and #f6d471 as text on white fails AA badly.
+   --epic-gold-deep is safe for rules and borders in both themes. There is no
+   faint gold token, so tints are mixed on the spot.
+   -------------------------------------------------------------------------- */
+
+.epicAsk-scrim {
+  position: fixed;
+  inset: 0;
+  /* Above the navbar (200) and the assistant panel host (210). */
+  z-index: 220;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: calc(var(--ifm-navbar-height, 60px) + 1.5rem) 1rem 1rem;
+  background: rgba(4, 4, 6, 0.7);
+}
+
+html[data-theme='light'] .epicAsk-scrim {
+  background: rgba(20, 18, 14, 0.45);
+}
+
+.epicAsk-modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(34rem, 100%);
+  max-height: calc(100dvh - var(--ifm-navbar-height, 60px) - 3rem);
+  background: var(--epic-s1);
+  border: 1px solid var(--epic-line-strong);
+  /* Square, because the corner ticks below are the corner treatment. */
+  border-radius: 0;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: epicAsk-rise 160ms var(--epic-ease) both;
+}
+
+/* Corner ticks, the same instrument-panel cue the protocol pages use, rather
+   than a rounded card. Two opposite corners is enough to read as a frame. */
+.epicAsk-modal::before,
+.epicAsk-modal::after {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  pointer-events: none;
+  border-color: var(--epic-gold-deep);
+  border-style: solid;
+  border-width: 0;
+}
+
+.epicAsk-modal::before {
+  top: 0;
+  left: 0;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+
+.epicAsk-modal::after {
+  bottom: 0;
+  right: 0;
+  border-bottom-width: 1px;
+  border-right-width: 1px;
+}
+
+@keyframes epicAsk-rise {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* --------------------------------------------------------------- input */
+
+.epicAsk-inputRow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: none;
+  padding: 0.7rem 0.8rem;
+  border-bottom: 1px solid var(--epic-line);
+}
+
+.epicAsk-inputMark {
+  flex: none;
+  color: var(--ifm-color-primary);
+}
+
+.epicAsk-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  /* 16px minimum, or iOS Safari zooms the page when the field takes focus. */
+  font-size: 16px;
+  color: var(--ifm-font-color-base);
+  background: transparent;
+  border: 0;
+}
+
+.epicAsk-input::placeholder {
+  color: var(--ifm-color-content-secondary);
+}
+
+/* The focus ring goes on the modal edge, not the bare input: the input has no
+   border of its own, so a ring around it would draw a box that exists nowhere
+   else in the design. Focus is unambiguous because the input is autofocused and
+   is the only text field present. */
+.epicAsk-input:focus {
+  outline: none;
+}
+
+.epicAsk-input:focus-visible {
+  outline: none;
+}
+
+.epicAsk-clear {
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--ifm-color-content-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.epicAsk-clear:hover {
+  color: var(--ifm-font-color-base);
+  border-color: var(--epic-line);
+}
+
+.epicAsk-clear:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 1px;
+}
+
+/* --------------------------------------------------------------- list */
+
+.epicAsk-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.epicAsk-option {
+  cursor: pointer;
+}
+
+/* Hover and keyboard selection are the same state. Two different highlights in
+   one list makes it ambiguous which row Enter will act on. */
+.epicAsk-option[data-selected='true'] {
+  background: var(--epic-s3);
+}
+
+/* --------------------------------------------------------------- escalation row */
+
+/* The one gold surface in the whole feature, and it sits inside a modal the
+   reader deliberately opened rather than on the page chrome. */
+.epicAsk-escalate {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.65rem 0.8rem;
+  background: color-mix(in srgb, var(--epic-gold-deep) 12%, transparent);
+  border-left: 2px solid var(--epic-gold-deep);
+}
+
+.epicAsk-escalate[data-selected='true'] {
+  background: color-mix(in srgb, var(--epic-gold-deep) 22%, transparent);
+}
+
+.epicAsk-escalateMark {
+  flex: none;
+  margin-top: 0.15rem;
+  color: var(--ifm-color-primary);
+}
+
+.epicAsk-escalateText {
+  min-width: 0;
+}
+
+.epicAsk-escalateQuestion {
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--ifm-font-color-base);
+  overflow-wrap: anywhere;
+}
+
+.epicAsk-escalateSub {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.7rem;
+  color: var(--ifm-color-primary);
+}
+
+/* --------------------------------------------------------------- results */
+
+.epicAsk-result {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.825rem;
+  color: var(--ifm-font-color-base);
+}
+
+/* Separates the pages from the escalation row above without a group heading,
+   which inside a listbox would have to be an element that is not an option. */
+.epicAsk-result[data-first-hit='true'] {
+  margin-top: 0.35rem;
+  border-top: 1px solid var(--epic-line);
+  padding-top: 0.55rem;
+}
+
+.epicAsk-resultText {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.epicAsk-resultCrumb {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: var(--epic-t-micro);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ifm-color-content-secondary);
+}
+
+/* --------------------------------------------------------------- suggestions */
+
+.epicAsk-suggestion {
+  padding: 0.45rem 0.8rem;
+  font-size: 0.825rem;
+  line-height: 1.4;
+  color: var(--ifm-font-color-base);
+}
+
+/* --------------------------------------------------------------- footers */
+
+.epicAsk-note {
+  flex: none;
+  margin: 0;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--ifm-color-content-secondary);
+  border-top: 1px solid var(--epic-line);
+}
+
+/* Development only. Quieter than a real notice: it is a standing condition, not something to fix. */
+.epicAsk-note--dev {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: var(--epic-t-micro);
+  opacity: 0.75;
+}
+
+.epicAsk-all {
+  flex: none;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.75rem;
+  color: var(--ifm-color-primary);
+  border-top: 1px solid var(--epic-line);
+}
+
+.epicAsk-all:hover {
+  background: var(--epic-s3);
+  text-decoration: none;
+}
+
+.epicAsk-all:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: -2px;
+}
+
+.epicAsk-foot {
+  flex: none;
+  padding: 0.5rem 0.8rem;
+  border-top: 1px solid var(--epic-line);
+}
+
+@media (max-width: 600px) {
+  .epicAsk-scrim {
+    padding: calc(var(--ifm-navbar-height, 60px) + 0.5rem) 0.5rem 0.5rem;
+  }
+
+  .epicAsk-modal {
+    width: 100%;
+  }
+
+  /* Four hints wrap to two lines on a narrow screen, and the last two are the
+     ones a touch reader cannot use anyway. */
+  .epicAsk-foot span:nth-child(n + 3) {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .epicAsk-modal {
+    animation: none;
+  }
+}

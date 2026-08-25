@@ -47,7 +47,10 @@ for (const theme of ['dark', 'light']) {
   const ctx = await browser.newContext({
     viewport: {width: 1440, height: 900},
     colorScheme: theme,
-    deviceScaleFactor: 2,
+    // Scale 1, not 2. At dpr 2 every shot here came out 2880 wide, over the 2000px ceiling for
+    // an image an agent can afford to read, so the crisper files were the ones nobody could use.
+    // Anything needing real pixel detail gets a narrow clip, not a global scale factor.
+    deviceScaleFactor: 1,
   });
   const page = await ctx.newPage();
   const errors = [];
@@ -67,30 +70,33 @@ for (const theme of ['dark', 'light']) {
   await page.screenshot({path: path.join(OUT, `${theme}-01-home.png`), fullPage: false});
   await page.locator('nav.navbar').screenshot({path: path.join(OUT, `${theme}-02-navbar.png`)});
 
-  notes.push({theme, what: 'search input', ...(await probe(page, '.navbar input[type=search], .navbar .navbar__search-input'))});
+  notes.push({theme, what: 'ask control', ...(await probe(page, 'button.epicAsk-control'))});
   notes.push({theme, what: 'navbar', ...(await probe(page, 'nav.navbar'))});
 
-  // Search: click it, then type, capturing both states.
-  const input = page.locator('.navbar input[type=search], .navbar .navbar__search-input').first();
-  if (await input.count()) {
-    await input.click();
-    await page.waitForTimeout(300);
-    await page.screenshot({path: path.join(OUT, `${theme}-03-search-focused.png`), clip: {x: 700, y: 0, width: 740, height: 320}});
-    await input.fill('init_send_tx');
+  // The ask-or-search modal: open it, then type, capturing both states.
+  const control = page.locator('button.epicAsk-control').first();
+  if (await control.count()) {
+    await control.click();
+    await page.waitForTimeout(400);
+    await page.screenshot({path: path.join(OUT, `${theme}-03-search-focused.png`), clip: {x: 430, y: 0, width: 600, height: 200}});
+    await page.locator('.epicAsk-input').first().fill('init_send_tx');
     await page.waitForTimeout(1500);
-    await page.screenshot({path: path.join(OUT, `${theme}-04-search-typed.png`), clip: {x: 620, y: 0, width: 820, height: 620}});
+    await page.screenshot({path: path.join(OUT, `${theme}-04-search-typed.png`), clip: {x: 430, y: 0, width: 600, height: 620}});
     notes.push({
       theme,
-      what: 'search dropdown',
-      ...(await probe(page, '.dropdownMenu, .suggestion-list, [class*=dropdownMenu], [class*=suggestion]')),
+      what: 'ask modal',
+      ...(await probe(page, '.epicAsk-modal')),
     });
-    const hitCount = await page.evaluate(() => {
-      const el = document.querySelectorAll('.dropdownMenu li, [class*=dropdownMenu] li, .suggestion-list li');
-      return el.length;
-    });
+    const hitCount = await page.evaluate(
+      () => document.querySelectorAll('.epicAsk-modal .epicAsk-result').length,
+    );
     notes.push({theme, what: 'search hit count', hits: hitCount});
+    // Close it before moving on. It is modal and locks body scroll, so leaving it open makes every
+    // later capture on this page fail to scroll.
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
   } else {
-    notes.push({theme, what: 'search input', missing: true});
+    notes.push({theme, what: 'ask control', missing: true});
   }
 
   // A reference page: risk badges, tables, code blocks with the new language labels.
@@ -105,7 +111,10 @@ for (const theme of ['dark', 'light']) {
     await page.screenshot({path: path.join(OUT, `${theme}-06-risk-badges.png`), clip: {x: 240, y: 80, width: 900, height: 700}});
   }
 
-  await page.goto(`${server.origin}/guides/run-a-node`, {waitUntil: 'networkidle'});
+  // Code blocks with their language labels. Was /guides/run-a-node, a route that has never existed
+  // in this site: the page is local-network. `onBrokenLinks: throw` covers links in content, not a
+  // hardcoded URL in a harness, so this failed silently until the harness was next run.
+  await page.goto(`${server.origin}/guides/local-network`, {waitUntil: 'networkidle'});
   await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
   await page.waitForTimeout(300);
   const code = page.locator('div[class*=codeBlockContainer]').first();

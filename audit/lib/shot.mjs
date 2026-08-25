@@ -21,10 +21,22 @@ import path from 'node:path';
 export const MAX_IMAGE_EDGE = 8000;
 
 /**
- * Tile height. Well under the limit so a device scale factor above 1, which multiplies pixel
- * dimensions, still cannot cross it.
+ * The working ceiling for an image an agent is expected to read.
+ *
+ * 8000 is where a session dies. 2000 is where a session gets expensive: a large image costs a
+ * lot of context, and a task that reads four of them spends most of its budget on pictures. Both
+ * numbers matter and they are not the same number, which is why they are two constants.
  */
-export const TILE_HEIGHT = 3000;
+export const READ_IMAGE_EDGE = 2000;
+
+/**
+ * Tile height. Under READ_IMAGE_EDGE rather than merely under MAX_IMAGE_EDGE, so a tile is
+ * always cheap to read as well as always accepted.
+ *
+ * It was 3000 until 2026-08-25, which satisfied the 8000 limit and quietly broke the 2000
+ * ceiling stated in the same documents. A tile nobody can afford to read is not a useful tile.
+ */
+export const TILE_HEIGHT = 1800;
 
 /**
  * Reads pixel dimensions from a file header without decoding it.
@@ -123,14 +135,22 @@ export async function fullPageTiles(page, outDir, baseName, {tileHeight = TILE_H
   });
 
   // Clip coordinates are CSS pixels but the file is written in device pixels, so a context with
-  // deviceScaleFactor 2, which this harness uses for its theme shots, doubles every number.
-  const budget = Math.floor((MAX_IMAGE_EDGE - 1) / total.dpr);
-  if (total.width > budget) {
+  // deviceScaleFactor 2 doubles every number. Two ceilings apply and they are different: 8000 is
+  // the hard limit that ends a session, and READ_IMAGE_EDGE is what a tile must stay under to be
+  // worth reading.
+  const hardBudget = Math.floor((MAX_IMAGE_EDGE - 1) / total.dpr);
+  if (total.width > hardBudget) {
     throw new Error(
       `page is ${total.width}px wide at dpr ${total.dpr}, which exceeds the ${MAX_IMAGE_EDGE}px file limit; narrow the viewport`,
     );
   }
-  const slice = Math.min(tileHeight, budget);
+  if (total.width * total.dpr > READ_IMAGE_EDGE) {
+    console.warn(
+      `warning: tiles will be ${total.width * total.dpr}px wide (${total.width} css px at dpr ${total.dpr}), over the ${READ_IMAGE_EDGE}px reading ceiling. Drop deviceScaleFactor to 1 or narrow the viewport before reading these.`,
+    );
+  }
+  const readBudget = Math.max(1, Math.floor(READ_IMAGE_EDGE / total.dpr));
+  const slice = Math.min(tileHeight, readBudget, hardBudget);
 
   const count = Math.max(1, Math.ceil(total.height / slice));
   const written = [];

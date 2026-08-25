@@ -1,0 +1,815 @@
+/* -----------------------------------------------------------------------------
+   Documentation assistant.
+
+   Uses the site's existing tokens only: --epic-s1..s4, --epic-line,
+   --epic-line-strong, --epic-gold-light, --epic-gold-deep, --epic-t-micro,
+   --epic-ease, --epic-dur, and the Infima variables. No new colour is defined
+   here, so both themes follow automatically.
+
+   Two rules from the component contract shape everything below. A container
+   must earn itself, so hairlines and spacing do the work and there are no
+   nested cards or shadows. And meaning is never carried by colour alone, so
+   every state also says what it is in text.
+   -------------------------------------------------------------------------- */
+
+.epicChat-srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  /* Clip rather than display:none. Hiding removes the node from the
+     accessibility tree, which would silence the live region entirely. */
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------------------- shortcut hints
+
+   Shared by the modal footer and the panel footer. Plain dim monospace, no
+   border, no background, no <kbd> box. The bordered chip this replaces put a
+   second frame inside an already bordered control, and spent permanent
+   horizontal space on something a reader needs to see once. Every shortcut is
+   also stated in the accessible name of the control it belongs to, so these are
+   hidden from assistive technology rather than read out twice. */
+
+.epicShortcuts {
+  display: flex;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  margin: 0;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: var(--epic-t-micro);
+  color: var(--ifm-color-content-secondary);
+}
+
+.epicShortcuts b {
+  font-weight: 400;
+  color: var(--ifm-font-color-base);
+  opacity: 0.75;
+}
+
+/* --------------------------------------------------------------- navbar control
+
+   One control where search used to be. It searches and it asks, so the reader
+   does not have to decide which their words are before typing them. Rendered on
+   every page, which is why it is a plain button with no subscription and no
+   client-only wrapper, and why the modal it opens is a dynamic import. */
+.epicAsk-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2rem;
+  /* Matches the width of the contents panel on a documentation page, so the control and the panel
+     below it read as one column rather than two things that nearly line up. Measured at 1440px, the
+     viewport the layout checks use: the panel is 253px there and its left edge lands within 1px of
+     this control's.
+
+     The panel is a fluid grid column and the navbar is not, so the left edges drift apart at other
+     widths: the panel is 235px at 1366 and 293px at 1600. The right edges hold everywhere, which is
+     the edge the eye follows here, because the panel's right edge is always the navbar's inner right.
+     Matching the left edge too would mean reproducing the doc grid's column maths in the navbar with
+     a viewport formula, which would silently drift the next time that grid changes. */
+  width: 15.8125rem;
+  padding: 0 0.6rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  color: var(--ifm-color-content-secondary);
+  background: var(--epic-s3);
+  border: 1px solid var(--epic-line);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: border-color var(--epic-dur) var(--epic-ease),
+    color var(--epic-dur) var(--epic-ease);
+}
+
+.epicAsk-control:hover {
+  color: var(--ifm-font-color-base);
+  border-color: var(--epic-line-strong);
+}
+
+.epicAsk-control:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+  border-color: var(--ifm-color-primary);
+}
+
+.epicAsk-controlMark {
+  flex: none;
+  color: var(--ifm-color-content-secondary);
+  transition: color var(--epic-dur) var(--epic-ease);
+}
+
+.epicAsk-control:hover .epicAsk-controlMark,
+.epicAsk-control[aria-expanded='true'] .epicAsk-controlMark {
+  color: var(--ifm-color-primary);
+}
+
+.epicAsk-controlLabel {
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.epicAsk-hint {
+  flex: none;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: var(--epic-t-micro);
+  letter-spacing: 0.02em;
+  color: var(--ifm-color-content-secondary);
+  opacity: 0.8;
+}
+
+/* Pulls the control flush with the navbar's inner right edge.
+   Docusaurus wraps the search slot in a container carrying
+   `--ifm-navbar-item-padding-horizontal` on both sides, which left this control 12px short of the
+   contents panel's right edge on every documentation page. A negative margin here rather than
+   overriding that container, because its class is a hashed CSS module name and this element is ours. */
+.navbar__search {
+  margin-right: calc(-1 * var(--ifm-navbar-item-padding-horizontal));
+}
+
+/* Below the desktop navbar breakpoint the label and the shortcut both go: the
+   row is tight, and a shortcut is no use on a touch keyboard anyway. The mark
+   plus the accessible name still say what the button does. */
+@media (max-width: 996px) {
+  .epicAsk-control {
+    width: auto;
+  }
+
+  .epicAsk-controlLabel,
+  .epicAsk-hint {
+    display: none;
+  }
+
+  /* The container's padding is wanted again once the control is icon-only and the navbar is a
+     drawer, so the flush-right offset is desktop only. */
+  .navbar__search {
+    margin-right: 0;
+  }
+}
+
+/* --------------------------------------------------------------- page actions
+
+   Under the heading of every documentation page. Dim until pointed at, because
+   this is a secondary affordance sitting immediately below the primary thing on
+   the page, which is the title. */
+
+.epicPageActions {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  margin: -0.35rem 0 1.25rem;
+  border: 1px solid var(--epic-line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.epicPageActions-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  font: inherit;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  color: var(--ifm-color-content-secondary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: color var(--epic-dur) var(--epic-ease),
+    background var(--epic-dur) var(--epic-ease);
+}
+
+.epicPageActions-button + .epicPageActions-button {
+  border-left: 1px solid var(--epic-line);
+}
+
+.epicPageActions-button:hover {
+  color: var(--ifm-color-primary);
+  background: color-mix(in srgb, var(--epic-gold-deep) 10%, transparent);
+}
+
+.epicPageActions-button:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: -2px;
+}
+
+.epicPageActions-mark {
+  flex: none;
+  color: currentColor;
+}
+
+/* --------------------------------------------------------------- shell */
+
+.epicChat-host {
+  position: fixed;
+  top: var(--ifm-navbar-height, 60px);
+  right: 0;
+  bottom: 0;
+  width: min(30rem, 100vw);
+  z-index: 210;
+  display: flex;
+}
+
+.epicChat {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  background: var(--epic-s1);
+  border-left: 1px solid var(--epic-line);
+}
+
+/* Non-modal: the documentation column narrows instead of being covered, so the
+   reader can keep the page and the answer side by side. */
+@media (min-width: 1340px) {
+  body.epicChat-open .main-wrapper {
+    padding-right: min(30rem, 40vw);
+  }
+}
+
+/* Below the desktop breakpoint the panel is a full sheet. A 380px column
+   cannot show a code block, and a code block is most of what this answers
+   with. dvh rather than vh so a collapsing mobile URL bar does not clip the
+   composer. */
+@media (max-width: 996px) {
+  .epicChat-host {
+    top: var(--ifm-navbar-height, 60px);
+    left: 0;
+    width: 100%;
+    height: calc(100dvh - var(--ifm-navbar-height, 60px));
+  }
+
+  .epicChat {
+    border-left: 0;
+  }
+}
+
+/* --------------------------------------------------------------- head */
+
+.epicChat-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--epic-line);
+}
+
+.epicChat-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.epicChat-scope {
+  margin: 0.3rem 0 0;
+  font-size: 0.775rem;
+  line-height: 1.45;
+  color: var(--ifm-color-content-secondary);
+}
+
+.epicChat-close {
+  flex: none;
+  width: 1.9rem;
+  height: 1.9rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--ifm-color-content-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.epicChat-close:hover {
+  color: var(--ifm-font-color-base);
+  border-color: var(--epic-line);
+}
+
+.epicChat-close:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------- log */
+
+.epicChat-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem;
+  scroll-behavior: smooth;
+}
+
+.epicChat-log:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: -2px;
+}
+
+.epicChat-turn {
+  margin: 0 0 1.15rem;
+}
+
+.epicChat-turn--user .epicChat-userText {
+  margin: 0;
+  padding: 0 0 0 0.7rem;
+  font-weight: 500;
+  /* A rule rather than a bubble: the speaker is already stated by the hidden
+     heading, so the visual only needs to mark a boundary. */
+  border-left: 2px solid var(--epic-gold-deep);
+}
+
+.epicChat-answer {
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.epicChat-meta,
+.epicChat-thinking {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ifm-color-content-secondary);
+}
+
+.epicChat-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--ifm-color-content-secondary) 0%,
+    var(--epic-gold-light) 50%,
+    var(--ifm-color-content-secondary) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: epicChat-shimmer 1.6s linear infinite;
+}
+
+@keyframes epicChat-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.epicChat-caret {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.95em;
+  margin-left: 0.1rem;
+  vertical-align: text-bottom;
+  background: var(--epic-gold-deep);
+  /* A smooth pulse, not a blink.
+     This was `epicChat-blink 1s steps(2, start)` with a single 50% keyframe, which does not do what it
+     looks like: steps() is an easing applied between each pair of keyframes, not across the whole
+     animation. With stops at 0, 50 and 100 percent, each half-second segment got stepped in two, so the
+     caret cycled through opacity 1, 0.5, 0, 0.5 instead of on and off. That extra half-lit state reads
+     as an uneven double-blink, which is what it was reported as.
+
+     A pulse rather than a corrected hard blink for two reasons. Blinking is the terminal idiom for
+     waiting for input, and this caret means the opposite: output is arriving. And a hard transition
+     shows every dropped frame as a mistimed flash, where an interpolated one just resumes.
+     Measured before changing it: no remounts, no animation restarts, no long tasks, 17ms median frame.
+     The unevenness was never lag. */
+  animation: epicChat-caret 1.4s ease-in-out infinite;
+  /* Its own layer, so the pulse runs on the compositor rather than being restyled on every frame
+     alongside the answer text growing next to it. */
+  will-change: opacity;
+}
+
+@keyframes epicChat-caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* --------------------------------------------------------------- empty state */
+
+.epicChat-empty {
+  padding: 0.25rem 0 0;
+}
+
+.epicChat-emptyLead {
+  margin: 0 0 0.85rem;
+  font-size: 0.9rem;
+}
+
+.epicChat-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.epicChat-pills--followup {
+  margin-top: 0.35rem;
+}
+
+.epicChat-pill {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  font: inherit;
+  font-size: 0.825rem;
+  line-height: 1.4;
+  text-align: left;
+  color: var(--ifm-font-color-base);
+  background: var(--epic-s2);
+  border: 1px solid var(--epic-line);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: border-color var(--epic-dur) var(--epic-ease),
+    background var(--epic-dur) var(--epic-ease);
+}
+
+.epicChat-pill:hover {
+  background: var(--epic-s3);
+  border-color: var(--epic-line-strong);
+}
+
+.epicChat-pill:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+  border-color: var(--ifm-color-primary);
+}
+
+/* --------------------------------------------------------------- markdown */
+
+.epicChat-markdown > :first-child {
+  margin-top: 0;
+}
+
+.epicChat-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.epicChat-markdown p {
+  margin: 0 0 0.7rem;
+}
+
+.epicChat-markdown ul,
+.epicChat-markdown ol {
+  margin: 0 0 0.7rem;
+  padding-left: 1.2rem;
+}
+
+.epicChat-markdown li {
+  margin: 0.2rem 0;
+}
+
+.epicChat-markdown h1,
+.epicChat-markdown h2,
+.epicChat-markdown h3,
+.epicChat-markdown h4 {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.epicChat-markdown code {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.85em;
+  padding: 0.1rem 0.3rem;
+  background: var(--ifm-code-background);
+  border-radius: 2px;
+}
+
+.epicChat-markdown blockquote {
+  margin: 0 0 0.7rem;
+  padding-left: 0.7rem;
+  color: var(--ifm-color-content-secondary);
+  border-left: 2px solid var(--epic-line-strong);
+}
+
+/* Streamdown emits its own utility classes for a Tailwind pipeline this site
+   does not have, so tables are styled from the data attribute instead. */
+.epicChat-markdown [data-streamdown='table-wrapper'] {
+  overflow-x: auto;
+  margin: 0 0 0.7rem;
+  border: 1px solid var(--epic-line);
+}
+
+.epicChat-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.epicChat-markdown th,
+.epicChat-markdown td {
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--epic-line);
+}
+
+.epicChat-markdown th {
+  font-weight: 600;
+  background: var(--epic-s3);
+}
+
+.epicChat-link {
+  color: var(--ifm-color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.epicChat-link:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+/* Per-word fade emitted by streamdown's animate plugin. */
+[data-sd-animate] {
+  animation: var(--sd-animation, epicChat-fade) var(--sd-duration, 220ms)
+    var(--sd-easing, ease-out) both;
+}
+
+@keyframes epicChat-fade {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+/* --------------------------------------------------------------- code */
+
+.epicChat-code {
+  margin: 0 0 0.7rem;
+  border: 1px solid var(--epic-line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.epicChat-codeHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--epic-s3);
+  border-bottom: 1px solid var(--epic-line);
+}
+
+.epicChat-codeLang {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: var(--epic-t-micro);
+  text-transform: lowercase;
+  color: var(--ifm-color-content-secondary);
+}
+
+.epicChat-codeCopy {
+  font: inherit;
+  font-size: var(--epic-t-micro);
+  padding: 0.15rem 0.45rem;
+  color: var(--ifm-color-content-secondary);
+  background: transparent;
+  border: 1px solid var(--epic-line);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.epicChat-codeCopy:hover:not(:disabled) {
+  color: var(--ifm-font-color-base);
+  border-color: var(--epic-line-strong);
+}
+
+.epicChat-codeCopy:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 1px;
+}
+
+.epicChat-codeCopy:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.epicChat-code pre {
+  margin: 0;
+  padding: 0.6rem;
+  overflow-x: auto;
+  font-size: 0.775rem;
+  line-height: 1.5;
+  background: var(--epic-s2);
+}
+
+.epicChat-code pre code {
+  padding: 0;
+  background: none;
+}
+
+/* --------------------------------------------------------------- sources */
+
+.epicChat-sources {
+  margin-top: 0.7rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--epic-line);
+}
+
+.epicChat-sourcesTitle {
+  margin: 0 0 0.3rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: var(--epic-t-micro);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ifm-color-content-secondary);
+}
+
+.epicChat-sources ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.epicChat-sources li {
+  margin: 0.15rem 0;
+}
+
+.epicChat-source {
+  font-size: 0.775rem;
+  color: var(--ifm-color-content-secondary);
+}
+
+.epicChat-source:hover {
+  color: var(--ifm-color-primary);
+}
+
+.epicChat-source:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------- notices */
+
+.epicChat-notice,
+.epicChat-error {
+  margin: 0.5rem 0 0;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  background: var(--epic-s2);
+  /* Left rule and words, matching the admonition treatment. No icon, no card. */
+  border-left: 2px solid var(--epic-line-strong);
+}
+
+.epicChat-notice--limit,
+.epicChat-notice--degraded {
+  border-left-color: var(--epic-gold-deep);
+}
+
+.epicChat-notice--unavailable {
+  border-left-color: var(--ifm-color-content-secondary);
+}
+
+.epicChat-notice p,
+.epicChat-notice ul {
+  margin: 0;
+}
+
+.epicChat-notice ul {
+  margin-top: 0.4rem;
+  padding-left: 1.1rem;
+}
+
+.epicChat-retry {
+  font: inherit;
+  font-size: inherit;
+  padding: 0;
+  color: var(--ifm-color-primary);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  cursor: pointer;
+}
+
+.epicChat-retry:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------- composer */
+
+.epicChat-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  border-top: 1px solid var(--epic-line);
+}
+
+.epicChat-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-height: 8rem;
+  padding: 0.45rem 0.55rem;
+  font: inherit;
+  /* 16px minimum, or iOS Safari zooms the whole page when the field is focused. */
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ifm-font-color-base);
+  background: var(--epic-s2);
+  border: 1px solid var(--epic-line);
+  border-radius: 3px;
+  resize: none;
+  field-sizing: content;
+}
+
+.epicChat-input:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: -1px;
+  border-color: var(--ifm-color-primary);
+}
+
+.epicChat-send {
+  flex: none;
+  /* 44px minimum touch target. */
+  min-height: 2.75rem;
+  padding: 0 0.9rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ifm-background-color);
+  background: var(--epic-gold-deep);
+  border: 1px solid var(--epic-gold-deep);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.epicChat-send:hover:not(:disabled) {
+  background: var(--epic-gold-light);
+  border-color: var(--epic-gold-light);
+}
+
+.epicChat-send:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+.epicChat-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.epicChat-shortcuts {
+  padding: 0.5rem 1rem 0;
+}
+
+.epicChat-foot {
+  margin: 0;
+  padding: 0.35rem 1rem 0.7rem;
+  font-size: var(--epic-t-micro);
+  color: var(--ifm-color-content-secondary);
+}
+
+/* --------------------------------------------------------------- reduced motion
+
+   Motion is removed, information is not. The caret stops blinking but stays
+   visible, the shimmer becomes static text, and programmatic smooth scrolling
+   becomes instant, because a scripted smooth scroll is animation too. */
+
+@media (prefers-reduced-motion: reduce) {
+  .epicChat-log {
+    scroll-behavior: auto;
+  }
+
+  .epicChat-caret {
+    animation: none;
+    opacity: 1;
+  }
+
+  .epicChat-shimmer {
+    animation: none;
+    background: none;
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
+    color: var(--ifm-color-content-secondary);
+  }
+
+  [data-sd-animate] {
+    animation: none;
+  }
+
+  .epicAsk-control,
+  .epicAsk-controlMark,
+  .epicPageActions-button,
+  .epicChat-pill {
+    transition: none;
+  }
+}

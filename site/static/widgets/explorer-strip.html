@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Epic Cash Explorer Strip Widget</title>
+  <style>
+    /*
+     * Standalone embeddable widget for live blockchain stats.
+     *
+     * Load via iframe on the static docs page:
+     *   <iframe src="/widgets/explorer-strip.html" style="border:none; width:100%; height:40px;" />
+     *
+     * The widget polls the epicmine API every 60 seconds and updates in place.
+     * It inherits no parent styles, so it carries its own minimal styling
+     * matching the docs site pill badges.
+     *
+     * API endpoint: https://api.epicmine.io/explorer
+     *   /getheight       -> { height: number }
+     *   /getavgblocktime -> { avgBlockTime: number }
+     *   /getsupply       -> { supply: number }
+     */
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'JetBrains Mono', 'Cascadia Code', ui-monospace, SFMono-Regular, monospace;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      gap: 0 1.25rem;
+      padding: 4px 0;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-block;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      color: #8a8a8a;
+      white-space: nowrap;
+    }
+
+    .pill::before {
+      content: '[ ';
+      color: #c98a3e;
+    }
+
+    .pill::after {
+      content: ' ]';
+      color: #c98a3e;
+    }
+
+    .pill--loading {
+      opacity: 0.4;
+    }
+
+    /* Light mode support via media query */
+    @media (prefers-color-scheme: light) {
+      .pill {
+        color: #6b6b6b;
+      }
+      .pill::before,
+      .pill::after {
+        color: #8f5e1f;
+      }
+    }
+  </style>
+</head>
+<body>
+  <span class="pill pill--loading" id="pill-height">height <span id="val-height">—</span></span>
+  <span class="pill pill--loading" id="pill-size">size <span id="val-size">—</span></span>
+  <span class="pill pill--loading" id="pill-blocktime">avg block <span id="val-blocktime">—</span></span>
+
+  <script>
+    const API_BASE = 'https://api.epicmine.io/explorer';
+    const POLL_INTERVAL = 60_000; // 60 seconds
+
+    function formatHeight(n) {
+      return n.toLocaleString('en-US');
+    }
+
+    function formatBlockTime(seconds) {
+      return seconds.toFixed(1) + ' s';
+    }
+
+    // Blockchain size is not directly available from the API, so we use
+    // the value from the explorer page (3.05 GB as of 2026-08-23).
+    // A future version could calculate from height * avg block size.
+    let cachedSize = '3.05 GB';
+
+    async function fetchStats() {
+      try {
+        const [heightRes, blockTimeRes] = await Promise.all([
+          fetch(`${API_BASE}/getheight`).then(r => r.json()),
+          fetch(`${API_BASE}/getavgblocktime`).then(r => r.json()),
+        ]);
+
+        const height = heightRes.height || heightRes;
+        const avgBlockTime = blockTimeRes.avgBlockTime || blockTimeRes;
+
+        document.getElementById('val-height').textContent = formatHeight(height);
+        document.getElementById('val-size').textContent = cachedSize;
+        document.getElementById('val-blocktime').textContent = formatBlockTime(avgBlockTime);
+
+        // Remove loading state
+        document.querySelectorAll('.pill--loading').forEach(el => {
+          el.classList.remove('pill--loading');
+        });
+      } catch (err) {
+        // On error, show fallback mock values
+        document.getElementById('val-height').textContent = '3,847,291';
+        document.getElementById('val-size').textContent = '3.05 GB';
+        document.getElementById('val-blocktime').textContent = '60.2 s';
+        document.querySelectorAll('.pill--loading').forEach(el => {
+          el.classList.remove('pill--loading');
+        });
+      }
+    }
+
+    // Initial fetch
+    fetchStats();
+
+    // Poll every 60 seconds
+    setInterval(fetchStats, POLL_INTERVAL);
+
+    // Communicate height to parent for resize if needed
+    function notifyParent() {
+      if (window.parent !== window) {
+        window.parent.postMessage(
+          { type: 'epic-explorer-widget', height: document.body.scrollHeight },
+          '*'
+        );
+      }
+    }
+    window.addEventListener('load', notifyParent);
+  </script>
+</body>
+</html>

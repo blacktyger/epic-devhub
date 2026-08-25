@@ -19,7 +19,7 @@
  * spotted. The same two placeholder lines had been copied by hand into two MDX pages, where the
  * first version of this script could not see them, which is why it now reads the pages too.
  *
- * Needs the upstream clones next to epic-devdocs. Without them it skips rather than fails, so it
+ * Needs the upstream clones next to this repository. Without them it skips rather than fails, so it
  * is a local gate and harmless in CI, where the clones do not exist.
  *
  *   node spec-sources.mjs           report mismatches, exit 1 if any
@@ -27,10 +27,17 @@
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import {DEVDOCS, SITE, readFileRetry} from './lib/paths.mjs';
+import {ROOT, SITE, readFileRetry} from './lib/paths.mjs';
 
 const SPEC = path.join(SITE, 'src/data/rpcSpec.js');
-const WORKSPACE = path.resolve(DEVDOCS, '..');
+/**
+ * The directory this repository sits in, which is where the upstream clones are expected to be.
+ *
+ * Siblings, not submodules. They are large, read-only ground truth with their own history, and a
+ * citation check that needed them vendored here would make a clone of this repository enormous
+ * for a check that skips in CI anyway.
+ */
+const WORKSPACE = path.resolve(ROOT, '..');
 
 // Where each repo key is cloned locally. The spec's `repo` keys come from versions.js.
 const CLONES = {

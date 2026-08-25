@@ -1,120 +1,87 @@
-import React, {useEffect, useState} from 'react';
+import React, {useState} from 'react';
 import Link from '@docusaurus/Link';
-import {developerJourney, journeyStage, journeyStorageKey} from '@site/src/data/developerJourney';
-
-function safeStoredProgress() {
-  if (typeof window === 'undefined') return [];
-
-  try {
-    const stored = JSON.parse(window.localStorage.getItem(journeyStorageKey) ?? '[]');
-    if (!Array.isArray(stored)) return [];
-    const allowed = new Set(developerJourney.map((stage) => stage.id));
-    return stored.filter((id) => allowed.has(id));
-  } catch {
-    return [];
-  }
-}
-
-function saveProgress(progress) {
-  try {
-    window.localStorage.setItem(journeyStorageKey, JSON.stringify(progress));
-  } catch {
-    // Progress is an optional local enhancement. A private-mode or full storage area must
-    // never block the static journey.
-  }
-}
+import {developerJourney, journeyStage} from '@site/src/data/developerJourney';
+import {useJourneyTracker, useJourneyProgress, clearDepths} from '@site/src/components/JourneyTracking';
 
 /** Renders the canonical stage links and their observable outcomes. */
+/**
+ * The eight stages, with reading progress inline.
+ *
+ * Was two components: a list of stages and, below it, a second list of the same stages with
+ * progress. One list carries both. The stage sequence is the page, so it is stated once at the
+ * top and never restated here.
+ */
 export function JourneyOverview() {
+  const {depths, ready, overall} = useJourneyProgress();
+  const nextStage =
+    developerJourney.find((stage) => (depths[stage.id] ?? 0) < 95) ?? developerJourney[0];
+  const started = overall > 0;
+
   return (
     <section className="journeyOverview" aria-labelledby="journey-overview-heading">
-      <h2 id="journey-overview-heading">The developer journey</h2>
-      <p className="journeyIntro">
-        Eight stages in dependency order. Each one assumes the outcome of the one before it, and
-        every link opens the canonical page rather than a second copy of it. Stages 03 to 05 run on
-        a private chain of your own, so nothing is at risk until 06.
-      </p>
+      <div className="journeyHead">
+        <h2 id="journey-overview-heading">The route</h2>
+        <div className="journeyTally">
+          <span className="journeyTallyPct">{ready ? `${overall}%` : '—'}</span>
+          <span className="journeyTallyNote">of the route read</span>
+        </div>
+      </div>
+      <div className="journeyMeter" aria-hidden="true">
+        <span className="journeyMeterFill" style={{'--jt-fill': `${ready ? overall : 0}%`}} />
+      </div>
       <ol className="journeyStages">
-        {developerJourney.map((stage) => (
-          <li className="journeyStage" key={stage.id}>
-            <span className="journeyNumber" aria-hidden="true">{stage.number}</span>
-            <div>
-              <Link className="journeyStageLink" to={stage.to}>{stage.title}</Link>
-              <p>{stage.outcome}</p>
-            </div>
-          </li>
-        ))}
+        {developerJourney.map((stage) => {
+          const percent = depths[stage.id] ?? 0;
+          const done = percent >= 95;
+          const current = stage.id === nextStage.id && started;
+          return (
+            <li
+              className={`journeyStage${done ? ' journeyStage--done' : ''}${
+                current ? ' journeyStage--current' : ''
+              }`}
+              key={stage.id}>
+              <span className="journeyNumber" aria-hidden="true">{stage.number}</span>
+              <div className="journeyStageBody">
+                <Link className="journeyStageLink" to={stage.to}>{stage.title}</Link>
+                <p>{stage.outcome}</p>
+                <span className="journeyStageTrack" aria-hidden="true">
+                  <span className="journeyStageFill" style={{'--jt-fill': `${percent}%`}} />
+                </span>
+              </div>
+              <span className="journeyStagePct">
+                {ready && percent > 0 ? `${percent}%` : ''}
+              </span>
+            </li>
+          );
+        })}
       </ol>
+      <div className="journeyFoot">
+        <Link className="journeyGo" to={started ? nextStage.to : developerJourney[0].to}>
+          {started ? `Continue: ${nextStage.title}` : `Begin: ${developerJourney[0].title}`}
+        </Link>
+        <button
+          className="journeyReset"
+          type="button"
+          onClick={clearDepths}
+          disabled={!started}>
+          Reset progress
+        </button>
+        <span className="journeyFootNote">
+          Counted from how far you read each page, kept in this browser.
+        </span>
+      </div>
     </section>
   );
 }
 
 /**
- * Optional phase-two progress. It starts as ordinary static controls, then restores only a
- * private, browser-local list of manually completed stages after hydration.
+ * Read-only progress on the start page. It used to be a row of toggles asking the reader to mark
+ * each stage complete by hand, which measured self-reporting rather than reading and gave nothing
+ * back. Depth now comes from JourneyTracking, recorded while the stage pages are read.
  */
-export function JourneyProgress() {
-  const [completed, setCompleted] = useState([]);
-
-  useEffect(() => {
-    setCompleted(safeStoredProgress());
-  }, []);
-
-  const toggle = (id) => {
-    setCompleted((current) => {
-      const next = current.includes(id)
-        ? current.filter((completedId) => completedId !== id)
-        : [...current, id];
-      saveProgress(next);
-      return next;
-    });
-  };
-
-  const reset = () => {
-    setCompleted([]);
-    saveProgress([]);
-  };
-
-  return (
-    <section className="journeyProgress" aria-labelledby="journey-progress-heading">
-      <div className="journeyProgressHeading">
-        <div>
-          <h2 id="journey-progress-heading">Your progress</h2>
-          <p>
-            {completed.length} of {developerJourney.length} stages complete. Mark a stage only when
-            you have its outcome, not merely when you opened its page.
-          </p>
-        </div>
-        <button className="journeyReset" type="button" onClick={reset} disabled={completed.length === 0}>
-          Reset local progress
-        </button>
-      </div>
-      <div className="journeyProgressControls" role="group" aria-label="Mark journey stages complete">
-        {developerJourney.map((stage) => {
-          const isComplete = completed.includes(stage.id);
-          return (
-            <button
-              className="journeyProgressControl"
-              type="button"
-              key={stage.id}
-              aria-pressed={isComplete}
-              onClick={() => toggle(stage.id)}>
-              <span className="journeyProgressNumber" aria-hidden="true">{stage.number}</span>
-              <span>{stage.title}</span>
-            </button>
-          );
-        })}
-      </div>
-      <p className="journeyProgressNote">
-        Progress stays in this browser only. It is optional, does not track page visits, and does not
-        limit any documentation link.
-      </p>
-    </section>
-  );
-}
-
 /** Adds learner-oriented navigation without changing Docusaurus reference pagination. */
 export function JourneyNav({stage: stageId}) {
+  useJourneyTracker(stageId);
   const stage = journeyStage(stageId);
   const index = developerJourney.findIndex((candidate) => candidate.id === stageId);
   if (!stage || index < 0) return null;

@@ -4,8 +4,9 @@ import {fileURLToPath} from 'node:url';
 import codeImport from 'remark-code-import';
 import {darkPrismTheme, lightPrismTheme} from './src/data/prism-themes.js';
 import {versions} from './src/data/versions.js';
+import assistantDevProxy from './plugins/assistant-dev-proxy.js';
 
-// The example clients live outside site/, in epic-devdocs/examples/, so they can be run,
+// The example clients live outside site/, in the sibling examples/ directory, so they can be run,
 // linted and compiled on their own rather than existing only inside a page. <rootDir> in a
 // `file=` reference resolves against this.
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -28,7 +29,7 @@ const config = {
   // The repository these pages are edited in, which is not an EpicCash repository. Upstream code
   // is cited by pinned link instead, from src/data/versions.js.
   organizationName: 'blacktyger',
-  projectName: 'epic-devdocs',
+  projectName: 'devdocs-public',
 
   // Broken links and anchors fail the build. The site this replaces shipped a NodeJS sample
   // with a URL-breaking typo and a stylesheet that never loaded, both caught by nobody.
@@ -51,6 +52,13 @@ const config = {
   // third party is the wrong default for a privacy coin's documentation, which is the same
   // reason the fonts here are self-hosted. Cost is an index bundled with the site instead of
   // a hosted one.
+  //
+  // Its navbar UI is not used. `src/theme/SearchBar/index.js` shadows `@theme/SearchBar` with one
+  // control that both searches and asks, because this package renders its dropdown from HTML strings
+  // through autocomplete.js and offers no seam to add a row to. What is still used is the build-time
+  // index and the `searchByWorker` query, so every option below that affects indexing still matters.
+  // The two that no longer do anything are `searchBarShortcut` and `searchBarShortcutHint`: they were
+  // read by the component that is now shadowed, and the shortcut is bound in that file instead.
   //
   // theme-mermaid was removed on 2026-08-23. Four diagrams cost a 720KB chunk that rendered
   // nothing until it executed, so they are hand-drawn SVG in src/components/Diagrams.js now.
@@ -90,6 +98,10 @@ const config = {
     },
   ],
 
+  // Development only: proxies /api/chat to the assistant server so the panel can reach it from the
+  // dev server's origin. Contributes nothing to a production build.
+  plugins: [assistantDevProxy],
+
   presets: [
     [
       'classic',
@@ -100,7 +112,7 @@ const config = {
           sidebarPath: './sidebars.js',
           // Joined with the page's path relative to this directory, so the trailing `site/`
           // matters: without it every Edit link 404s.
-          editUrl: 'https://github.com/blacktyger/epic-devdocs/tree/main/site/',
+          editUrl: 'https://github.com/blacktyger/devdocs-public/tree/main/site/',
           // Whole-file imports only. remark-code-import also supports #L3-L6 line ranges,
           // which silently drift the moment the source file is edited, so every include
           // below pulls a complete file that stands on its own.
@@ -162,7 +174,10 @@ const config = {
           // and CLI pages were reachable only through the footer or the link index.
           {to: '/reference/cli', label: 'Config & CLI', position: 'left'},
           {to: '/mining/proof-of-work', label: 'Mining', position: 'left'},
-          {to: '/downloads', label: 'Downloads', position: 'right'},
+          // Downloads sits with the rest of the navigation rather than alone on the right. The right
+          // side is now chrome only: the theme switch, and the ask-or-search control that Docusaurus
+          // renders after the last item.
+          {to: '/downloads', label: 'Downloads', position: 'left'},
         ],
       },
       footer: {
@@ -195,6 +210,9 @@ const config = {
               {label: 'Telegram', href: 'https://t.me/EpicCash'},
               {label: 'Reddit', href: 'https://www.reddit.com/r/epiccash'},
               {label: 'epiccash.com', href: 'https://epiccash.com'},
+              // Moved here when the masthead's project-links panel became a quick start. The
+              // other three links in that panel were already in this footer; this one was not.
+              {label: 'Block explorer', href: 'https://explorer.epicmine.io'},
             ],
           },
         ],

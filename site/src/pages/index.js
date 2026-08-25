@@ -1,8 +1,10 @@
-import React from 'react';
+import React, {useState} from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import {SlateExchange} from '@site/src/components/SlateExchange';
 import {versions, releases} from '@site/src/data/versions';
+import {developerJourney} from '@site/src/data/developerJourney';
+import {JourneyInvite} from '@site/src/components/JourneyTracking';
 import './../css/index-page.css';
 
 const PILL_ICONS = {
@@ -34,11 +36,6 @@ const PILL_ICONS = {
     <>
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 2" />
-    </>
-  ),
-  spark: (
-    <>
-      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
     </>
   ),
 };
@@ -73,11 +70,9 @@ function Masthead() {
         </div>
       </div>
       <div className="container ixMastIn">
-        <div className="ixAiBadge" aria-label="Ask AI, coming soon">
-          <PillIcon name="spark" />
-          <span>Ask AI</span>
-          <span className="ixAiBadgeState">Soon</span>
-        </div>
+        {/* The "Ask AI" badge that used to sit here is gone. It read "Soon" until the assistant
+            shipped, then briefly became a working button, and at that point it was just a third way
+            to open the same panel on a page that already has the navbar control. Redundant. */}
 
         <div className="ixMastGrid">
           <div>
@@ -103,40 +98,207 @@ function Masthead() {
             </div>
           </div>
 
-          <aside className="ixPanel ixProjectPanel" aria-labelledby="ixProjectLinksHead">
-            <p className="ixPanelHead" id="ixProjectLinksHead">
-              Project links
-            </p>
-            <ul className="ixProjectLinks">
-              <li>
-                <a href="https://epiccash.com" target="_blank" rel="noopener noreferrer">
-                  <span>EpicCash.com</span>
-                  <small>Official project site</small>
-                </a>
-              </li>
-              <li>
-                <a href="https://explorer.epicmine.io" target="_blank" rel="noopener noreferrer">
-                  <span>Block explorer</span>
-                  <small>Live network data</small>
-                </a>
-              </li>
-              <li>
-                <a href="https://t.me/EpicCash" target="_blank" rel="noopener noreferrer">
-                  <span>Telegram</span>
-                  <small>Community chat</small>
-                </a>
-              </li>
-              <li>
-                <a href="https://github.com/EpicCash" target="_blank" rel="noopener noreferrer">
-                  <span>GitHub</span>
-                  <small>Source and releases</small>
-                </a>
-              </li>
-            </ul>
-          </aside>
+          <QuickStartPanel />
         </div>
       </div>
     </header>
+  );
+}
+
+/**
+ * The masthead quick start.
+ *
+ * Replaces a "Project links" panel whose four links the footer already carries, so the second
+ * column repeated navigation instead of doing work. The design brief asks that column to carry a
+ * copyable quick start, and the approved landing design puts a snippet there with prompt glyphs,
+ * a copy button and a caveat line beneath.
+ *
+ * The design's placeholder commands clone the repository and run `cargo build --release`. These
+ * download a prebuilt binary instead, for a verified reason: no official Epic image exists on
+ * Docker Hub or GHCR, and every Dockerfile in the EpicCash org compiles the Rust tree during the
+ * image build, so no Docker path is quicker than this one. The node workspace resolves 555
+ * crates, which is not a first minute.
+ *
+ * Two tabs, because a developer needs both binaries and the wallet is not an afterthought. The
+ * platform sets differ and the panel says so rather than papering over it: the node publishes
+ * Linux, macOS arm64 and Windows builds, the wallet publishes Linux and Windows only, so macOS
+ * needs a source build for the wallet.
+ *
+ * The prompt glyph is its own span and is left out of what the copy button writes, so the
+ * clipboard holds commands that run. Commands are assembled from `releases`, so a release bump
+ * cannot leave a URL pointing at an asset that no longer exists.
+ */
+const nodeAsset = (key) => releases.node.assets.find((a) => a.key === key).file;
+const walletAsset = (key) => releases.wallet.assets.find((a) => a.key === key).file;
+
+const QUICK_START = [
+  {
+    id: 'node',
+    label: 'Node',
+    title: 'Run a node',
+    links: [
+      {to: '/guides/mainnet-setup', label: 'Node and wallet setup'},
+      {to: '/downloads', label: 'Checksums and other builds'},
+    ],
+    platforms: [
+      {
+        id: 'linux',
+        label: 'Linux',
+        note: 'Linux x86-64.',
+        commands: [
+          `curl -LO ${releases.node.download}/${nodeAsset('linux')}`,
+          `tar xzf ${nodeAsset('linux')}`,
+          `./${releases.node.unpacksTo.linux}/epic`,
+        ],
+      },
+      {
+        id: 'mac',
+        label: 'macOS',
+        note: 'Apple silicon. Gatekeeper blocks an unsigned binary until you allow it.',
+        commands: [
+          `curl -LO ${releases.node.download}/${nodeAsset('mac')}`,
+          `unzip ${nodeAsset('mac')}`,
+          `./${releases.node.unpacksTo.mac}/epic`,
+        ],
+      },
+      {
+        id: 'windows',
+        label: 'Windows',
+        note: 'x86-64, PowerShell.',
+        commands: [
+          `Invoke-WebRequest ${releases.node.download}/${nodeAsset('windows')} -OutFile epic.zip`,
+          'Expand-Archive epic.zip -DestinationPath epic',
+          '.\\epic\\epic.exe',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'wallet',
+    label: 'Wallet',
+    title: 'Create a wallet',
+    links: [
+      {to: '/guides/wallet-operations', label: 'Wallet operations'},
+      {to: '/downloads', label: 'Checksums and other builds'},
+    ],
+    platforms: [
+      {
+        id: 'linux',
+        label: 'Linux',
+        note: 'Linux x86-64.',
+        commands: [
+          `curl -LO ${releases.wallet.download}/${walletAsset('linux')}`,
+          `unzip ${walletAsset('linux')}`,
+          './epic-wallet init',
+        ],
+      },
+      {
+        id: 'windows',
+        label: 'Windows',
+        note: 'x86-64, PowerShell.',
+        commands: [
+          `Invoke-WebRequest ${releases.wallet.download}/${walletAsset('windows')} -OutFile epic-wallet.exe`,
+          '.\\epic-wallet.exe init',
+        ],
+      },
+    ],
+  },
+];
+
+function QuickStartPanel() {
+  const [productId, setProductId] = useState('node');
+  const [platformId, setPlatformId] = useState('linux');
+
+  const product = QUICK_START.find((entry) => entry.id === productId);
+  // The wallet publishes no macOS build, so a platform carried over from the node tab may not
+  // exist here. Fall back rather than render an empty panel.
+  const active =
+    product.platforms.find((entry) => entry.id === platformId) ?? product.platforms[0];
+
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      // The prompt glyph is presentation, so only the commands are written.
+      await navigator.clipboard.writeText(active.commands.join('\n'));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <aside className="ixPanel ixSnippet" aria-labelledby="ixQuickStartHead">
+      <div className="ixSnippetHead">
+        {/* Says "Quick start" rather than the product name: the tabs below already name the
+            binary, and a reader needs to know what the panel is before what it runs. */}
+        <p className="ixPanelHead ixSnippetTitle" id="ixQuickStartHead">
+          Quick start
+        </p>
+        {/* Native buttons, one tab stop each. The roving-tabindex pattern is reserved for the
+            API console's tablist, and keyboard.mjs reports anything else held out of the tab
+            sequence, so a plain pressed-state group is the right control here. */}
+        <div className="ixSnippetTabs" role="group" aria-label="Software">
+          {QUICK_START.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              className={`ixSnippetTab${entry.id === productId ? ' isActive' : ''}`}
+              aria-pressed={entry.id === productId}
+              onClick={() => setProductId(entry.id)}>
+              {entry.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="ixSnippetTabs ixSnippetPlatforms" role="group" aria-label="Platform">
+        {product.platforms.map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            className={`ixSnippetTab${entry.id === active.id ? ' isActive' : ''}`}
+            aria-pressed={entry.id === active.id}
+            onClick={() => setPlatformId(entry.id)}>
+            {entry.label}
+          </button>
+        ))}
+        {/* Copy sits on this row rather than below the code, as in the mockup's snippet head. In
+            the foot it added a full-width button under three lines of commands, which at 375px
+            made the panel's chrome taller than its content. */}
+        <button type="button" className="ixSnippetCopy" onClick={copy}>
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+
+      {/* tabIndex on the pre: the commands are longer than the column, so this scrolls, and a
+          scrollable region a keyboard cannot reach is unusable. */}
+      <pre className="ixSnippetBody" tabIndex={0}>
+        <code>
+          {active.commands.map((command) => (
+            <span className="ixSnippetLine" key={command}>
+              <span className="ixSnippetPrompt" aria-hidden="true">
+                {active.id === 'windows' ? '> ' : '$ '}
+              </span>
+              {command}
+            </span>
+          ))}
+        </code>
+      </pre>
+
+      <div className="ixSnippetFoot">
+        <p className="ixSnippetNote">
+          {product.title}. {active.note}
+        </p>
+        <p className="ixSnippetLinks">
+          {product.links.map((link) => (
+            <Link key={link.to} to={link.to}>
+              {link.label}
+            </Link>
+          ))}
+        </p>
+      </div>
+    </aside>
   );
 }
 
@@ -144,42 +306,9 @@ function QuickStart() {
   return (
     <section className="ixSection">
       <h2 className="ixKicker">The developer journey</h2>
-      <div className="ixSteps">
-        <article className="ixStep ixStep--current">
-          <span className="ixStepTag">Leg 01</span>
-          <h3 className="ixStepHead">Learn the model</h3>
-          <p className="ixStepNote">
-            Start with why Epic transfers are an interactive slate exchange, why routing identifiers are
-            not on-chain addresses, and why an incomplete send reserves outputs instead of losing them.
-          </p>
-        </article>
-
-        <article className="ixStep">
-          <span className="ixStepTag">Leg 02</span>
-          <h3 className="ixStepHead">Run a chain of your own</h3>
-          <p className="ixStepNote">
-            Build the three binaries, mine a private usernet chain, and complete a real transfer over
-            all three transports. Worthless coins, so a mistake costs nothing.
-          </p>
-        </article>
-
-        <article className="ixStep">
-          <span className="ixStepTag">Leg 03</span>
-          <h3 className="ixStepHead">Then connect to mainnet</h3>
-          <p className="ixStepNote">
-            Same mechanics, real value. Node and wallet setup, day-to-day operations, backups, and the
-            procedure for a transfer that will not complete.
-          </p>
-        </article>
-      </div>
-      <div className="ixJourneyStart">
-        <Link to="/start" className="ixJourneyBtn">
-          Start the guided journey
-        </Link>
-        <span className="ixJourneyHint">
-          Eight stages. Nothing is at risk until stage 06
-        </span>
-      </div>
+        <div className="ixJourneyLayout">
+          <JourneyInvite />
+        </div>
     </section>
   );
 }
@@ -187,7 +316,7 @@ function QuickStart() {
 function TheModel() {
   return (
     <section className="ixSection">
-      <p className="ixKicker">Before you write code</p>
+      <p className="ixKicker">If you have worked with other blockchains</p>
       <h2 className="ixHeading">Four things that work differently here</h2>
 
       <div className="ixModel">
@@ -205,8 +334,8 @@ function TheModel() {
             <strong>
               <Link to="/concepts/interactive-transactions">A transfer needs both parties.</Link>
             </strong>{' '}
-            The sender builds a partial transaction, the receiver adds their half, the sender finalises.
-            Delivery, not consensus, is where transfers fail.
+            The sender builds a partial transaction called a slate, the receiver adds their half,
+            the sender finalises. Delivery, not consensus, is where transfers fail.
           </li>
           <li>
             <strong>
@@ -226,9 +355,6 @@ function TheModel() {
 
         <figure className="ixFigure">
           <SlateExchange />
-          <figcaption>
-            Point 2. Two round trips between wallets before anything reaches the chain.
-          </figcaption>
         </figure>
       </div>
     </section>

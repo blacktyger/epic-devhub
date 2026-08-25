@@ -29,12 +29,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {MAX_IMAGE_EDGE, imageSize} from '../lib/shot.mjs';
+import {MAX_IMAGE_EDGE, READ_IMAGE_EDGE, imageSize} from '../lib/shot.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const AUDIT = path.resolve(HERE, '..');
-const DEVDOCS = path.resolve(AUDIT, '..');
-const WORKSPACE = path.resolve(DEVDOCS, '..');
+/** Root of this repository. */
+const ROOT = path.resolve(AUDIT, '..');
+/**
+ * The directory this repository sits in. Used to resolve a payload path and to shorten one for
+ * display, and to find the private workspace's visual channel when there is one.
+ */
+const WORKSPACE = path.resolve(ROOT, '..');
 
 const MODE = process.argv[2] ?? 'block';
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp)$/i;
@@ -103,14 +108,36 @@ function walkImages(dir, out = []) {
 }
 
 if (MODE === 'scan') {
-  const files = walkImages(DEVDOCS);
+  // Every directory that holds images an agent is expected to read: harness output and site
+  // assets in this repository, plus the private workspace's visual channel inbox and its mockup
+  // captures when this repository is checked out inside that workspace. The existsSync filter is
+  // what makes a standalone clone work: the private directories are simply absent.
+  const roots = [
+    ROOT,
+    path.join(WORKSPACE, 'visual'),
+    path.join(WORKSPACE, 'epic-devdocs'),
+  ].filter((d) => fs.existsSync(d));
+  const files = roots.flatMap((r) => walkImages(r));
   const bad = [];
+  const costly = [];
   for (const f of files) {
     const size = imageSize(f);
     const ok = size && size.width < MAX_IMAGE_EDGE && size.height < MAX_IMAGE_EDGE;
     if (!ok) bad.push({file: f, size});
+    else if (size.width > READ_IMAGE_EDGE || size.height > READ_IMAGE_EDGE) costly.push({file: f, size});
   }
-  console.log(`scanned ${files.length} image(s) under ${rel(DEVDOCS)}`);
+  console.log(`scanned ${files.length} image(s) under ${roots.map((r) => rel(r)).join(', ')}`);
+  // Two ceilings, reported separately. Over 8000 ends a session, so it fails the run. Over 2000
+  // only costs context, so it is reported and left to a judgement call: gating it would fail the
+  // run over a screenshot somebody took deliberately at full width.
+  if (costly.length) {
+    console.log(`${costly.length} over the ${READ_IMAGE_EDGE}px reading ceiling. Readable, but each one is expensive in context:`);
+    for (const c of costly.slice(0, 12)) {
+      console.log(`  COSTLY    ${rel(c.file)}  ${c.size.width}x${c.size.height}`);
+    }
+    if (costly.length > 12) console.log(`  and ${costly.length - 12} more`);
+    console.log('');
+  }
   if (bad.length === 0) {
     console.log(`all within the ${MAX_IMAGE_EDGE}px limit, safe for an agent to read`);
     process.exit(0);
@@ -120,7 +147,7 @@ if (MODE === 'scan') {
   }
   console.log('');
   console.log('Reading any of these into an agent session breaks that session permanently.');
-  console.log('Recapture with tiles:  npm run page -- <route>');
+  console.log('Recapture with tiles:  npm run page:live -- <route>');
   process.exit(1);
 }
 
@@ -159,8 +186,9 @@ lines.push(`The limit is ${MAX_IMAGE_EDGE} pixels on either axis. The rejection 
 lines.push('stays in history, so every later request in the session fails the same way and the session');
 lines.push('has to be abandoned. That already happened once here, on a full-page docs screenshot.');
 lines.push('');
-lines.push('Instead, from epic-devdocs/audit, capture the page as tiles and read those:');
-lines.push('  npm run page -- /the/route            (add --theme light, --width 1440, --scale 2)');
+lines.push('Instead, from devdocs-public/audit, capture the page as tiles and read those:');
+lines.push('  npm run page:live -- /the/route       (dev server on 3001, no build)');
+lines.push('  npm run page -- /the/route            (site/build; add --theme light, --width 1440)');
 lines.push('Or check what is already on disk:');
 lines.push('  npm run images');
 lines.push('');

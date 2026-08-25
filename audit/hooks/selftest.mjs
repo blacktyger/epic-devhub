@@ -69,11 +69,11 @@ const restore = () => {
 
 const presentationPayload = {
   tool_name: 'str_replace',
-  tool_input: {path: 'c:/Users/patry/epic/epic-devdocs/site/src/css/custom.css', oldStr: 'a', newStr: 'b'},
+  tool_input: {path: 'c:/Users/patry/epic/devdocs-public/site/src/css/custom.css', oldStr: 'a', newStr: 'b'},
 };
 const contentPayload = {
   tool_name: 'fs_write',
-  tool_input: {path: 'epic-devdocs/site/docs/concepts/mimblewimble.mdx', text: 'x'},
+  tool_input: {path: 'devdocs-public/site/docs/concepts/mimblewimble.mdx', text: 'x'},
 };
 const unrelatedPayload = {
   tool_name: 'fs_write',
@@ -250,7 +250,7 @@ try {
 
       const text = await runScript(IMAGE_GUARD, 'block', {
         tool_name: 'read_file',
-        tool_input: {path: 'epic-devdocs/research/00-source-inventory.md'},
+        tool_input: {path: 'site/docs/concepts/mimblewimble.mdx'},
       });
       check('non-image read is ignored', text.code === 0, `exit ${text.code}`);
 

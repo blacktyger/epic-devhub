@@ -81,25 +81,27 @@ for (const theme of ['dark', 'light']) {
       await page.close();
     }
 
-    // Interactive states axe never reaches on a plain page load. Search is the one that
-    // matters: it is new, it ships its own CSS, and it renders over the page.
+    // Interactive states axe never reaches on a plain page load. The ask-or-search modal is the
+    // one that matters: it is new, it ships its own CSS, it traps focus and it renders over the
+    // page.
     if (viewport.name === 'desktop') {
       const page = await ctx.newPage();
       await page.goto(`${server.origin}/`, {waitUntil: 'networkidle'});
       await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
-      const input = page.locator('.navbar input[type=search], .navbar .navbar__search-input').first();
-      await input.click();
-      await page.waitForTimeout(400);
+      const control = page.locator('button.epicAsk-control').first();
+      await control.click();
+      await page.waitForTimeout(500);
       all.push(...summarise(await axeFor(page).analyze(), `${theme}/desktop/search-focused`));
+      const input = page.locator('.epicAsk-input').first();
       await input.fill('init_send_tx');
       await page.waitForTimeout(1800);
       all.push(...summarise(await axeFor(page).analyze(), `${theme}/desktop/search-open`));
 
       const hits = await page.evaluate(() => {
-        const menu = document.querySelector('[class*=dropdownMenu]');
-        if (!menu) return {menu: false};
-        const items = menu.querySelectorAll('a, li');
-        const first = menu.querySelector('[class*=cursor], .cursor, li:first-child a');
+        const modal = document.querySelector('.epicAsk-modal');
+        if (!modal) return {menu: false};
+        const items = modal.querySelectorAll('[role=option]');
+        const first = modal.querySelector('[role=option][data-selected="true"]');
         const cs = first ? getComputedStyle(first) : null;
         return {
           menu: true,
@@ -112,7 +114,7 @@ for (const theme of ['dark', 'light']) {
         where: `${theme}/desktop/search-open`,
         id: 'search-state',
         impact: 'info',
-        target: 'dropdownMenu',
+        target: 'epicAsk-modal',
         detail: JSON.stringify(hits),
         html: '',
       });

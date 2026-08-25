@@ -7,10 +7,13 @@
             - img
         - listitem
     - heading [level=1]
+    - button
+    - button
+    - status
+    - paragraph
     - paragraph
     - region
       - heading [level=2]
-      - paragraph
       - list
         - listitem
           - link
@@ -36,20 +39,8 @@
         - listitem
           - link
           - paragraph
-    - region
-      - heading [level=2]
-      - paragraph
+      - link
       - button
-      - group
-        - button
-        - button
-        - button
-        - button
-        - button
-        - button
-        - button
-        - button
-      - paragraph
     - heading [level=2]
       - link
     - paragraph
@@ -76,15 +67,6 @@
       - code
       - code
       - link
-      - link
-    - paragraph
-      - strong
-        - code
-      - code
-      - link
-    - paragraph
-      - code
-      - emphasis
       - link
     - link
     - time

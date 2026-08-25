@@ -2,8 +2,8 @@
  * Epic Cash developer docs theme.
  *
  * Palette and typography are derived from the live epiccash.com Elementor global kit,
- * measured 2026-08-22. Values and reasoning are recorded in
- * epic-devdocs/research/90-docs-site-framework.md.
+ * measured 2026-08-22. The values below are the record; the reasoning behind them lives in the
+ * private working repository beside this one, which is not needed to change anything here.
  *
  *   page background   linear-gradient(71.88deg, #000000 70%, #313133 100%)
  *   dark surface      #101010
@@ -86,8 +86,7 @@
    Protocol scope system tokens
    ---------------------------------------------------------------------------
    Added 2026-08-22 with the approved visual system. Specification in
-   .kiro/skills/epic-frontend-design/references/visual-language.md, reference
-   implementation in epic-devdocs/mockups/.
+   .kiro/skills/epic-frontend-design/references/visual-language.md.
 
    The palette above is unchanged: every value in it was contrast-measured and
    those measurements are recorded in the comments. What was missing was
@@ -194,6 +193,66 @@ h6 {
    synthesis would be a smeared approximation rather than a real instance. */
 html {
   font-synthesis: none;
+}
+
+/* ---- Page horizontal geometry ------------------------------------------
+   One source for every left and right edge on the site, so the navbar, the version rail,
+   the masthead and the sections below cannot drift apart.
+
+   Desktop navbar geometry is explicit: the navbar gutter, an 89px brand slot (65px logo,
+   8px logo gap, 16px brand gap), then the navbar item's own text inset. Anything that wants
+   to start on "Start here" adds those three. Below the collapsed-nav breakpoint there is no
+   visible first item to align with, so the reserved spaces go to zero and the inset falls
+   back to the gutter alone.
+
+   --epic-content-max mirrors Infima's own container switch in one place. Duplicating the
+   1440px breakpoint here is deliberate: the alternative is reading a sibling element's
+   resolved width, which CSS cannot do. */
+:root {
+  --epic-page-gutter: var(--ifm-navbar-padding-horizontal, 1rem);
+  --epic-navbar-brand-slot: 89px;
+  --epic-navbar-item-inset: 0.55rem;
+  --epic-page-inset: calc(
+    var(--epic-page-gutter) + var(--epic-navbar-brand-slot) + var(--epic-navbar-item-inset)
+  );
+  --epic-content-max: var(--ifm-container-width, 1140px);
+  /* The one gap under the navbar. Sidebar first row, breadcrumb row and contents panel all
+     start this far below the navbar's bottom edge, and the two sticky ones pin at that same
+     distance, so nothing moves as they detach. 16px measured too tight against a 60px navbar
+     and, on the breadcrumb, was invisible: the row's own padding already supplied that much,
+     so the box moved and the text did not. verify-runtime.mjs reads this token and asserts
+     both states match it. */
+  --epic-doc-top-gap: 1.5rem;
+  /* Where the clear band ends, measured from the viewport top. The navbar's strip, the sidebar's
+     fill, the sticky offsets and the page wash all key off this, so there is one number for the
+     line everything starts on. */
+  --epic-doc-strip-bottom: calc(var(--ifm-navbar-height) + var(--epic-doc-top-gap));
+}
+
+@media (min-width: 1440px) {
+  :root {
+    --epic-content-max: var(--ifm-container-width-xl, 1320px);
+  }
+}
+
+@media (max-width: 996px) {
+  :root {
+    --epic-navbar-brand-slot: 0px;
+    --epic-navbar-item-inset: 0rem;
+  }
+}
+
+/* The landing page caps its body at the container width, so the navbar's right-hand group has
+   to stop at the same x or the search field overhangs the content below it. Docs pages already
+   agree, because their contents panel and the search field both end on the navbar gutter, so
+   this is scoped to the pages plugin and leaves them untouched. */
+html.plugin-pages .navbar__inner {
+  /* The inner starts after the navbar's own left gutter and the body reserves a right one,
+     so both come off the cap. Result: the search field's right edge lands on the content's
+     right edge rather than 32px past it. */
+  max-width: calc(
+    var(--epic-page-inset) + var(--epic-content-max) - 2 * var(--epic-page-gutter)
+  );
 }
 
 .navbar {
@@ -781,10 +840,14 @@ div[class^='announcementBar'] a:hover {
 
 .slateExchange {
   width: 100%;
-  max-width: 620px;
+  max-width: 720px;
   margin: 2.5rem 0 0;
 }
-.slateExchange svg {
+/* Scoped to the diagram, not to every svg in the component. `.slateExchange svg` also matched the
+   14px tab icons and outranked `.seTabIcon` on specificity, so each icon stretched to 100% and every
+   tab became a 394px block. */
+.slateExchange .seDiagram {
+  display: block;
   width: 100%;
   height: auto;
   overflow: visible;
@@ -827,17 +890,17 @@ div[class^='announcementBar'] a:hover {
   text-anchor: middle;
 }
 
-.seSlate rect {
+.seSlateReplacedByNamedParts {
   fill: #101010;
   stroke: url(#epicGold);
   stroke-width: 1.5;
 }
-.seDotEmpty {
+.seDotEmptyUnused {
   fill: none;
   stroke: rgba(246, 212, 113, 0.45);
   stroke-width: 1.2;
 }
-.seDotFilled {
+.seDotFilledUnused {
   fill: #f6d471;
 }
 
@@ -850,25 +913,11 @@ div[class^='announcementBar'] a:hover {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .seSlateOut {
-    animation: seTravelOut 9s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-  }
-  .seSlateBack {
-    animation: seTravelBack 9s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-  }
-  .seParty:nth-of-type(2) rect {
-    animation: sePulse 9s ease-in-out infinite;
-    animation-delay: 2.6s;
-  }
-  .seParty:nth-of-type(1) rect {
-    animation: sePulse 9s ease-in-out infinite;
-    animation-delay: 6s;
-  }
-  .seChainBar {
-    animation: seFill 9s ease-out infinite;
-  }
-  .seChainLabel {
-    animation: seReveal 9s ease-out infinite;
+  /* The looping timeline is gone: the sequence is now driven by step state in
+     SlateExchange.js, and the transitions live further down this file. Leaving the old
+     animations here would have kept .seChainBar looping against its new transition. */
+  .seSlate {
+    will-change: transform;
   }
 }
 
@@ -955,23 +1004,305 @@ div[class^='announcementBar'] a:hover {
     opacity: 0;
   }
 }
+/* ---- Slate exchange: a four-screen hero ----
+   The slate is a record with two signature cells, drawn square like every other enclosure here. A
+   round seal read as foreign next to the rest of the site. */
+.seSlateBody {
+  fill: #101014;
+  stroke: rgba(246, 212, 113, 0.55);
+  stroke-width: 1;
+  transition: stroke 0.3s ease;
+}
+.seSlate.isWhole .seSlateBody {
+  stroke: #f6d471;
+}
+.seSlateRule,
+.seSlateExcess {
+  stroke: rgba(246, 212, 113, 0.4);
+  stroke-width: 1;
+}
+.seCell {
+  stroke: rgba(246, 212, 113, 0.5);
+  stroke-width: 1;
+  transition: fill 0.3s ease;
+}
+.seCell--first {
+  fill: rgba(246, 212, 113, 0.85);
+}
+.seCell--second {
+  fill: transparent;
+}
+.seSlate.isWhole .seCell--second {
+  fill: rgba(246, 212, 113, 0.85);
+}
+.seSlate.isAbsent {
+  opacity: 0;
+}
+.seSlate {
+  transition: transform 0.36s cubic-bezier(0.4, 0, 0.3, 1), opacity 0.2s ease;
+}
+.seSlate.isStalled {
+  opacity: 0.45;
+}
 
-/* Static, readable end state when motion is not wanted. */
+/* The relay is a participant on the epicbox screen: it holds the slate for each side in turn. */
+.seRelay rect {
+  fill: rgba(255, 249, 249, 0.03);
+  stroke: rgba(255, 249, 249, 0.45);
+  stroke-width: 1;
+  transition: stroke 0.25s ease, fill 0.25s ease;
+}
+.seRelay.isHolding rect {
+  stroke: #f6d471;
+  fill: rgba(246, 212, 113, 0.07);
+}
+.seRelayLabel {
+  font-size: 13px;
+}
+
+.seNodeBlockNew.isConfirmed {
+  opacity: 1;
+  fill: url(#epicGold);
+}
+
+/* Online and offline read the same way on all three devices: a solid outline and a green lamp when
+   present, a dashed dimmed outline and a grey lamp when not. Colour alone never carries it, since
+   the outline and the status word say the same thing. */
+.seParty rect,
+.seNode rect {
+  fill: rgba(255, 249, 249, 0.03);
+  stroke: rgba(255, 249, 249, 0.45);
+  stroke-width: 1;
+  transition: stroke 0.25s ease, fill 0.25s ease;
+}
+.seParty.is-offline rect,
+.seNode.is-offline rect {
+  stroke: rgba(255, 249, 249, 0.22);
+  stroke-dasharray: 5 4;
+  fill: transparent;
+}
+.sePartyLamp,
+.seNodeLamp {
+  fill: #6fbf8b;
+  transition: fill 0.25s ease;
+}
+.seParty.is-offline .sePartyLamp,
+.seNode.is-offline .seNodeLamp {
+  fill: #6b6b6b;
+}
+.seParty.is-offline .seLabel,
+.seNode.is-offline .seNodeLabel {
+  opacity: 0.6;
+}
+.seParty.isHeld rect {
+  stroke: #f6d471;
+  fill: rgba(246, 212, 113, 0.08);
+}
+
+/* The node reports online or offline, which is the state that decides whether a send can start. */
+.seNodeBlocks rect {
+  fill: rgba(255, 249, 249, 0.12);
+  stroke: none;
+}
+/* The node mints a block when the finished transaction is posted. The state is separate from
+   online/offline: a node can be online without anything being broadcast. */
+.seNodeBlockNew {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.seNode.isPosting .seNodeBlockNew {
+  opacity: 1;
+  fill: url(#epicGold);
+}
+.seNode.isPosting rect {
+  stroke: #f6d471;
+}
+.seTrackNode {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.seTrackNode.isLive {
+  opacity: 1;
+  stroke: rgba(246, 212, 113, 0.5);
+}
+.seNodeLabel {
+  text-anchor: start;
+}
+
+.seScreen {
+  touch-action: pan-y;
+  cursor: grab;
+}
+.seScreen:active {
+  cursor: grabbing;
+}
+
+/* Every step listed and dimmed, the current one lit. The marker is the only gold, so the eye lands
+   on where the sequence is without the text jumping around. */
+.seList {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+.seListBtn {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: baseline;
+  width: 100%;
+  padding: 0.3rem 0;
+  font-family: inherit;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  text-align: left;
+  color: var(--ifm-color-content-secondary);
+  /* No opacity. An inactive step used to be dimmed with `opacity: 0.62`, which blends the text
+     into the panel and measured 2.85:1 against it in both themes, an axe failure on 32 nodes.
+     The state is carried by colour against the current step and by the square marker beside it,
+     neither of which costs contrast. */
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: opacity 0.25s ease, color 0.25s ease;
+}
+.seListMark {
+  width: 6px;
+  height: 6px;
+  margin-top: 0.42rem;
+  flex: none;
+  border: 1px solid var(--epic-line-strong);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+.seListItem.isPast .seListBtn {
+  opacity: 1;
+}
+.seListItem.isPast .seListMark {
+  background: var(--epic-line-strong);
+}
+.seListItem.isCurrent .seListBtn {
+  color: var(--ifm-font-color-base);
+  opacity: 1;
+}
+.seListItem.isCurrent .seListMark {
+  background: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
+}
+[data-theme='dark'] .seListItem.isCurrent .seListMark {
+  background: var(--epic-gold-light);
+  border-color: var(--epic-gold-light);
+}
+.seListBtn:hover {
+  opacity: 1;
+  color: var(--ifm-font-color-base);
+}
+.seListBtn:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: -2px;
+}
+
+/* Minimal navigation: a mark and a short label per screen, on one row, with the play control. */
+.seControls {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--epic-line);
+}
+.sePlay {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.6rem 0.25rem 0.45rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  color: var(--ifm-color-content-secondary);
+  background: transparent;
+  border: 1px solid var(--epic-line);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.sePlayIcon {
+  width: 11px;
+  height: 11px;
+  flex: none;
+  fill: currentColor;
+}
+.sePlay:hover {
+  color: var(--ifm-font-color-base);
+  border-color: var(--epic-line-strong);
+}
+.sePlay:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 1px;
+}
+.seDots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.1rem;
+  margin-top: 0;
+}
+.seDot {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  color: var(--ifm-color-content-secondary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.seDotMark {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border: 1px solid var(--epic-line-strong);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.seDot:hover {
+  color: var(--ifm-font-color-base);
+}
+.seDot.isActive {
+  color: var(--ifm-font-color-base);
+}
+.seDot.isActive .seDotMark {
+  background: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
+}
+[data-theme='dark'] .seDot.isActive .seDotMark {
+  background: var(--epic-gold-light);
+  border-color: var(--epic-gold-light);
+}
+.seDot:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .seSlateOut {
-    transform: translate(280px, 62px);
-  }
-  .seSlateBack {
-    transform: translate(340px, 104px);
-  }
-  .seChainBar {
-    transform: scaleX(1);
+  .seSlate,
+  .seSlateBody,
+  .seCell,
+  .seListBtn,
+  .seListMark,
+  .seParty rect,
+  .seNode rect,
+  .seNodeLamp,
+  .seTrackNode,
+  .seNodeBlockNew {
+    transition: none;
   }
 }
 
 @media (max-width: 640px) {
   .slateExchange {
     margin-top: 1.75rem;
+  }
+  .seDots {
+    gap: 0.85rem;
   }
 }
 
@@ -1005,18 +1336,30 @@ div[class^='announcementBar'] a:hover {
 [data-theme='light'] .seChainLabel {
   fill: #525860;
 }
-[data-theme='light'] .seSlate rect {
+/* Light mode for the slate: the body and cells are named, not addressed as `.seSlate rect`, which
+   also matched the two signature cells and painted them over. */
+[data-theme='light'] .seSlateBody {
   fill: #ffffff;
   stroke: #8f5e1f;
 }
-[data-theme='light'] .seDotEmpty {
+[data-theme='light'] .seSlateRule,
+[data-theme='light'] .seSlateExcess,
+[data-theme='light'] .seCell {
   stroke: #8f5e1f;
 }
-[data-theme='light'] .seDotFilled {
+[data-theme='light'] .seCell--first,
+[data-theme='light'] .seSlate.isWhole .seCell--second {
   fill: #8f5e1f;
 }
-[data-theme='light'] .seChainBar {
-  fill: #8f5e1f;
+[data-theme='light'] .seCell--second {
+  fill: transparent;
+}
+[data-theme='light'] .seDot.isActive .seDotMark {
+  background: #8f5e1f;
+  border-color: #8f5e1f;
+}
+[data-theme='light'] .seCaptionCount {
+  color: #8f5e1f;
 }
 @media (prefers-reduced-motion: no-preference) {
   [data-theme='light'] .seParty rect {
@@ -1304,39 +1647,157 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
    Stage links remain ordinary anchors and every outcome remains visible without script.
    --------------------------------------------------------------------------- */
 
-.journeyOverview,
-.journeyProgress,
 .journeyLifecycle {
   margin: 2.25rem 0;
   padding: 1.5rem 0;
   border-top: 1px solid var(--ifm-toc-border-color);
   border-bottom: 1px solid var(--ifm-toc-border-color);
 }
+/* No border of its own. The stage hairlines already delimit this block, and a section border sat
+   directly against the last stage's border, which is the doubled line on the page. */
+.journeyOverview {
+  margin: 2.25rem 0;
+}
+.journeyHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
 .journeyOverview h2,
-.journeyProgress h2,
 .journeyLifecycle h2 {
   font-size: 1.35rem;
   margin: 0 0 0.55rem;
 }
-.journeyIntro,
 .journeyLifecycle > p {
   max-width: 48rem;
   color: var(--ifm-color-content-secondary);
 }
+.journeyTally {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.journeyTallyPct {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 1.7rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--epic-gold-light);
+}
+.journeyTallyNote {
+  font-size: 0.8rem;
+  color: var(--ifm-color-content-secondary);
+}
+/* Progress loads after hydration, so the fill animates up from zero on its own. That is the whole
+   animation: a value arriving, not decoration. */
+.journeyMeter {
+  height: 3px;
+  margin-top: 0.9rem;
+  background: var(--epic-line);
+  overflow: hidden;
+}
+.journeyMeterFill {
+  display: block;
+  height: 100%;
+  width: var(--jt-fill, 0%);
+  background: var(--epic-gradient-gold, var(--epic-gold-deep));
+  transition: width 0.7s var(--epic-ease, ease-out);
+}
 .journeyStages {
   list-style: none;
-  margin: 1.5rem 0 0;
+  margin: 0.4rem 0 0;
   padding: 0;
 }
 .journeyStage {
   display: grid;
-  grid-template-columns: 3.3rem minmax(0, 1fr);
+  grid-template-columns: 3.3rem minmax(0, 1fr) auto;
   gap: 0.85rem;
   padding: 1rem 0;
   border-top: 1px solid var(--ifm-toc-border-color);
 }
-.journeyStage:last-child {
-  border-bottom: 1px solid var(--ifm-toc-border-color);
+.journeyStageBody {
+  min-width: 0;
+}
+.journeyStageTrack {
+  display: block;
+  height: 2px;
+  max-width: 22rem;
+  margin-top: 0.75rem;
+  background: var(--epic-line);
+  overflow: hidden;
+}
+.journeyStageFill {
+  display: block;
+  height: 100%;
+  width: var(--jt-fill, 0%);
+  background: var(--epic-gold-deep);
+  transition: width 0.7s var(--epic-ease, ease-out);
+}
+.journeyStagePct {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ifm-color-content-secondary);
+}
+.journeyStage--done .journeyStagePct {
+  color: var(--epic-gold-deep);
+}
+/* Where you are: one gold mark in the gutter, the waypoint idea used once. */
+.journeyStage--current {
+  position: relative;
+}
+.journeyStage--current::before {
+  content: '';
+  position: absolute;
+  left: -0.85rem;
+  top: 1.15rem;
+  width: 3px;
+  height: 1.2rem;
+  background: var(--ifm-color-primary);
+}
+.journeyFoot {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--ifm-toc-border-color);
+}
+.journeyGo {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 1.3rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  color: var(--ifm-color-primary);
+  border: 1px solid var(--ifm-color-primary);
+  text-decoration: none;
+  transition: background 0.15s var(--epic-ease, ease-out);
+}
+.journeyGo:hover {
+  background: color-mix(in srgb, var(--ifm-color-primary) 10%, transparent);
+  text-decoration: none;
+}
+[data-theme='dark'] .journeyGo {
+  color: var(--epic-gold-light);
+  border-color: var(--epic-gold-deep);
+}
+[data-theme='dark'] .journeyGo:hover {
+  background: color-mix(in srgb, var(--epic-gold-deep) 14%, transparent);
+  border-color: var(--epic-gold-light);
+}
+.journeyFootNote {
+  font-size: 0.8rem;
+  color: var(--ifm-color-content-secondary);
+}
+@media (prefers-reduced-motion: reduce) {
+  .journeyMeterFill,
+  .journeyStageFill {
+    transition: none;
+  }
 }
 .journeyNumber,
 .journeyProgressNumber {
@@ -1908,6 +2369,40 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
   border-left-color: var(--ifm-color-primary);
 }
 
+/* The sidebar's first-level label sat 4px right of the navbar logo, so the page had two
+   different left edges stacked on top of each other. The wrapper contributes 0.5rem and the
+   link contributed 0.75rem, giving 20px against the navbar's 16px; dropping the link
+   variable to 0.5rem lands the label on 16px exactly. Nested levels indent with margin, so
+   their relative depth is unchanged. verify-runtime.mjs asserts the delta is 0. */
+.theme-doc-sidebar-container {
+  --ifm-menu-link-padding-horizontal: 0.5rem;
+}
+
+/* The three columns have to start their visible box on one line, and for two of them that box is
+   filled: the sidebar's active row and the active breadcrumb chip both paint a background. Line
+   up the boxes and the text follows, because both sit about 6px inside their own box: link box at
+   the gap puts its label 6px lower, chip box at the gap puts its text 5.6px lower.
+
+   Aligning the sidebar's label to the chip's box instead is wrong and looks it. That put the link
+   box 6px above the line, and on a page where the first sidebar row is the active one, that row's
+   filled box sits visibly squashed against the navbar.
+
+   The offset is a margin, not padding, because the menu is the scrolling element: as padding it
+   left the scroll track, and with it a bright scrollbar thumb, starting at the navbar's bottom
+   edge. Infima's own 0.5rem padding-top goes to zero for the same reason. Scoped to desktop
+   because below 997px the sidebar is a full-height drawer with no navbar above it.
+
+   The sidebar's flat fill and the theme's own `border-right` both still start at the viewport
+   top, and both are left alone: the navbar's strip paints over that band, so neither reaches the
+   navbar. An earlier pass replaced the fill with a hard-stop gradient and the border with an
+   ::after, which worked and was two more moving parts than the strip needs. */
+@media (min-width: 997px) {
+  .theme-doc-sidebar-container .menu {
+    margin-top: var(--epic-doc-top-gap);
+    padding-top: 0;
+  }
+}
+
 .menu__list-item-collapsible {
   border-radius: 0;
 }
@@ -1921,9 +2416,16 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
 }
 
 /* ---- Table of contents -------------------------------------------------
-   The outer nav is Docusaurus's scroll container. Its enclosure and corner ticks use
-   borders and background gradients only: padding stays on the inner header/list so the
-   container keeps its native scroll geometry and never develops a second scrollbar. */
+   The outer nav carries the enclosure and corner ticks using borders and background
+   gradients only, so padding stays on the inner header and list.
+
+   Stickiness lives on this outer nav, not on the inner list. Docusaurus puts
+   `position: sticky` on the div that `@theme/TOC` renders, which here is
+   `.epicTocList` inside the enclosure. That made the list stick inside a box only as
+   tall as its own content, so nothing moved and the whole panel scrolled away. The
+   enclosure sticks instead, and the inner div is reset to static so the list cannot
+   detach from its header. The nav becomes the flex column and the list becomes the
+   scrolling child, which keeps the "On this page" header visible on a long page. */
 .theme-doc-toc-desktop {
   border: 1px solid var(--epic-line);
   border-radius: 0;
@@ -1936,7 +2438,35 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
   background-position: left top, left top, right bottom, right bottom;
   background-repeat: no-repeat;
   background-size: 9px 1px, 1px 9px, 9px 1px, 1px 9px;
-  scrollbar-color: var(--epic-line-strong) transparent;
+  /* Scrollbar styling lives in the scrollbar section, behind feature queries. Declaring
+     scrollbar-color here is what switched Chromium onto its own arrowed bar. */
+}
+
+/* 997px is the Docusaurus breakpoint where the desktop TOC appears at all; below it
+   the mobile collapsible is used instead and is deliberately left unsticky. */
+@media (min-width: 997px) {
+  .theme-doc-toc-desktop {
+    position: sticky;
+    /* One gap below the navbar, the same distance the breadcrumb row keeps, so the two columns
+       start on the same line. `top` is a minimum distance from the viewport top, so this is
+       also where sticky clamps the panel once it detaches: at rest and pinned agree, and the
+       docs container's own padding-top is what supplies the gap before any scrolling. */
+    top: calc(var(--ifm-navbar-height) + var(--epic-doc-top-gap));
+    max-height: calc(100vh - var(--ifm-navbar-height) - var(--epic-doc-top-gap) - 1rem);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .theme-doc-toc-desktop > .epicTocList {
+    position: static;
+    max-height: none;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .theme-doc-toc-desktop .epicTocHeader {
+    flex: none;
+  }
 }
 
 [data-theme='dark'] .theme-doc-toc-desktop {
@@ -1945,10 +2475,18 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
 }
 
 .epicTocHeader {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* Flex with wrap, not a two-column grid.
+     The grid version collapsed to one column at `max-width: 1400px`, which is a viewport query, and
+     the thing that actually squeezes this panel is the assistant opening: it adds padding to
+     .main-wrapper, narrowing the column while the viewport stays exactly as wide. So the query never
+     fired, the nowrap label kept its full width in a `minmax(0, 1fr)` track, and "ON THIS PAGE" slid
+     underneath the section count. Wrapping responds to the space there actually is. */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: baseline;
-  gap: 0.75rem;
+  column-gap: 0.75rem;
+  row-gap: 0.2rem;
   padding: 0.85rem 0.9rem 0.7rem;
   border-bottom: 1px solid var(--epic-line);
 }
@@ -1974,16 +2512,7 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
   color: var(--epic-gold-deep);
 }
 
-@media (max-width: 1400px) {
-  .epicTocHeader {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.3rem;
-  }
-
-  .epicTocCount {
-    justify-self: start;
-  }
-}
+/* The header wraps on available width, so it needs no viewport breakpoint of its own. */
 
 .table-of-contents {
   font-size: 0.8125rem;
@@ -2047,14 +2576,58 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
   border-left: 1px solid var(--epic-line);
 }
 
+/* ---- Docs content column top -------------------------------------------
+   The column has to start on the same line as the sidebar and the contents panel. Infima gives
+   the container inside <main> a fixed 1rem through `padding-top--md`, declared `!important`
+   inside `@layer docusaurus.infima`, and that cannot be overridden from here: for `!important`
+   declarations the layer order inverts, so an unlayered `!important` is the weakest of all. Two
+   earlier attempts lost to it silently, and the first still measured as correct because sticky
+   was clamping the panel and the row down to the gap line and hiding that layout put them 8px
+   above it.
+
+   So the remainder goes on the row instead, which Infima does not touch. The subtraction uses the
+   same token Infima's own spacing scale is built from, so the two cannot drift. Scoped to doc
+   pages, since the landing page composes its own top spacing. */
+html[class*='docs-doc-id'] main .container.padding-top--md > .row {
+  padding-top: calc(var(--epic-doc-top-gap) - var(--ifm-spacing-vertical));
+}
+
 /* ---- Breadcrumbs -------------------------------------------------------
    Breadcrumbs are a location readout, so monospace, and square rather than
    the Infima default pill. The active-item contrast fix documented earlier in
-   this file still applies. */
+   this file still applies.
+
+   Not sticky, and that is the point. A sticky row needs an opaque background so article text
+   does not scroll through it, and an opaque background between the navbar and the row fills the
+   clear band, which is the whole reason the sidebar and this row read as glued to the navbar
+   while the contents panel did not. The panel gets away with sticking because nothing scrolls
+   in its column. Here the choice is a clear band or a sticky row, not both, and the band is
+   what was asked for. The navbar carries the site nav on every page and stays sticky.
+
+   No top padding and no bottom rule either. The row previously carried 0.55rem above the chips
+   and a hairline below, which made the strip read as a 74px band bounded by the navbar's line at
+   the top and its own at the bottom, with the chips low inside it. That is why it looked tall
+   and uncentred. Without the rule there is no band, so the chip is simply the top ink of this
+   column and lands on the same line as the sidebar's first label and the panel's top edge. */
+.theme-doc-breadcrumbs {
+  /* Slimmer than Infima's 0.4rem, which put the row at 31px of chip alone, without squashing it. */
+  --ifm-breadcrumb-padding-vertical: 0.35rem;
+  padding: 0 0 0.65rem;
+}
+
 .breadcrumbs__item {
   font-family: var(--ifm-font-family-monospace);
   font-size: 0.7rem;
   letter-spacing: 0.02em;
+}
+
+/* The first crumb's left padding pushed its glyph 10.24px right of the h1 below it, so the
+   two left edges of the page did not line up. Zeroing the padding on the first item only
+   makes the glyph flush with the title at every width, and keeps the link wider than the
+   24px target-size floor because the right padding stays. Measured, not guessed:
+   verify-runtime.mjs asserts the delta is under 1px. */
+.breadcrumbs__item:first-child .breadcrumbs__link {
+  padding-left: 0;
 }
 
 .breadcrumbs__link {
@@ -2160,11 +2733,17 @@ html[data-theme='light'][class*='docs-doc-page'] .theme-doc-markdown::before {
 
 /* A page-wide wash, no pattern. Top of the document sits a shade above the base
    colour and settles into it, which stops a long reference page reading as one
-   flat slab without putting anything behind the words. */
+   flat slab without putting anything behind the words.
+
+   It starts at zero on the gap line and ramps in over the next few rem, rather than opening at
+   full strength there. The navbar's strip paints the band in flat base colour, so a wash that
+   arrives at full alpha immediately below it puts a visible step across the page at that line.
+   Ramping makes the strip's bottom edge invisible while keeping the lift over the reading area. */
 body {
   background-image: linear-gradient(
     to bottom,
-    rgba(255, 249, 249, 0.032) 0rem,
+    rgba(255, 249, 249, 0) var(--epic-doc-strip-bottom),
+    rgba(255, 249, 249, 0.032) calc(var(--epic-doc-strip-bottom) + 6rem),
     rgba(255, 249, 249, 0) 40rem
   );
   background-repeat: no-repeat;
@@ -2173,7 +2752,8 @@ body {
 [data-theme='light'] body {
   background-image: linear-gradient(
     to bottom,
-    rgba(28, 30, 33, 0.035) 0rem,
+    rgba(28, 30, 33, 0) var(--epic-doc-strip-bottom),
+    rgba(28, 30, 33, 0.035) calc(var(--epic-doc-strip-bottom) + 6rem),
     rgba(28, 30, 33, 0) 40rem
   );
 }
@@ -2206,6 +2786,205 @@ body {
     rgba(201, 138, 62, 0.35) 42%,
     transparent 72%
   );
+}
+
+/* The clear band under the navbar, carried by the navbar so it exists at every scroll position.
+   The band cannot simply be empty space: with nothing opaque there, page content scrolls up into
+   it and touches the navbar again, so the gap would only exist at the top of the page. Putting
+   it here rather than on a column covers all three at once, sidebar included, and inherits the
+   navbar's sticky behaviour and z-index for free.
+
+   It is base colour, and the page wash starts below it for that reason: an opaque strip over a
+   washed page is a visible seam, which is what made the sidebar and breadcrumb row look welded
+   to the navbar. It is a ::before so tree order puts it under ::after, which keeps the gradient
+   hairline painting on top of it. */
+.navbar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: var(--epic-doc-top-gap);
+  pointer-events: none;
+  background-color: var(--ifm-background-color);
+}
+
+/* ---- Scrollbars --------------------------------------------------------
+   Infima ships a 7px bar with a #f1f1f1 track and a `silver` thumb. Those are light-mode greys
+   applied in both themes, so in dark mode every scroll container carried a bright grey rail: the
+   sidebar's was the most visible thing on the page after the navbar.
+
+   The replacement is an overlay-style bar. The track is transparent so no rail is drawn at all,
+   and the thumb is a rounded translucent capsule inset from the edge by a transparent border with
+   `background-clip: padding-box`, which is what makes a 10px box read as a 4px floating handle.
+   It sits at low contrast until pointed at.
+
+   The two styling syntaxes are kept strictly apart by feature query, and that split is the whole
+   trick. Declaring both at once is what produced the stepper arrows: see the comment on the
+   `@supports` block below. Every scroll container the theme creates is named in both lists rather
+   than reaching for `*`, which would also hit `overflow: hidden` elements and cost more than it
+   returns. Horizontal bars are covered too, since a wide code block or table scrolls sideways and
+   carried the same grey rail. */
+:root {
+  --epic-scrollbar-size: 10px;
+  --epic-scrollbar-inset: 3px;
+  --epic-scrollbar-thumb: rgba(255, 255, 255, 0.13);
+  --epic-scrollbar-thumb-hover: rgba(255, 255, 255, 0.26);
+  --epic-scrollbar-thumb-active: rgba(201, 138, 62, 0.55);
+  /* Infima's own variables, retargeted so anything still reading them agrees with the above. */
+  --ifm-scrollbar-size: var(--epic-scrollbar-size);
+  --ifm-scrollbar-track-background-color: transparent;
+  --ifm-scrollbar-thumb-background-color: var(--epic-scrollbar-thumb);
+  --ifm-scrollbar-thumb-hover-background-color: var(--epic-scrollbar-thumb-hover);
+}
+
+[data-theme='light'] {
+  --epic-scrollbar-thumb: rgba(28, 30, 33, 0.18);
+  --epic-scrollbar-thumb-hover: rgba(28, 30, 33, 0.32);
+  --epic-scrollbar-thumb-active: rgba(143, 94, 31, 0.55);
+}
+
+html {
+  /* Deliberately not `scrollbar-width` or `scrollbar-color` here. See the split below. */
+  scrollbar-gutter: auto;
+}
+
+/* Chromium and Safari: the webkit pseudo-element path.
+   ---------------------------------------------------------------------------
+   Chromium gives the standard properties precedence. The moment `scrollbar-width` or
+   `scrollbar-color` holds a non-initial value on an element, every `::-webkit-scrollbar` rule for
+   it is ignored and Chromium draws its own fluent bar instead, which carries stepper arrows at
+   both ends. That is where the arrows came from, and it is also why the earlier
+   `::-webkit-scrollbar-button { display: none }` did nothing: it was never consulted.
+
+   So on browsers that support these pseudo-elements, both standard properties are reset to their
+   initial value. `auto` is initial for both, which puts Chromium back on the pseudo-element path.
+   The reset has to name Infima's `.thin-scrollbar` too: Infima declares `scrollbar-width: thin`
+   on it inside `@media (pointer: fine)`, which would opt those containers back into the arrowed
+   bar on its own. */
+@supports selector(::-webkit-scrollbar) {
+  html,
+  body,
+  .thin-scrollbar,
+  .menu,
+  .navbar-sidebar,
+  .theme-doc-toc-desktop,
+  .epicTocList,
+  .table-of-contents,
+  .tabs-container,
+  pre,
+  pre code,
+  div[class*='codeBlockContent'],
+  div[class*='codeBlockLines'],
+  table,
+  .markdown table {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+
+  ::-webkit-scrollbar {
+    width: var(--epic-scrollbar-size);
+    height: var(--epic-scrollbar-size);
+    background-color: transparent;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-track-piece,
+  ::-webkit-scrollbar-corner {
+    background-color: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--epic-scrollbar-thumb);
+    background-clip: padding-box;
+    border: var(--epic-scrollbar-inset) solid transparent;
+    border-radius: 999px;
+    transition: background-color var(--epic-dur) var(--epic-ease);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--epic-scrollbar-thumb-hover);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--epic-scrollbar-thumb-active);
+  }
+
+  /* The stepper arrows. `display: none` alone is not enough on every Chromium version, so the
+     box is zeroed as well. Both single and double button variants are named, because a scroller
+     can render either pair depending on platform settings. */
+  ::-webkit-scrollbar-button,
+  ::-webkit-scrollbar-button:single-button,
+  ::-webkit-scrollbar-button:double-button,
+  ::-webkit-scrollbar-button:start,
+  ::-webkit-scrollbar-button:end,
+  ::-webkit-scrollbar-button:vertical,
+  ::-webkit-scrollbar-button:horizontal {
+    display: none;
+    width: 0;
+    height: 0;
+    background: transparent;
+  }
+
+  /* Infima repeats the track and thumb by variable inside `@media (pointer: fine)`, so the
+     geometry is repeated at matching specificity for those two containers. The variables above
+     already carry the colours. */
+  .thin-scrollbar::-webkit-scrollbar,
+  .menu::-webkit-scrollbar {
+    width: var(--epic-scrollbar-size);
+    height: var(--epic-scrollbar-size);
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-track,
+  .menu::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-thumb,
+  .menu::-webkit-scrollbar-thumb {
+    background: var(--epic-scrollbar-thumb);
+    background-clip: padding-box;
+    border: var(--epic-scrollbar-inset) solid transparent;
+    border-radius: 999px;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-thumb:hover,
+  .menu::-webkit-scrollbar-thumb:hover {
+    background: var(--epic-scrollbar-thumb-hover);
+    background-clip: padding-box;
+  }
+}
+
+/* Firefox: the standard-property path, which is all it has. No arrows are drawn there, so the
+   thin bar plus a transparent track is the whole job. */
+@supports not selector(::-webkit-scrollbar) {
+  html,
+  body,
+  .thin-scrollbar,
+  .menu,
+  .navbar-sidebar,
+  .theme-doc-toc-desktop,
+  .epicTocList,
+  .table-of-contents,
+  .tabs-container,
+  pre,
+  pre code,
+  div[class*='codeBlockContent'],
+  div[class*='codeBlockLines'],
+  table,
+  .markdown table {
+    scrollbar-width: thin;
+    scrollbar-color: var(--epic-scrollbar-thumb) rgba(0, 0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::-webkit-scrollbar-thumb {
+    transition: none;
+  }
 }
 
 /* Section rules fade out rather than running the full width. Same structural job,
@@ -2265,9 +3044,9 @@ html[class*='docs-doc-id-examples/'],
 
 /* Contour terrain removed. It was scoped to narrative routes and it was the wrong
    answer: documentation pages now share one background treatment, a gradient lift
-   with no pattern, which is defined above. Terrain survives in the reference
-   implementation at epic-devdocs/mockups/b.css if it is ever wanted for a
-   landing-style page, where there is no prose directly on top of it. */
+   with no pattern, which is defined above. Terrain survives in the design
+   exploration kept in the private working repository, if it is ever wanted for a
+   landing-style page where there is no prose directly on top of it. */
 
 
 /* ---------------------------------------------------------------------------
@@ -2531,7 +3310,11 @@ html[class*='docs-doc-id-examples/'],
 }
 [data-theme='light'] .epicTocList > .table-of-contents > li:not(:last-child) { border-bottom-color: var(--epic-line); }
 [data-theme='light'] .epicTocList .table-of-contents .table-of-contents { border-left-color: var(--epic-line); }
-[data-theme='light'] .epicTocList { scrollbar-color: var(--epic-line-strong) transparent; }
+[data-theme='light'] .epicTocList {
+  /* No `scrollbar-color` here on purpose. It is the property that switches Chromium to its own
+     arrowed bar, and the scrollbar section owns both paths behind feature queries. */
+  color-scheme: light;
+}
 
 /* Light code blocks */
 [data-theme='light'] .theme-code-block { border-color: var(--epic-line); background: #f5f4f1; }
@@ -2990,5 +3773,78 @@ html[class*='docs-doc-id-examples/'],
   }
   .epicRpcIndex ul {
     grid-template-columns: 1fr;
+  }
+}
+
+
+/* ---------------------------------------------------------------------------
+   Theme switch
+   ---------------------------------------------------------------------------
+   Styles the swizzled @theme/ColorModeToggle. Upstream's three stacked icons and
+   their CSS module are gone with it; see src/theme/ColorModeToggle/index.js for
+   why the three-state cycle went too.
+
+   Which glyph is visible is decided by `html[data-theme]` rather than by React
+   state. The inline script in <head> sets that attribute before first paint, so
+   the right icon is on screen immediately and there is no flash of the wrong one
+   at hydration. Dark is the default mode, so the sun is the unqualified case and
+   light mode overrides it.
+
+   Sized and weighted to sit beside the ask control: a 16px stroke glyph in a
+   32px target, dim at rest, gold on hover, hairline border only on hover. The
+   same vocabulary as .epicAsk-control rather than a second idea in the same row.
+   -------------------------------------------------------------------------- */
+
+.epicThemeToggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 32px, comfortably over the 24px minimum target in WCAG 2.2 AA (2.5.8). */
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: var(--ifm-color-content-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color var(--epic-dur) var(--epic-ease),
+    border-color var(--epic-dur) var(--epic-ease);
+}
+
+.epicThemeToggle-button:hover {
+  color: var(--ifm-color-primary);
+  border-color: var(--epic-line);
+}
+
+.epicThemeToggle-button:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+.epicThemeToggle-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.epicThemeToggle-icon--sun {
+  display: block;
+}
+
+.epicThemeToggle-icon--moon {
+  display: none;
+}
+
+[data-theme='light'] .epicThemeToggle-icon--sun {
+  display: none;
+}
+
+[data-theme='light'] .epicThemeToggle-icon--moon {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .epicThemeToggle-button {
+    transition: none;
   }
 }

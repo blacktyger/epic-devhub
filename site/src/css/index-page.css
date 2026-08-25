@@ -93,9 +93,15 @@
    masthead column. Not a heading: the h1 below it is the page's only first-level heading and
    adding another would break the outline for no gain. */
 .ixEyebrow {
-  margin: 0 0 0.15rem 0.15rem;
+  /* Optically aligned to the h1 below rather than box-aligned to it: a smaller, lighter face
+     at the same box position reads as sitting left of the title, which the grid background
+     makes obvious. The nudge is in em so it tracks the font size instead of drifting when
+     the clamp resolves differently at another viewport. */
+  margin: 0 0 0.15rem 0.1em;
   font-family: var(--epic-font-ui);
-  font-size: clamp(1rem, 0.9rem + 0.45vw, 1.2rem);
+  /* The previous ramp scaled by 1.2: floor, slope and ceiling move together, so the type
+     keeps growing smoothly with the viewport instead of stepping at a breakpoint. */
+  font-size: clamp(1.2rem, 1.08rem + 0.54vw, 1.44rem);
   font-weight: 600;
   letter-spacing: 0.01em;
   line-height: 1.1;
@@ -137,7 +143,9 @@
 }
 @media (min-width: 1000px) {
   .ixMastGrid {
-    grid-template-columns: minmax(0, 1fr) 17rem;
+    /* Was 17rem, sized for a list of links. The quick-start snippet holds release download
+       URLs, and at 17rem every line scrolled, which makes a copyable block look broken. */
+    grid-template-columns: minmax(0, 1fr) 27rem;
     gap: 3.5rem;
     align-items: center;
   }
@@ -546,14 +554,17 @@
 
 /* No border around the diagram. A rule above it and a caption below is enough, and it stops
    the figure looking like a widget bolted onto the page. */
+/* The figure spans the row rather than sharing it with the list. A 760-unit diagram in a 369px
+   column renders at half scale, which is why adding detail to it made it harder to read, not
+   easier. The list keeps the measure it wants; the diagram gets the width it needs. */
 .ixFigure {
+  grid-column: 1 / -1;
   margin: 0;
   padding-top: 0.4rem;
   border-top: 1px solid var(--ifm-toc-border-color);
 }
 .ixFigure .slateExchange {
   margin: 0.75rem 0 0;
-  max-width: 100%;
 }
 .ixFigure figcaption {
   margin-top: 1rem;
@@ -772,111 +783,295 @@
   }
 }
 
-/* ---- Project links and compact AI status ---- */
+/* ---- Masthead quick start and compact AI status ---- */
 
-.ixProjectPanel {
+/* The snippet treatment from the approved protocol-scope design: square, corner-ticked by
+   .ixPanel, a head carrying the platform switch, a scrollable body, and a caveat foot. This
+   replaced a project-links list whose four links the footer already carries, and its styles went
+   with it rather than staying in the payload budget.mjs gates. */
+.ixSnippet {
+  min-width: 0;
+  padding: 0;
   background: var(--ifm-background-surface-color);
 }
-[data-theme='dark'] .ixProjectPanel {
+[data-theme='dark'] .ixSnippet {
   background: rgba(13, 13, 16, 0.85);
   border-color: var(--epic-line, var(--ifm-toc-border-color));
 }
-.ixProjectLinks {
-  list-style: none;
+.ixSnippetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+.ixSnippetTitle {
   margin: 0;
   padding: 0;
+  border-bottom: none;
 }
-.ixProjectLinks li + li {
-  border-top: 1px solid var(--ifm-toc-border-color);
+.ixSnippetTabs {
+  display: flex;
+  gap: 0.15rem;
 }
-.ixProjectLinks a {
-  position: relative;
-  display: grid;
-  gap: 0.1rem;
-  padding: 0.48rem 1.35rem 0.48rem 0;
-  color: var(--ifm-font-color-base);
-  text-decoration: none;
+/* Second control row: the platform set for the selected binary. Its own row because the head
+   already holds the Node and Wallet tabs, and two switches on one line wrapped badly at 27rem. */
+.ixSnippetPlatforms {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.5rem;
+  padding: 0.5rem 0.7rem 0;
 }
-.ixProjectLinks a::after {
-  content: '↗';
-  position: absolute;
-  top: 50%;
-  right: 0;
-  translate: 0 -50%;
+.ixSnippetTab {
   font-family: var(--ifm-font-family-monospace);
-  font-size: 0.76rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  padding: 0.28rem 0.5rem;
+  color: var(--ifm-color-content-secondary);
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.ixSnippetTab:hover {
   color: var(--ifm-color-primary);
 }
-.ixProjectLinks a:hover {
+.ixSnippetTab.isActive {
   color: var(--ifm-color-primary);
-  text-decoration: none;
+  border-color: var(--ifm-color-primary);
 }
-.ixProjectLinks a:focus-visible {
+[data-theme='dark'] .ixSnippetTab.isActive {
+  color: var(--epic-gold-light);
+  border-color: var(--epic-gold-deep);
+}
+.ixSnippetTab:focus-visible {
   outline: 2px solid var(--ifm-color-primary);
   outline-offset: 2px;
 }
-.ixProjectLinks span {
-  font-size: 0.82rem;
-  line-height: 1.35;
+.ixSnippetBody {
+  margin: 0;
+  padding: 0.8rem 0.85rem;
+  background: none;
+  border-radius: 0;
+  font-size: 0.72rem;
+  /* Reserve the tallest command set instead of sizing to the selected one. The masthead's height
+     is set by this panel, so a panel that shrinks when a tab is pressed drags every section of
+     the page up and down: Wallet/Windows has two commands where every other variant has three,
+     which moved .ixMain by 19px on its own. Lines, not pixels, so the reservation follows the
+     font size and the mobile padding override. Raise --ix-snippet-lines if a variant gains a
+     command; verify-runtime.mjs fails if the variants stop agreeing. */
+  --ix-snippet-lines: 3;
+  --ix-snippet-line: 1.7;
+  line-height: var(--ix-snippet-line);
+  /* Release URLs are longer than any sensible column, so this block scrolls. Never the
+     document: verify-runtime.mjs fails the run if a route scrolls sideways at 375px. */
+  overflow-x: auto;
 }
-.ixProjectLinks small {
+.ixSnippetBody:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: -2px;
+}
+/* Infima styles a bare <code> as an inline chip with its own background, border and padding.
+   Inside this block that drew a faint box, and because the lines are display:block inside an
+   inline element it also generated a leading empty line box, so the snippet rendered with a
+   stray mark and one blank line above the first command. */
+.ixSnippetBody code {
+  display: block;
+  min-height: calc(var(--ix-snippet-lines) * var(--ix-snippet-line) * 1em);
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+.ixSnippetLine {
+  display: block;
+  white-space: pre;
+}
+.ixSnippetPrompt {
+  color: var(--ifm-color-primary);
+  user-select: none;
+}
+[data-theme='dark'] .ixSnippetPrompt {
+  color: var(--epic-gold-deep);
+}
+.ixSnippetFoot {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.65rem 0.85rem 0.8rem;
+  border-top: 1px solid var(--ifm-toc-border-color);
+}
+.ixSnippetCopy {
+  justify-self: start;
+  margin-left: auto;
   font-family: var(--ifm-font-family-monospace);
   font-size: 0.66rem;
-  line-height: 1.35;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.24rem 0.55rem;
+  color: var(--ifm-font-color-base);
+  background: none;
+  border: 1px solid var(--ifm-toc-border-color);
+  cursor: pointer;
+}
+.ixSnippetCopy:hover {
+  color: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
+}
+.ixSnippetCopy:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+.ixSnippetNote {
+  margin: 0;
+  font-size: 0.72rem;
+  /* Two lines reserved for the same reason as the command block: the macOS caveat wraps to two
+     lines at both 1440px and 390px while every other note is one, which was the other 18px of
+     the masthead's 36px jump. */
+  line-height: 1.5;
+  min-height: calc(2 * 1.5em);
   color: var(--ifm-color-content-secondary);
 }
-[data-theme='dark'] .ixProjectLinks a::after {
-  color: var(--epic-gold-deep);
+.ixSnippetLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+  margin: 0;
+  font-size: 0.72rem;
 }
 
-.ixAiBadge {
-  position: absolute;
-  top: 0.65rem;
-  right: var(--ifm-spacing-horizontal);
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-height: 1.7rem;
-  padding: 0.28rem 0.55rem;
-  border: 1px solid var(--ifm-toc-border-color);
-  background: color-mix(in srgb, var(--ifm-background-color) 88%, transparent);
-  font-family: var(--ifm-font-family-monospace);
-  font-size: 0.64rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ifm-color-content-secondary);
-}
-.ixAiBadge .ixPillIcon {
-  width: 0.68rem;
-  height: 0.68rem;
-}
-.ixAiBadgeState {
-  padding-left: 0.4rem;
-  border-left: 1px solid var(--ifm-toc-border-color);
-  color: var(--ifm-color-primary);
-}
-[data-theme='dark'] .ixAiBadge {
-  border-color: var(--epic-line-strong, var(--ifm-toc-border-color));
-  background: rgba(13, 13, 16, 0.82);
-}
-[data-theme='dark'] .ixAiBadgeState {
-  color: var(--epic-gold-deep);
-}
+/* The .ixAiBadge rules that were here are gone with the badge itself. It announced "Ask AI · Soon",
+   became a live button when the assistant shipped, and was then a third way to open the same panel on
+   a page whose navbar already offers it. */
 
 @media (max-width: 600px) {
-  .ixAiBadge {
-    top: 0.55rem;
-    right: 1rem;
+  .ixSnippetTab,
+  .ixSnippetCopy {
+    /* 2rem, not the 2.75rem the removed project links used. Two switch rows plus a copy button
+       at 44px each put roughly 120px of chrome above three lines of code, which reads as a
+       header with a snippet attached rather than the reverse. 32px still clears the 24px
+       minimum target size in WCAG 2.2 AA (2.5.8). */
+    min-height: 2rem;
   }
 
-  .ixProjectLinks a {
-    min-height: 2.75rem;
-    padding-block: 0.52rem;
+  /* Tighter chrome on a narrow screen, for the same reason. */
+  .ixSnippetHead {
+    padding: 0.5rem 0.7rem;
+  }
+  .ixSnippetPlatforms {
+    padding: 0.35rem 0.6rem;
+  }
+  .ixSnippetBody {
+    padding: 0.65rem 0.7rem;
+  }
+  .ixSnippetFoot {
+    padding: 0.6rem 0.7rem 0.7rem;
   }
 }
 
 /* ---- Journey start CTA ---- */
+
+/* ---- Journey manifest ----
+   The right column of the journey section: an enclosure with corner ticks holding monospace
+   data, which the visual language permits for an object that genuinely is separate.
+   Deliberately not a path. The legs on the left are this page's one trail rail, and repeating
+   that metaphor here read as the same idea twice, with a second drawing trace on top of it.
+   Gold now appears only in the corner ticks and the action: a list of eight equal items has no
+   current position to signal, and gold used to organise rather than to signal is what the
+   brief warns against. */
+.ixJourneyLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+  gap: 3rem;
+  align-items: start;
+}
+.ixManifest {
+  margin-top: 2.25rem;
+  border: 1px solid var(--epic-line);
+  background-color: var(--epic-s1);
+  background-image:
+    linear-gradient(var(--epic-gold-deep), var(--epic-gold-deep)),
+    linear-gradient(var(--epic-gold-deep), var(--epic-gold-deep)),
+    linear-gradient(var(--epic-gold-deep), var(--epic-gold-deep)),
+    linear-gradient(var(--epic-gold-deep), var(--epic-gold-deep));
+  background-position: left top, left top, right bottom, right bottom;
+  background-repeat: no-repeat;
+  background-size: 9px 1px, 1px 9px, 9px 1px, 1px 9px;
+}
+.ixManifestHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 0.95rem 0.65rem;
+  border-bottom: 1px solid var(--epic-line);
+}
+.ixManifestLabel,
+.ixManifestCount {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+}
+.ixManifestLabel {
+  color: var(--ifm-font-color-base);
+  text-transform: uppercase;
+}
+.ixManifestCount {
+  color: var(--ifm-color-content-secondary);
+}
+.ixManifestList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ixManifestItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: baseline;
+  padding: 0.5rem 0.95rem;
+}
+.ixManifestItem:not(:last-child) {
+  border-bottom: 1px solid var(--epic-line);
+}
+.ixManifestNum {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  color: var(--ifm-color-content-secondary);
+}
+.ixManifestTitle {
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+.ixManifest .ixJourneyBtn {
+  display: flex;
+  justify-content: center;
+  border: 0;
+  border-top: 1px solid var(--epic-line);
+}
+/* The gold trace draws once over the spine, the signal-trace idea used elsewhere. pathLength
+   normalises the dash maths so the animation does not need to know the pixel height. */
+.ixManifest .ixJourneyBtn:hover {
+  background: color-mix(in srgb, var(--epic-gold-deep) 12%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ixManifest .ixJourneyBtn {
+    transition: none;
+  }
+}
+
+@media (max-width: 996px) {
+  .ixJourneyLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ixManifest {
+    max-width: 24rem;
+  }
+}
 
 .ixJourneyStart {
   margin-top: 2.25rem;
@@ -896,31 +1091,30 @@
   font-size: 0.82rem;
   font-weight: 500;
   letter-spacing: 0.04em;
-  color: var(--ifm-background-color);
-  background: var(--ifm-color-primary);
+  color: var(--ifm-color-primary);
+  background: transparent;
   border: 1px solid var(--ifm-color-primary);
   text-decoration: none;
   transition: background 0.15s, color 0.15s;
 }
 .ixJourneyBtn:hover {
-  background: var(--ifm-color-primary-dark);
-  border-color: var(--ifm-color-primary-dark);
-  color: var(--ifm-background-color);
+  background: color-mix(in srgb, var(--ifm-color-primary) 10%, transparent);
+  border-color: var(--ifm-color-primary);
+  color: var(--ifm-color-primary);
   text-decoration: none;
 }
+/* Gold as a signal, not a slab. A solid gold block was the loudest thing in the section and
+   read as a warning rather than an invitation; the hairline and gold label keep the identity
+   and the fill arrives only on hover. */
 [data-theme='dark'] .ixJourneyBtn {
-  background: var(--epic-gold-deep);
+  background: transparent;
   border-color: var(--epic-gold-deep);
-  color: #0d0d10;
+  color: var(--epic-gold-light);
 }
 [data-theme='dark'] .ixJourneyBtn:hover {
-  background: var(--epic-gold-light);
+  background: color-mix(in srgb, var(--epic-gold-deep) 14%, transparent);
   border-color: var(--epic-gold-light);
-  color: #0d0d10;
-}
-.ixJourneyHint {
-  font-size: 0.8rem;
-  color: var(--ifm-color-content-secondary);
+  color: var(--epic-gold-light);
 }
 @media (max-width: 600px) {
   .ixJourneyStart {
@@ -993,37 +1187,35 @@
 }
 
 
-/* Keep the first version glyph on the same x-coordinate as the first navbar label.
-
-   Desktop navbar geometry is explicit: 16px navbar inset, an 89px brand slot (65px logo,
-   8px logo gap, 16px brand gap), then the navbar item's 0.55rem text inset. The version rail
-   reserves those same spaces in the same order, so its first bracket and "Start here" begin
-   at the same pixel. Below the collapsed-nav breakpoint there is no visible first item to
-   align with, so both reserved spaces are removed. */
-.ixVersionRail {
-  --epic-navbar-brand-slot: 89px;
-  --epic-navbar-item-inset: 0.55rem;
-}
+/* Keep every left edge on the page on the same x-coordinate as the first navbar label.
+   The geometry tokens live in custom.css under "Page horizontal geometry", shared with the
+   navbar so the two sides of the page cannot drift apart. */
 .ixVersionRail > .container {
   display: flex;
   width: 100%;
   max-width: none;
   justify-content: flex-start;
-  padding-inline:
-    calc(
-      var(--ifm-navbar-padding-horizontal, 1rem) + var(--epic-navbar-brand-slot) +
-        var(--epic-navbar-item-inset)
-    )
-    var(--ifm-navbar-padding-horizontal, 1rem);
+  padding-inline: var(--epic-page-inset) var(--ifm-navbar-padding-horizontal, 1rem);
 }
 .ixVersionRail .ixVersionPills {
   width: max-content;
   margin-inline: 0;
 }
+
+/* Left-pinned rather than centred. The width subtracts the inset because `.container` is
+   `width: 100%`, so adding a left margin on top of it overflowed the viewport by exactly the
+   inset: 16px of sideways scroll on the landing page at 375px. */
+.ixMastIn,
+.ixMain {
+  width: calc(100% - var(--epic-page-inset));
+  margin-inline: var(--epic-page-inset) auto;
+  padding-inline: 0 var(--ifm-spacing-horizontal, 1rem);
+}
+
 @media (max-width: 996px) {
-  .ixVersionRail {
-    --epic-navbar-brand-slot: 0px;
-    --epic-navbar-item-inset: 0rem;
+  .ixMast,
+  .ixMain {
+    /* Nothing to override: the collapse happens once on :root in custom.css. */
   }
 }
 @media (max-width: 600px) {
@@ -1069,5 +1261,193 @@
   .ixTypedDesktop {
     width: auto;
     animation: none;
+  }
+}
+
+
+/* ---- Journey invite ----------------------------------------------------
+   One structure, replacing three legs beside eight stages. That layout was the same sequence
+   twice, and no amount of restyling either column fixed it: the fault was having two.
+
+   What earns the space now is information the page did not have before: how much of each stage
+   has actually been read. Gold is the fill on the meters, which is what gold is for in this
+   system, a travelling value. The numbers stay secondary text. */
+.jtInvite {
+  margin-top: 2rem;
+}
+.jtHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2rem;
+  align-items: start;
+}
+.jtTitle {
+  margin: 0 0 0.6rem;
+}
+.jtLede {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--ifm-color-content-secondary);
+}
+
+/* The readout is type, not a widget: a ring or a gauge here would be dashboard decoration. */
+.jtDial {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1;
+}
+.jtDialPct {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: clamp(2rem, 1.6rem + 1.4vw, 2.75rem);
+  font-variant-numeric: tabular-nums;
+  color: var(--epic-gold-light);
+}
+[data-theme='light'] .jtDialPct {
+  color: #8f5e1f;
+}
+.jtDialNote {
+  margin-top: 0.35rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ifm-color-content-secondary);
+}
+
+.jtMeter {
+  position: relative;
+  height: 3px;
+  margin: 1.25rem 0 1.75rem;
+  background: var(--epic-line);
+  overflow: hidden;
+}
+.jtMeterFill {
+  display: block;
+  height: 100%;
+  width: var(--jt-fill, 0%);
+  background: var(--epic-gradient-gold, var(--epic-gold-deep));
+  transition: width 0.5s var(--epic-ease, ease-out);
+}
+
+/* Two columns of four at desktop width. A single column of eight was the tall list this section
+   is replacing, and four rows read as a set rather than a queue. */
+.jtStages {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.15rem 2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+.jtStage {
+  position: relative;
+  border-top: 1px solid var(--epic-line);
+}
+.jtStageLink {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.7rem 0.1rem 0.55rem;
+  color: var(--ifm-font-color-base);
+  text-decoration: none;
+}
+.jtStageLink:hover {
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+.jtStageNum {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  color: var(--ifm-color-content-secondary);
+}
+.jtStageTitle {
+  font-size: 0.95rem;
+}
+.jtStagePct {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ifm-color-content-secondary);
+}
+/* The per-stage meter sits on the row's own top hairline, so progress reads as the line filling
+   in rather than as an extra element per row. */
+.jtStageBar {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  height: 1px;
+  width: var(--jt-fill, 0%);
+  background: var(--epic-gold-deep);
+  transition: width 0.5s var(--epic-ease, ease-out);
+}
+.jtStage--done .jtStageNum,
+.jtStage--done .jtStagePct {
+  color: var(--epic-gold-deep);
+}
+
+.jtActions {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--epic-line);
+}
+.jtGo {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 1.4rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  color: var(--ifm-color-primary);
+  background: transparent;
+  border: 1px solid var(--ifm-color-primary);
+  text-decoration: none;
+  transition: background 0.15s var(--epic-ease, ease-out);
+}
+.jtGo:hover {
+  background: color-mix(in srgb, var(--ifm-color-primary) 10%, transparent);
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+[data-theme='dark'] .jtGo {
+  color: var(--epic-gold-light);
+  border-color: var(--epic-gold-deep);
+}
+[data-theme='dark'] .jtGo:hover {
+  background: color-mix(in srgb, var(--epic-gold-deep) 14%, transparent);
+  border-color: var(--epic-gold-light);
+}
+.jtActionsNote {
+  font-size: 0.8rem;
+  color: var(--ifm-color-content-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jtMeterFill,
+  .jtStageBar {
+    transition: none;
+  }
+}
+
+@media (max-width: 996px) {
+  .jtHead {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+  .jtDial {
+    align-items: flex-start;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .jtStages {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
   }
 }

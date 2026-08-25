@@ -939,7 +939,7 @@ groups.push(
         params: [
           WALLET_TOKEN_PARAM,
           {name: 'tx', type: 'Transaction', required: true, default: '{}', help: 'The finalised transaction.'},
-          {name: 'fluff', type: 'bool', required: true, default: 'false', help: 'Skip the Dandelion stem phase.'},
+          {name: 'fluff', type: 'bool', required: true, default: 'false', help: 'Skip the Dandelion stem phase and broadcast immediately.'},
         ],
         src: {repo: 'wallet', path: 'api/src/owner_rpc_s.rs', line: 1143},
         example: null,

@@ -230,13 +230,17 @@ async function traverse(page, {allowance = 30} = {}) {
  * `display: none` and leaves the element in place, so a presence check reports the results as
  * still open and invents a defect that is not there.
  */
-const searchResultsVisible = (page) =>
+/**
+ * The ask-or-search modal, which replaced the search theme's inline dropdown. The dropdown was
+ * rendered by autocomplete.js into a `[class*=dropdownMenu]` element; this is our own dialog.
+ */
+const askModalVisible = (page) =>
   page.evaluate(() => {
-    const menu = document.querySelector('[class*=dropdownMenu]');
-    if (!menu) return false;
-    const cs = getComputedStyle(menu);
+    const modal = document.querySelector('.epicAsk-modal');
+    if (!modal) return false;
+    const cs = getComputedStyle(modal);
     if (cs.display === 'none' || cs.visibility === 'hidden') return false;
-    return menu.getBoundingClientRect().height > 0;
+    return modal.getBoundingClientRect().height > 0;
   });
 
 await fs.mkdir(RESULTS, {recursive: true});
@@ -294,32 +298,44 @@ const out = {desktop: {}, mobile: {}, skipLink: {}, searchEscape: {}, mobileDraw
   await ctx.close();
 }
 
-// 3. Search: Escape must close the dropdown and leave focus somewhere sane. This is a combobox,
-//    not a modal, so focus is expected to stay on the input rather than be restored elsewhere.
+// 3. The ask-or-search modal. Unlike the dropdown it replaced this is a real dialog, so Escape must
+//    close it and put focus back on the control that opened it rather than leaving it on the body.
+//    The combobox inside it still has to move its selection with the arrow keys without focus
+//    leaving the text field.
 {
   const ctx = await browser.newContext({viewport: {width: 1440, height: 900}, colorScheme: 'dark'});
   const page = await ctx.newPage();
   await page.goto(`${server.origin}/`, {waitUntil: 'networkidle'});
-  const input = page.locator('.navbar__search-input').first();
-  const present = (await input.count()) > 0;
+  const control = page.locator('button.epicAsk-control').first();
+  const present = (await control.count()) > 0;
   out.searchEscape = {present};
   if (present) {
-    await input.click();
+    // The shortcut is the documented way in, so verify it rather than only the click.
+    await page.keyboard.press('Control+k');
+    await page.waitForTimeout(500);
+    out.searchEscape.openedByShortcut = await askModalVisible(page);
+
+    const input = page.locator('.epicAsk-input').first();
     await input.fill('init_send_tx');
     await page.waitForTimeout(1600);
-    out.searchEscape.openedByTyping = await searchResultsVisible(page);
-    // Arrow keys should move through results without focus escaping the widget.
+    out.searchEscape.openedByTyping = await askModalVisible(page);
+    out.searchEscape.optionCount = await page.locator('.epicAsk-modal [role=option]').count();
+
     await page.keyboard.press('ArrowDown');
     await page.waitForTimeout(200);
     out.searchEscape.afterArrowDown = await page.evaluate(() => ({
       activeTag: document.activeElement?.tagName.toLowerCase() ?? null,
       hasAriaActivedescendant: !!document.activeElement?.getAttribute('aria-activedescendant'),
     }));
+
     await page.keyboard.press('Escape');
     await page.waitForTimeout(400);
-    out.searchEscape.closedByEscape = !(await searchResultsVisible(page));
+    out.searchEscape.closedByEscape = !(await askModalVisible(page));
     out.searchEscape.focusAfterEscape = await page.evaluate(
       () => document.activeElement?.className?.toString().slice(0, 60) ?? null,
+    );
+    out.searchEscape.focusReturnedToControl = await page.evaluate(
+      () => !!document.activeElement?.classList?.contains('epicAsk-control'),
     );
   }
   await ctx.close();

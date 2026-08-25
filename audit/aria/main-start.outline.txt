@@ -1,5 +1,4 @@
 h1 Start your Epic developer journey
-  h2 The developer journey
-  h2 Your progress
-  h2 Prefer reference when you already know the subject​
+  h2 The route
+  h2 Already know the subject​
   h2 What this version does not cover​

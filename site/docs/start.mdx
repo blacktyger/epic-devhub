@@ -6,16 +6,17 @@ sidebar_label: Start here
 
 # Start your Epic developer journey
 
-Eight stages, in dependency order, from what makes Epic different to driving it from code. Stages 03 to
-05 run on a private chain of your own, so you complete a real transfer before anything is at risk.
+Eight stages. By the end you will have built the binaries, mined your own chain, moved coins across
+it, and driven a wallet from code.
+
+Stages 03 to 05 run on a private chain you create yourself, with coins you mint. It behaves exactly
+like mainnet and touches nothing on it.
 
 <JourneyOverview />
 
-<JourneyProgress />
+## Already know the subject
 
-## Prefer reference when you already know the subject
-
-Use the sidebar, local search, and the pages below when you do not need the guided sequence:
+Skip the sequence and go straight to the reference:
 
 - [Configuration and CLI](/reference/cli) for commands and persistent settings.
 - [API reference](/api/) and [code examples](/examples/) for programmatic work.
@@ -29,10 +30,3 @@ wallet's `use_tor_listener` setting defaults to `true`, so a plain `epic-wallet 
 background thread. Set `use_tor_listener = false` in `epic-wallet.toml`, or pass `-n` on every `listen`.
 Tor operation is not documented or runtime-verified here; its configuration keys remain listed in the
 [wallet](/reference/wallet-config) and [node](/reference/node-config) references.
-
-**The wallet's unencrypted `/v2/owner`.** It still responds and it takes no token. Current work belongs
-on the wallet's `/v3/owner`. See [the API overview](/api/).
-
-The node's REST surface under `/v1` *is* covered: it is a different interface style rather than an
-older one, and [the node API page](/api/node#the-v1-rest-surface) maps every route onto its JSON-RPC
-equivalent.
