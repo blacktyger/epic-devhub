@@ -29,6 +29,27 @@ import {createPacer} from './reveal';
 
 const STATUS_CLEAR_MS = 100;
 
+/**
+ * What a reader sees when a turn fails.
+ *
+ * Never the message the transport produced. Those are written for whoever is debugging the stack, and
+ * one of them reached a reader as "Assistant server not reachable at http://127.0.0.1:7771. Start it
+ * with: cd epic-assistant && npm run dev", which is a development proxy talking to the wrong audience.
+ * A reader can do nothing with a port number, so the panel says the assistant is unavailable and the
+ * detail goes to the console for us.
+ *
+ * Two kinds keep their own line because the reader can act on them: a rate limit is temporary and
+ * says so, and a dropped connection is worth retrying.
+ */
+const ERROR_TEXT = {
+  rate: 'That is the question limit for now. Try again in a few minutes.',
+  network: 'Connection lost.',
+};
+
+function readerError(error) {
+  return ERROR_TEXT[error?.kind] ?? 'AI assistant currently unavailable.';
+}
+
 export default function Panel({onClose}) {
   const {pathname} = useLocation();
 
@@ -258,6 +279,8 @@ export default function Panel({onClose}) {
             case 'error':
               pacer.flush();
               patch({state: 'error', error: data});
+              // The reader gets one sentence; whoever is debugging gets the real message.
+              console.warn('[epic assistant]', data?.kind ?? 'error', data?.message ?? '');
               announce('Could not generate an answer');
               break;
             default:
@@ -425,7 +448,7 @@ export default function Panel({onClose}) {
 
                 {turn.state === 'error' && (
                   <p className="epicChat-error" role="group" aria-label="Error">
-                    {turn.error?.message ?? 'Something went wrong.'}{' '}
+                    {readerError(turn.error)}{' '}
                     {turn.error?.retryable && (
                       <button
                         type="button"

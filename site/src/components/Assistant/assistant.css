@@ -204,14 +204,52 @@
 
 /* --------------------------------------------------------------- shell */
 
+:root {
+  /* Panel width. AssistantHost.js overwrites this on the root element from the reader's stored value,
+     clamped to a 352px floor and 60% of the viewport, so the two ends of the range live in one place
+     there and this is only the default. The content column reads the same variable, which is what
+     keeps the page edge and the panel edge on one line at every width. */
+  --epicChat-width: 30rem;
+  --epicChat-enter: 220ms;
+}
+
 .epicChat-host {
   position: fixed;
   top: var(--ifm-navbar-height, 60px);
   right: 0;
   bottom: 0;
-  width: min(30rem, 100vw);
+  width: min(var(--epicChat-width), 100vw);
   z-index: 210;
   display: flex;
+  /* Slides in from the screen edge rather than appearing. The panel is not a modal, so it has to read
+     as something that arrived from off-screen and can be sent back. `both` holds the end state, since
+     the element is mounted only while open. */
+  animation: epicChatSlideIn var(--epicChat-enter) cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+/* The host stays mounted for the length of this animation, and AssistantHost.js holds the same
+   duration as a constant so the unmount lands on the last frame. */
+.epicChat-host[data-state='closing'] {
+  animation-name: epicChatSlideOut;
+  pointer-events: none;
+}
+
+@keyframes epicChatSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes epicChatSlideOut {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
 
 .epicChat {
@@ -223,12 +261,67 @@
   border-left: 1px solid var(--epic-line);
 }
 
+/* The drag handle, straddling the panel's own left border rather than sitting inside it, so the
+   pointer target is 10px while the mark is 1px. Invisible until pointed at or focused: a permanent
+   vertical bar next to the border would read as a second border.
+
+   `role="separator"` with a value is the window-splitter pattern, so the keyboard reaches it and
+   arrow keys move it. The gold bar under :focus-visible is the focus indicator; there is no outline
+   because an outline on a 10px full-height strip frames the whole panel edge. */
+.epicChat-grip {
+  position: absolute;
+  left: -5px;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: col-resize;
+  touch-action: none;
+  outline: none;
+}
+
+.epicChat-grip::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: transparent;
+  transition: background-color var(--epic-dur, 160ms) var(--epic-ease, ease);
+}
+
+.epicChat-grip:hover::after,
+.epicChat-grip:focus-visible::after,
+body[data-epicchat-drag] .epicChat-grip::after {
+  background-color: var(--ifm-color-primary);
+}
+
 /* Non-modal: the documentation column narrows instead of being covered, so the
-   reader can keep the page and the answer side by side. */
+   reader can keep the page and the answer side by side. It travels with the panel, and stops
+   transitioning during a drag, where a 220ms ease would trail the pointer by a full animation. */
 @media (min-width: 1340px) {
-  body.epicChat-open .main-wrapper {
-    padding-right: min(30rem, 40vw);
+  .main-wrapper {
+    transition: padding-right var(--epicChat-enter) cubic-bezier(0.32, 0.72, 0, 1);
   }
+
+  body.epicChat-open .main-wrapper {
+    padding-right: min(var(--epicChat-width), 60vw);
+  }
+
+  body[data-epicchat-drag] .main-wrapper {
+    transition: none;
+  }
+}
+
+/* A drag must not select the prose it passes over, and the resize cursor has to survive the pointer
+   leaving the 10px strip. */
+body[data-epicchat-drag] {
+  cursor: col-resize;
+  user-select: none;
 }
 
 /* Below the desktop breakpoint the panel is a full sheet. A 380px column
@@ -245,6 +338,22 @@
 
   .epicChat {
     border-left: 0;
+  }
+
+  /* Nothing to resize when the panel is the whole width. */
+  .epicChat-grip {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .epicChat-host,
+  .epicChat-host[data-state='closing'] {
+    animation: none;
+  }
+
+  .main-wrapper {
+    transition: none;
   }
 }
 

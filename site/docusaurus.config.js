@@ -151,6 +151,17 @@ const config = {
         defaultMode: 'dark',
         respectPrefersColorScheme: true,
       },
+      docs: {
+        sidebar: {
+          // The fold control at the foot of the left column, plus the thin strip that brings it back.
+          // Both come from the theme; custom.css restyles them, because Infima's default is a filled
+          // secondary button and this column is a hairline surface.
+          hideable: true,
+          // Opening one category must not close the one the reader came from. A reference page is
+          // frequently reached by comparing two sections, and auto-collapse makes that a fight.
+          autoCollapseCategories: false,
+        },
+      },
       navbar: {
         logo: {
           alt: 'Epic Cash',

@@ -2479,6 +2479,57 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
   }
 }
 
+/* ---- Sidebar fold control ----------------------------------------------
+   `themeConfig.docs.sidebar.hideable` gives the left column a fold button at its foot and a 30px
+   strip that brings it back. Both ship as Infima `button--secondary button--outline`, which is a
+   filled light-grey control, and this column is a hairline surface with no filled controls anywhere
+   on it. So the two tokens the theme exposes carry the background, and the classes carry the rest.
+
+   Matched on `[class*=...]` because these are CSS-module names with a build hash, the same approach
+   this file already takes for the announcement bar and code blocks. */
+:root {
+  --docusaurus-collapse-button-bg: transparent;
+  --docusaurus-collapse-button-bg-hover: rgba(201, 138, 62, 0.1);
+}
+
+[data-theme='dark']:root {
+  --docusaurus-collapse-button-bg: transparent;
+  --docusaurus-collapse-button-bg-hover: rgba(201, 138, 62, 0.12);
+}
+
+@media (min-width: 997px) {
+  .theme-doc-sidebar-container button[class*='collapseSidebarButton'],
+  .theme-doc-sidebar-container div[class*='expandButton'] {
+    border: 0;
+    border-radius: 0;
+    color: var(--ifm-color-content-secondary);
+    transition: color var(--epic-dur, 160ms) var(--epic-ease, ease),
+      background-color var(--epic-dur, 160ms) var(--epic-ease, ease);
+  }
+
+  .theme-doc-sidebar-container button[class*='collapseSidebarButton'] {
+    height: 36px;
+    /* A rule above it, so the control reads as the foot of the column rather than a floating button.
+       It is sticky at the bottom of the scroll box, which is the theme's behaviour and the right one:
+       a long sidebar should not hide its own fold control below the fold. */
+    border-top: 1px solid var(--epic-line);
+  }
+
+  .theme-doc-sidebar-container button[class*='collapseSidebarButton']:hover,
+  .theme-doc-sidebar-container button[class*='collapseSidebarButton']:focus-visible,
+  .theme-doc-sidebar-container div[class*='expandButton']:hover,
+  .theme-doc-sidebar-container div[class*='expandButton']:focus-visible {
+    color: var(--ifm-color-primary);
+  }
+
+  /* Folded, the column is a 30px strip. It keeps the same right hairline the open column has, so the
+     page still has a left edge rather than the content running to the window. The container is an
+     <aside>, and both its theme class and its hashed module class sit on that one element. */
+  .theme-doc-sidebar-container[class*='docSidebarContainerHidden'] {
+    border-right: 1px solid var(--epic-line);
+  }
+}
+
 .menu__list-item-collapsible {
   border-radius: 0;
 }

@@ -513,6 +513,117 @@ const out = {};
     await ctx.close();
   }
   out.sticky.problems = stickyProblems;
+
+  // The assistant panel's shell: it arrives from the right edge, its left border is a drag handle,
+  // and the width it produces has a floor. The floor is the load-bearing part. Below roughly 22rem a
+  // code block in an answer wraps into ribbons, and a code block is most of what this answers with,
+  // so a panel that can be dragged narrower than that is broken rather than merely small. Measured by
+  // dragging, because a clamp that exists only in the source has been wrong here before.
+  //
+  // The panel opens from the page action row, not the navbar control: the navbar opens the ask modal.
+  {
+    const ctx = await browser.newContext({viewport: {width: 1532, height: 900}, colorScheme: 'dark'});
+    const page = await ctx.newPage();
+    await page.goto(`${server.origin}/concepts/mimblewimble`, {waitUntil: 'networkidle'});
+    const action = page.locator('.epicPageActions-button', {hasText: 'Ask about this page'});
+    const panel = {opened: (await action.count()) > 0};
+
+    if (panel.opened) {
+      await action.click();
+      await page.waitForSelector('.epicChat-host', {timeout: 5000});
+      // `animation-name` is a declared property, so this reads the same whether the animation is
+      // still running or has finished. It is an assertion about the shell, not about timing.
+      panel.enter = await page.evaluate(() => {
+        const host = document.querySelector('.epicChat-host');
+        if (!host) return null;
+        const cs = getComputedStyle(host);
+        return {name: cs.animationName, duration: cs.animationDuration, state: host.dataset.state};
+      });
+      await page.waitForTimeout(600);
+
+      const geometry = () =>
+        page.evaluate(() => {
+          const host = document.querySelector('.epicChat-host');
+          const grip = document.querySelector('.epicChat-grip');
+          const main = document.querySelector('.main-wrapper');
+          if (!host || !grip) return null;
+          const hostBox = host.getBoundingClientRect();
+          const gripBox = grip.getBoundingClientRect();
+          return {
+            width: Math.round(hostBox.width),
+            gripToEdge: Math.round(gripBox.left + gripBox.width / 2 - hostBox.left),
+            gripWidth: Math.round(gripBox.width),
+            role: grip.getAttribute('role'),
+            valuenow: Number(grip.getAttribute('aria-valuenow')),
+            valuemin: Number(grip.getAttribute('aria-valuemin')),
+            mainPadRight: main ? Math.round(parseFloat(getComputedStyle(main).paddingRight)) : null,
+          };
+        });
+
+      panel.atRest = await geometry();
+
+      // Drag the handle far past the floor and read what the clamp allowed.
+      const grip = page.locator('.epicChat-grip');
+      const box = await grip.boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + 300);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width / 2 + 900, box.y + 300, {steps: 16});
+      await page.mouse.up();
+      await page.waitForTimeout(200);
+      panel.clamped = await geometry();
+
+      await page.locator('.epicChat-close').click();
+      await page.waitForSelector('.epicChat-host[data-state="closing"]', {timeout: 2000}).catch(() => null);
+      panel.exit = await page.evaluate(() => {
+        const host = document.querySelector('.epicChat-host');
+        return host ? {state: host.dataset.state, name: getComputedStyle(host).animationName} : null;
+      });
+      await page.waitForTimeout(500);
+      panel.unmounted = await page.evaluate(() => !document.querySelector('.epicChat-host'));
+    }
+
+    out.assistantPanel = panel;
+
+    if (!panel.opened) {
+      stickyProblems.push('assistant: no "Ask about this page" action on a docs page, so the panel is unreachable');
+    } else {
+      if (panel.enter?.name !== 'epicChatSlideIn') {
+        stickyProblems.push(
+          `assistant: panel entered with animation ${panel.enter?.name ?? 'none'}, expected epicChatSlideIn`,
+        );
+      }
+      if (panel.atRest?.role !== 'separator') {
+        stickyProblems.push(`assistant: resize handle role is ${panel.atRest?.role ?? 'absent'}, expected separator`);
+      }
+      // The handle straddles the panel's own border, so its centre sits on the edge.
+      if (panel.atRest && Math.abs(panel.atRest.gripToEdge) > 1) {
+        stickyProblems.push(
+          `assistant: resize handle centre is ${panel.atRest.gripToEdge}px off the panel's left edge`,
+        );
+      }
+      if (panel.clamped && panel.clamped.width < panel.clamped.valuemin) {
+        stickyProblems.push(
+          `assistant: dragging past the floor left the panel ${panel.clamped.width}px wide, under its ${panel.clamped.valuemin}px minimum`,
+        );
+      }
+      // The content column has to travel with the panel, or the two overlap at the new width.
+      if (panel.clamped && Math.abs(panel.clamped.mainPadRight - panel.clamped.width) > 2) {
+        stickyProblems.push(
+          `assistant: content column reserves ${panel.clamped.mainPadRight}px for a ${panel.clamped.width}px panel`,
+        );
+      }
+      if (panel.exit?.name !== 'epicChatSlideOut') {
+        stickyProblems.push(
+          `assistant: panel closed with animation ${panel.exit?.name ?? 'none'}, expected epicChatSlideOut`,
+        );
+      }
+      if (panel.unmounted !== true) {
+        stickyProblems.push('assistant: panel stayed in the document after its exit animation');
+      }
+    }
+    out.sticky.problems = stickyProblems;
+    await ctx.close();
+  }
 }
 
 await browser.close();
