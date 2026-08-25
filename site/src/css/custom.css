@@ -84,8 +84,14 @@
   --ifm-code-font-size: 90%;
   --ifm-heading-font-weight: 600;
   /* Fluid, so the step from 375px to 1440px is smooth rather than jumping at a breakpoint.
-     Was a fixed 2.25rem. */
-  --ifm-h1-font-size: clamp(1.9rem, 1.4rem + 1.6vw, 2.6rem);
+     Was a fixed 2.25rem.
+
+     cqi rather than vw: the assistant panel narrows the content box without changing the window, and
+     a heading sized off the window then breaks words mid-syllable in a box it knows nothing about.
+     The containers are declared in the layout section further down. With no panel open the container
+     is the viewport, so these render exactly as the vw versions did. Outside a container cqi falls
+     back to the viewport, which is the same number again. */
+  --ifm-h1-font-size: clamp(1.9rem, 1.4rem + 1.6cqi, 2.6rem);
   --ifm-line-height-base: 1.65;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.08);
 }
@@ -117,8 +123,8 @@
 
   /* Display scale for mastheads and section openers. Page h1 uses
      --ifm-h1-font-size above; this is for the landing composition. */
-  --epic-t-hero: clamp(2.5rem, 1.2rem + 4.6vw, 4.5rem);
-  --epic-t-section: clamp(1.75rem, 1.2rem + 1.7vw, 2.5rem);
+  --epic-t-hero: clamp(2.5rem, 1.2rem + 4.6cqi, 4.5rem);
+  --epic-t-section: clamp(1.75rem, 1.2rem + 1.7cqi, 2.5rem);
   --epic-t-micro: 0.6875rem;
 
   --epic-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -2480,10 +2486,17 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
 }
 
 /* ---- Sidebar fold control ----------------------------------------------
-   `themeConfig.docs.sidebar.hideable` gives the left column a fold button at its foot and a 30px
-   strip that brings it back. Both ship as Infima `button--secondary button--outline`, which is a
-   filled light-grey control, and this column is a hairline surface with no filled controls anywhere
-   on it. So the two tokens the theme exposes carry the background, and the classes carry the rest.
+   `themeConfig.docs.sidebar.hideable` gives the left column a fold button and a 30px strip that
+   brings it back. Both ship as Infima `button--secondary button--outline`, which is a filled
+   light-grey control, and this column is a hairline surface with no filled controls anywhere on it.
+   So the two tokens the theme exposes carry the background, and the classes carry the rest.
+
+   The fold control does not move between states. The theme puts it as a full-width row stuck to the
+   bottom of the open column, and the unfold arrow at the vertical centre of the folded strip, so the
+   affordance jumps across the screen when you use it. Here both sit at the same place: 15px in from
+   the column's right edge, vertically centred, one pointing in and one pointing out. The folded strip
+   is 30px wide with its arrow centred, so a 30px tab flush to the open column's right edge puts the
+   two glyphs on the same x relative to that edge.
 
    Matched on `[class*=...]` because these are CSS-module names with a build hash, the same approach
    this file already takes for the announcement bar and code blocks. */
@@ -2507,12 +2520,33 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
       background-color var(--epic-dur, 160ms) var(--epic-ease, ease);
   }
 
+  /* The flex column the theme builds inside the container, which becomes the tab's containing block.
+     It shares its box with the folded strip's own absolutely positioned button, so 50% resolves to
+     the same y in both states. */
+  .theme-doc-sidebar-container div[class*='sidebar_'] {
+    position: relative;
+  }
+
   .theme-doc-sidebar-container button[class*='collapseSidebarButton'] {
-    height: 36px;
-    /* A rule above it, so the control reads as the foot of the column rather than a floating button.
-       It is sticky at the bottom of the scroll box, which is the theme's behaviour and the right one:
-       a long sidebar should not hide its own fold control below the fold. */
-    border-top: 1px solid var(--epic-line);
+    /* Out of the flex flow: as the column's last item it was a 36px row the menu had to end above. */
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    width: var(--doc-sidebar-hidden-width, 30px);
+    height: 3rem;
+    /* `display: block !important` comes from the theme's own module CSS, so beating it needs the same
+       weight. Flex is what centres the arrow at any tab height; the alternative was a magic padding
+       that breaks the day the icon size changes. */
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* The theme nudges the icon down 4px to centre it in a 40px row. Flex centring replaces that, and
+     leaving both applied puts the arrow off-centre in the tab. */
+  .theme-doc-sidebar-container svg[class*='collapseSidebarButtonIcon'] {
+    margin-top: 0;
   }
 
   .theme-doc-sidebar-container button[class*='collapseSidebarButton']:hover,
@@ -2930,6 +2964,68 @@ body {
    so a clear band under it survived scrolling. The band is gone: the sidebar and the breadcrumb
    now start on the navbar's bottom edge, and a strip there would cover both. Reinstating it is a
    regression, and verify-runtime.mjs asserts the pseudo-element paints nothing. */
+
+/* ---- Responding to the box, not the window -----------------------------
+   The assistant panel takes width off the content by padding `.main-wrapper`, and every layout
+   breakpoint on this site used to be a viewport query, so nothing below the panel knew it had less
+   room. Dragging the panel wide on a 1883px screen left the landing masthead's title track about
+   60px across, wrapping "Developer" one letter per line, while every media query still read 1883.
+
+   So the two boxes that hold page content become query containers, both named `page`, and the layout
+   collapses that used to key off the viewport now key off whichever of them is nearest. The
+   consequence is the one that was asked for: the panel is not capped, the page reflows instead.
+
+   Two containers rather than one, because they measure different things. On the landing page there is
+   no sidebar, so `.main-wrapper` is the content box. On a documentation page the 300px left column is
+   inside `.main-wrapper` too, so a query there would be 300px optimistic about the room the article
+   and the contents panel actually have; `main` is the box those two share.
+
+   `container-type: inline-size` also applies layout and style containment. Nothing here depends on
+   either: the sidebar and the contents panel use `position: sticky`, which resolves against the
+   scrollport and is unaffected, and the assistant panel itself is `position: fixed` outside both
+   containers. Both were checked in a browser rather than reasoned about.
+
+   Container queries are Chrome 105, Safari 16 and Firefox 110. This file already uses `color-mix`,
+   which is newer, so they are not the weakest thing here. */
+.main-wrapper {
+  container-type: inline-size;
+  container-name: page;
+}
+
+main[class*='docMainContainer'] {
+  container-type: inline-size;
+  container-name: page;
+}
+
+/* Below roughly 700px of shared width the article and the contents panel stop being two columns and
+   become one, the panel under the article, exactly as they do on a phone. 700 is not arbitrary: the
+   desktop contents panel appears at a 997px viewport, where this box is 997 minus the 300px sidebar,
+   so the stack now begins at the width it always did and simply no longer cares whether the missing
+   room went to a narrow window or to the panel. */
+@container page (max-width: 700px) {
+  html[class*='docs-doc-id'] main .container.padding-top--md > .row > .col {
+    /* `min-width`, not `max-width`. The theme caps the article column at 75% with an `!important`
+       inside its own cascade layer, and a layered `!important` beats an unlayered one at any
+       specificity, so overriding max-width from here is not possible. The box model resolves min
+       against max after both, so a minimum of the full row width wins outright. Measured: without
+       this the article held 338px of a 493px box and the h1 broke mid-word. */
+    min-width: 100%;
+    flex: 0 0 100%;
+  }
+
+  /* Stacked, the panel is a block in the flow. Sticky would pin it to the top of the viewport while
+     its containing block sat at the foot of the page, which parks it out of sight. */
+  .theme-doc-toc-desktop {
+    position: static;
+    max-height: none;
+  }
+
+  /* It is no longer beside the breadcrumb, so it takes ordinary section spacing instead of the gap
+     that held it clear of the navbar. */
+  html[class*='docs-doc-id'] main .container.padding-top--md > .row > .col--3 {
+    padding-top: 2rem;
+  }
+}
 
 /* ---- Scrollbars --------------------------------------------------------
    Infima ships a 7px bar with a #f1f1f1 track and a `silver` thumb. Those are light-mode greys

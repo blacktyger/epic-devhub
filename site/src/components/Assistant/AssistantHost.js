@@ -39,7 +39,7 @@ const MIN_WIDTH = 352;
 const MAX_FRACTION = 0.6;
 const KEY_STEP = 24;
 /** Matches the exit animation in assistant.css. Kept as a constant so the two cannot drift silently. */
-const EXIT_MS = 220;
+const EXIT_MS = 380;
 
 function clampWidth(px) {
   const max = Math.max(MIN_WIDTH, Math.round(window.innerWidth * MAX_FRACTION));

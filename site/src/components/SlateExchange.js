@@ -78,7 +78,12 @@ const EPICBOX = {
     {text: 'The relay holds it until the receiver\u2019s wallet connects. The two wallets never have to be online at the same time.', x: MIDDLE, y: RELAY_Y, halves: 1, sender: 'offline', receiver: 'offline', node: 'online', relay: 'holding'},
     {text: 'The receiver collects it, adds their half and signs.', x: RECEIVER_EDGE, y: OUT_Y, halves: 2, sender: 'offline', receiver: 'online', node: 'online'},
     {text: 'The signed slate goes back to the relay, which holds it until the sender returns.', x: MIDDLE, y: RELAY_Y, halves: 2, sender: 'offline', receiver: 'online', node: 'online', relay: 'holding'},
-    {text: 'The sender collects it, finalises it, and posts it to the node.', x: MIDDLE, y: NODE_Y, halves: 2, sender: 'online', receiver: 'offline', node: 'online', chain: true},
+    // The slate returns to the sender before it reaches the node, and this step exists to show that.
+    // It used to jump from the relay straight down to the node, which drew a path that does not
+    // exist: only the sender can finalise, because only the sender holds the other half of the
+    // signature, so the slate has to be back in the sending wallet first.
+    {text: 'The sender comes back online and collects the signed slate from the relay.', x: SENDER_EDGE, y: BACK_Y, halves: 2, sender: 'online', receiver: 'offline', node: 'online'},
+    {text: 'The sender finalises it and posts it to the node, which broadcasts it.', x: MIDDLE, y: NODE_Y, halves: 2, sender: 'online', receiver: 'offline', node: 'online', chain: true},
     {text: 'Confirmations bury the output, and the receiver can spend it.', x: MIDDLE, y: NODE_Y, halves: 2, sender: 'online', receiver: 'online', node: 'online', chain: true, confirmed: true},
   ],
 };

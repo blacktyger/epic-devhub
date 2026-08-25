@@ -210,7 +210,11 @@
      there and this is only the default. The content column reads the same variable, which is what
      keeps the page edge and the panel edge on one line at every width. */
   --epicChat-width: 30rem;
-  --epicChat-enter: 220ms;
+  /* 220ms read as a snap rather than an arrival, so both directions are slower and the curve is
+     gentler: this is a surface entering a reading space, not a menu. AssistantHost.js holds the same
+     number as EXIT_MS, because the unmount has to land on the last frame of the exit. */
+  --epicChat-enter: 380ms;
+  --epicChat-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .epicChat-host {
@@ -224,7 +228,7 @@
   /* Slides in from the screen edge rather than appearing. The panel is not a modal, so it has to read
      as something that arrived from off-screen and can be sent back. `both` holds the end state, since
      the element is mounted only while open. */
-  animation: epicChatSlideIn var(--epicChat-enter) cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: epicChatSlideIn var(--epicChat-enter) var(--epicChat-ease) both;
 }
 
 /* The host stays mounted for the length of this animation, and AssistantHost.js holds the same
@@ -305,7 +309,7 @@ body[data-epicchat-drag] .epicChat-grip::after {
    transitioning during a drag, where a 220ms ease would trail the pointer by a full animation. */
 @media (min-width: 1340px) {
   .main-wrapper {
-    transition: padding-right var(--epicChat-enter) cubic-bezier(0.32, 0.72, 0, 1);
+    transition: padding-right var(--epicChat-enter) var(--epicChat-ease);
   }
 
   body.epicChat-open .main-wrapper {

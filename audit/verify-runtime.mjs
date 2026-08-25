@@ -572,6 +572,32 @@ const out = {};
       await page.waitForTimeout(200);
       panel.clamped = await geometry();
 
+      // Dragged wide, the page has to reflow rather than be covered. The invariant is that no content
+      // ends up underneath the panel, and the check that proves the reflow happened is the contents
+      // panel dropping out of its sticky column and under the article, the way it sits on a phone.
+      // This is a container query, so it fires on the width of the box rather than of the window: the
+      // window has not changed at all here.
+      {
+        const box = await grip.boundingBox();
+        await page.mouse.move(box.x + box.width / 2, box.y + 300);
+        await page.mouse.down();
+        await page.mouse.move(box.x + box.width / 2 - 620, box.y + 300, {steps: 16});
+        await page.mouse.up();
+        await page.waitForTimeout(500);
+        panel.wide = await page.evaluate(() => {
+          const host = document.querySelector('.epicChat-host');
+          const article = document.querySelector('article');
+          const toc = document.querySelector('.theme-doc-toc-desktop');
+          const main = document.querySelector('main[class*=docMainContainer]');
+          return {
+            hostLeft: host ? Math.round(host.getBoundingClientRect().left) : null,
+            articleRight: article ? Math.round(article.getBoundingClientRect().right) : null,
+            mainBox: main ? Math.round(main.clientWidth) : null,
+            tocPosition: toc ? getComputedStyle(toc).position : null,
+          };
+        });
+      }
+
       await page.locator('.epicChat-close').click();
       await page.waitForSelector('.epicChat-host[data-state="closing"]', {timeout: 2000}).catch(() => null);
       panel.exit = await page.evaluate(() => {
@@ -615,6 +641,19 @@ const out = {};
       if (panel.exit?.name !== 'epicChatSlideOut') {
         stickyProblems.push(
           `assistant: panel closed with animation ${panel.exit?.name ?? 'none'}, expected epicChatSlideOut`,
+        );
+      }
+      // Nothing may end up under the panel, at any width the reader can drag it to.
+      if (panel.wide && panel.wide.articleRight > panel.wide.hostLeft + 1) {
+        stickyProblems.push(
+          `assistant: article runs to ${panel.wide.articleRight}px under a panel starting at ${panel.wide.hostLeft}px`,
+        );
+      }
+      // Below 700px of shared width the two columns stack, which is what makes a wide panel usable
+      // rather than merely possible. Static position is the observable half of that.
+      if (panel.wide && panel.wide.mainBox < 700 && panel.wide.tocPosition !== 'static') {
+        stickyProblems.push(
+          `assistant: contents panel is still ${panel.wide.tocPosition} in a ${panel.wide.mainBox}px box, so the page did not reflow`,
         );
       }
       if (panel.unmounted !== true) {

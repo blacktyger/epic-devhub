@@ -113,14 +113,18 @@
 .ixTitle {
   /* Fluid, and tracked in. Was a fixed 2.25rem with default tracking, which at display
      size left Montserrat reading conspicuously loose. Tracking is scoped to sizes above
-     2rem for the subpixel reason recorded in custom.css. */
-  font-size: clamp(2rem, 1.3rem + 2.6vw, 3.5rem);
+     2rem for the subpixel reason recorded in custom.css.
+
+     cqi, not vw. With the assistant panel open the box is narrower than the window, and a title
+     sized off the window then overflows a box it knows nothing about. With no panel the container is
+     the viewport, so this renders identically to the vw version it replaces. */
+  font-size: clamp(2rem, 1.3rem + 2.6cqi, 3.5rem);
   letter-spacing: -0.022em;
   margin-bottom: 0.9rem;
   max-width: 24ch;
 }
 .ixLede {
-  font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  font-size: clamp(1.0625rem, 1rem + 0.35cqi, 1.25rem);
   line-height: 1.55;
   /* Was 52rem, roughly 832px, which is about double a comfortable measure and was the
      single loudest reason this page read as a dated template. */
@@ -143,7 +147,11 @@
   gap: 2.5rem;
   align-items: start;
 }
-@media (min-width: 1000px) {
+/* Two columns only when the box this sits in is wide enough, which is not the same as the window
+   being wide enough: the assistant panel takes its width from this box. A viewport query here left
+   the title track around 60px across with the panel open, wrapping the word "Developer" one letter
+   per line. The container is declared in custom.css. */
+@container page (min-width: 1000px) {
   .ixMastGrid {
     /* Was 17rem, sized for a list of links. The quick-start snippet holds release download
        URLs, and at 17rem every line scrolled, which makes a copyable block look broken. */
@@ -625,7 +633,10 @@
   outline-offset: 2px;
 }
 
-@media (max-width: 996px) {
+/* Container, not viewport, for the same reason as the masthead above: with the assistant panel open
+   these grids have less room while the window has not changed. A container query fires in every case
+   the viewport query used to, plus that one. */
+@container page (max-width: 996px) {
   /* minmax(0, 1fr), not 1fr. A plain `1fr` track has an implicit `auto` minimum, so it
      cannot shrink below the min-content width of its widest item. The widest item here is
      an .ixCode block containing `white-space: pre` shell commands, so at 375px the track
@@ -1066,7 +1077,7 @@
   }
 }
 
-@media (max-width: 996px) {
+@container page (max-width: 996px) {
   .ixJourneyLayout {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1437,7 +1448,7 @@
   }
 }
 
-@media (max-width: 996px) {
+@container page (max-width: 996px) {
   .jtHead {
     grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
