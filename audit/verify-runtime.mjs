@@ -192,6 +192,33 @@ const out = {};
         const el = document.querySelector('.theme-doc-sidebar-container');
         return el ? getComputedStyle(el).borderRightWidth : null;
       })(),
+      // The fold tab is absolutely positioned over the left column, so it has to sit in a reserved
+      // gutter rather than on top of the menu. It once floated over three link rows, taking 38px out
+      // of each as a click target, and over the menu's 10px scrollbar. Both were invisible in the
+      // source and obvious on screen.
+      foldTab: (() => {
+        const btn = document.querySelector(
+          '.theme-doc-sidebar-container button[class*=collapseSidebarButton]',
+        );
+        const aside = document.querySelector('.theme-doc-sidebar-container');
+        const menu = document.querySelector('.theme-doc-sidebar-container .menu');
+        if (!btn || !aside) return null;
+        const box = btn.getBoundingClientRect();
+        const rows = [...document.querySelectorAll('.theme-doc-sidebar-menu .menu__link')].filter(
+          (el) => {
+            const b = el.getBoundingClientRect();
+            return b.right > box.left && b.top < box.bottom && b.bottom > box.top;
+          },
+        ).length;
+        return {
+          width: Math.round(box.width),
+          fromAsideRight: Math.round(aside.getBoundingClientRect().right - (box.left + box.width / 2)),
+          insideAside: box.right <= aside.getBoundingClientRect().right + 0.5,
+          rowsCrossed: rows,
+          // Offset width minus client width is the classic scrollbar, which must end before the tab.
+          menuScrollbarClear: menu ? menu.getBoundingClientRect().right <= box.left + 0.5 : null,
+        };
+      })(),
       crumbs: rect('.theme-doc-breadcrumbs'),
       crumbText: rect('.breadcrumbs__item:first-child .breadcrumbs__link'),
       crumbsPosition: pos('.theme-doc-breadcrumbs'),
@@ -292,6 +319,7 @@ const out = {};
         sidebarGap: round(sidebarGap),
         sidebarScrollGap: round(sidebarScrollGap),
         sidebarBorderRight: atTop.sidebarBorderRight,
+        foldTab: atTop.foldTab,
         navbarStrip: atTop.navbarStrip,
         tocGapAtRest: round(tocGapAtRest),
         tocGapPinned: round(tocGapPinned),
@@ -379,6 +407,23 @@ const out = {};
           stickyProblems.push(
             `${where}: sidebar container has a ${entry.sidebarBorderRight} right border in dark mode, expected none`,
           );
+        }
+        // The fold tab lives in a reserved gutter. Anything else and it covers the menu it sits on.
+        const tab = atTop.foldTab;
+        if (!tab) {
+          stickyProblems.push(`${where}: no fold control on the left column`);
+        } else {
+          if (tab.rowsCrossed > 0) {
+            stickyProblems.push(
+              `${where}: fold tab overlaps ${tab.rowsCrossed} sidebar link row(s), so part of each is unclickable`,
+            );
+          }
+          if (!tab.insideAside) {
+            stickyProblems.push(`${where}: fold tab extends past the left column's right edge`);
+          }
+          if (tab.menuScrollbarClear === false) {
+            stickyProblems.push(`${where}: the sidebar menu, and its scrollbar, runs under the fold tab`);
+          }
         }
         if (entry.tocPosition !== 'sticky' || !entry.tocVisibleWhenScrolled) {
           stickyProblems.push(`${where}: table of contents scrolled out of view`);
