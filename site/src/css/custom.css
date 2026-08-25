@@ -2459,8 +2459,12 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
 /* The sidebar's first-level label sat 4px right of the navbar logo, so the page had two
    different left edges stacked on top of each other. The wrapper contributes 0.5rem and the
    link contributed 0.75rem, giving 20px against the navbar's 16px; dropping the link
-   variable to 0.5rem lands the label on 16px exactly. Nested levels indent with margin, so
-   their relative depth is unchanged. verify-runtime.mjs asserts the delta is 0. */
+   variable to 0.5rem lands the label on 16px within the menu box. Nested levels indent with margin,
+   so their relative depth is unchanged.
+
+   The menu box itself is no longer at x 0: the fold rail below takes 30px off its left, so the label
+   now lands 46px from the window rather than on the navbar logo. That is a deliberate trade recorded
+   with the rail, and verify-runtime.mjs asserts the offset equals the rail width. */
 .theme-doc-sidebar-container {
   --ifm-menu-link-padding-horizontal: 0.5rem;
 }
@@ -2482,16 +2486,16 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
   .theme-doc-sidebar-container .menu {
     margin-top: 0;
     padding-top: 0;
-    /* A gutter for the fold tab, and clear space between the tab and the scroll rail. Without the
-       gutter the tab floated over the scrolling menu: three link rows ran under it, so 38px of each
-       was unclickable, and the menu's scrollbar sat beneath the arrow. With a 30px gutter the thumb
-       ended 3px from the arrow, and a 4px bright capsule that close to a 20px glyph reads as one
-       cluttered object rather than two controls. 2.75rem puts 14px of nothing between them.
+    /* A rail for the fold tab, down the column's left edge, the same width as the folded strip. The
+       tab was on the right and sat 3px from the scroll thumb, which read as one cluttered object
+       rather than two controls; moving it here puts the scrollbar back at its own edge, alone.
 
-       Margin rather than padding, because the scrollbar rides the border box and padding does not
-       move it. The tab itself stays 30px wide and flush right, so its arrow is still centred 15px in
-       from the column's edge, which is where the folded strip puts its own. */
-    margin-right: 2.75rem;
+       This costs the page its single left edge: labels now start 30px in, so the first one no longer
+       sits on the navbar logo. That was a deliberate rule and this deliberately overrides it, because
+       a 30px tab on the left cannot coexist with labels whose text starts at 16px, and asking a
+       reader to click "Concepts" through a floating arrow is worse than an indent.
+       verify-runtime.mjs asserts the offset is this rail's width rather than zero. */
+    margin-left: var(--doc-sidebar-hidden-width, 30px);
   }
 }
 
@@ -2503,10 +2507,17 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
 
    The fold control does not move between states. The theme puts it as a full-width row stuck to the
    bottom of the open column, and the unfold arrow at the vertical centre of the folded strip, so the
-   affordance jumps across the screen when you use it. Here both sit at the same place: 15px in from
-   the column's right edge, vertically centred, one pointing in and one pointing out. The folded strip
-   is 30px wide with its arrow centred, so a 30px tab flush to the open column's right edge puts the
-   two glyphs on the same x relative to that edge.
+   affordance jumps across the screen when you use it. Here both sit in the same place: 15px in from
+   the column's left edge, vertically centred, one pointing out and one pointing in. The folded strip
+   is 30px wide with its arrow centred, and the open column reserves a 30px rail on the same side, so
+   the two glyphs land on the same x.
+
+   Left, not right. On the right it sat 3px from the menu's scroll thumb, and a 4px bright capsule
+   that close to a 20px arrow reads as one cluttered object. The cost is the 30px indent on the menu
+   recorded above.
+
+   Arrow directions are the theme's own and are already right for this edge: pointing left collapses,
+   toward the screen edge the column disappears into, and pointing right expands.
 
    Matched on `[class*=...]` because these are CSS-module names with a build hash, the same approach
    this file already takes for the announcement bar and code blocks. */
@@ -2541,7 +2552,8 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
     /* Out of the flex flow: as the column's last item it was a 36px row the menu had to end above. */
     position: absolute;
     top: 50%;
-    right: 0;
+    left: 0;
+    right: auto;
     transform: translateY(-50%);
     /* Infima's `.button` carries 24px of horizontal padding, and with border-box sizing a 30px width
        cannot compress below 48px of padding, so the tab was 18px wider than the gutter and reached

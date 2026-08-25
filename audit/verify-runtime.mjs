@@ -193,9 +193,9 @@ const out = {};
         return el ? getComputedStyle(el).borderRightWidth : null;
       })(),
       // The fold tab is absolutely positioned over the left column, so it has to sit in a reserved
-      // gutter rather than on top of the menu. It once floated over three link rows, taking 38px out
-      // of each as a click target, and over the menu's 10px scrollbar. Both were invisible in the
-      // source and obvious on screen.
+      // rail rather than on top of the menu. It once floated over three link rows, taking 38px out of
+      // each as a click target, and over the menu's scrollbar. Both were invisible in the source and
+      // obvious on screen. The rail is on the left, which is also what the menu's indent pays for.
       foldTab: (() => {
         const btn = document.querySelector(
           '.theme-doc-sidebar-container button[class*=collapseSidebarButton]',
@@ -207,16 +207,16 @@ const out = {};
         const rows = [...document.querySelectorAll('.theme-doc-sidebar-menu .menu__link')].filter(
           (el) => {
             const b = el.getBoundingClientRect();
-            return b.right > box.left && b.top < box.bottom && b.bottom > box.top;
+            return b.left < box.right && b.top < box.bottom && b.bottom > box.top;
           },
         ).length;
         return {
           width: Math.round(box.width),
-          fromAsideRight: Math.round(aside.getBoundingClientRect().right - (box.left + box.width / 2)),
-          insideAside: box.right <= aside.getBoundingClientRect().right + 0.5,
+          fromAsideLeft: Math.round(box.left + box.width / 2 - aside.getBoundingClientRect().left),
+          insideAside: box.left >= aside.getBoundingClientRect().left - 0.5,
           rowsCrossed: rows,
-          // Offset width minus client width is the classic scrollbar, which must end before the tab.
-          menuScrollbarClear: menu ? menu.getBoundingClientRect().right <= box.left + 0.5 : null,
+          // The menu, and therefore its scrollbar, starts after the rail ends.
+          menuClearsRail: menu ? menu.getBoundingClientRect().left >= box.right - 0.5 : null,
         };
       })(),
       crumbs: rect('.theme-doc-breadcrumbs'),
@@ -357,10 +357,18 @@ const out = {};
           `${where}: breadcrumb chip sits ${entry.crumbsGapAtRest}px under the navbar at rest, expected 0`,
         );
       }
-      // One left edge for the whole page: the sidebar label lines up with the navbar logo.
-      if (name === 'desktop' && Math.abs(atTop.sidebarFirstLinkLeft - atTop.navbarBrandLeft) > 1) {
+      // One left edge for the whole page, offset by the fold rail. The sidebar label used to sit on
+      // the navbar logo exactly; the rail that carries the fold arrow now takes 30px off the menu's
+      // left, so the label sits that far in. Asserted against the rail's own width rather than a
+      // literal, so the two cannot drift, and asserted at all rather than dropped, because the label
+      // landing anywhere else is still the bug this check was written for.
+      const railWidth = atTop.foldTab?.width ?? 0;
+      if (
+        name === 'desktop' &&
+        Math.abs(atTop.sidebarFirstLinkLeft - atTop.navbarBrandLeft - railWidth) > 1
+      ) {
         stickyProblems.push(
-          `${where}: sidebar label is ${entry.sidebarToNavbar}px off the navbar logo`,
+          `${where}: sidebar label is ${entry.sidebarToNavbar}px off the navbar logo, expected ${railWidth}px for the fold rail`,
         );
       }
       if (name === 'desktop') {
@@ -408,7 +416,7 @@ const out = {};
             `${where}: sidebar container has a ${entry.sidebarBorderRight} right border in dark mode, expected none`,
           );
         }
-        // The fold tab lives in a reserved gutter. Anything else and it covers the menu it sits on.
+        // The fold tab lives in a reserved rail. Anything else and it covers the menu it sits on.
         const tab = atTop.foldTab;
         if (!tab) {
           stickyProblems.push(`${where}: no fold control on the left column`);
@@ -419,9 +427,9 @@ const out = {};
             );
           }
           if (!tab.insideAside) {
-            stickyProblems.push(`${where}: fold tab extends past the left column's right edge`);
+            stickyProblems.push(`${where}: fold tab extends past the left column's edge`);
           }
-          if (tab.menuScrollbarClear === false) {
+          if (tab.menuClearsRail === false) {
             stickyProblems.push(`${where}: the sidebar menu, and its scrollbar, runs under the fold tab`);
           }
         }
