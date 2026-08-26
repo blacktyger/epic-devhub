@@ -10,7 +10,7 @@ Mainnet is real value. Everything here assumes you have already done the local c
 [run a local network](/guides/local-network) and [your first transfer](/guides/first-transfer), because
 the mechanics are identical and the consequences are not.
 
-Two processes: a node that validates and relays the chain, and a wallet that holds keys and asks the
+Two processes. A node that validates and relays the chain, and a wallet that holds keys and asks the
 node about the state of the world. You need a node. You do not need to mine.
 
 ## 1. Start the node
@@ -22,16 +22,35 @@ epic
 ```
 
 The node writes `epic-server.toml` on first run and reads it from then on. Editing that file is the
-normal way to change behaviour: most settings exist only as config keys, not as command-line flags.
-Every key needs a restart.
+normal way to change behaviour, because most settings exist only as config keys, not as command-line
+flags. Every key needs a restart.
 
 Confirm it is up. The owner surface is authenticated and the secret is created for you:
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux and macOS">
 
 ```bash
 curl -s -u epic:$(cat ~/.epic/main/.api_secret) -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}' \
   http://127.0.0.1:3413/v2/owner
 ```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+$secret = (Get-Content "$HOME\.epic\main\.api_secret" -First 1).Trim()
+$body = '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}'
+Invoke-RestMethod -Uri 'http://127.0.0.1:3413/v2/owner' -Method Post `
+  -ContentType 'application/json' -Body $body `
+  -Authentication Basic -Credential (
+    [PSCredential]::new('epic', (ConvertTo-SecureString $secret -AsPlainText -Force))
+  ) -AllowUnencryptedAuthentication
+```
+
+</TabItem>
+</Tabs>
 
 The first sync downloads and validates the whole chain. Expect it to take a while and to use real disk.
 
@@ -43,13 +62,14 @@ The first sync downloads and validates the whole chain. Expect it to take a whil
 | <Ver k="ports.nodeP2p" /> | P2P | All interfaces |
 | <Ver k="ports.stratum" /> | Stratum mining server | `127.0.0.1`, off by default |
 
-Only the P2P port should be reachable from outside. Leave the API on loopback and read
-[authentication and TLS](/api/authentication) before changing that.
+Only the P2P port needs to be reachable from outside. Leave the API on loopback and read
+[authentication and TLS](/api/authentication) before changing that. Every port and network offset is in
+[the CLI reference](/reference/cli#ports).
 
 ### Sync validation settings
 
 `skip_pow_validation` and `disable_checkpoints` both default to `true`. That is a sync speed
-optimisation rather than a weakened default, and it is worth understanding rather than flipping.
+optimisation rather than a weakened default.
 
 | Where the block sits | Validation performed |
 | --- | --- |
@@ -58,21 +78,18 @@ optimisation rather than a weakened default, and it is worth understanding rathe
 | Within <Ver k="powVerificationThreshold" /> blocks of the tip | **Full proof of work, always, regardless of these settings** |
 
 There are <Ver k="checkpointCount" /> checkpoints compiled into the node, in
-<Src repo="node" path="chain/src/types.rs" line={432} />. Comparing a header against a known hash is a
-stronger check than verifying its proof of work, so checkpointed history is not unverified, it is
-verified differently. The code is
+<Src repo="node" path="chain/src/types.rs" line={432} />. The code is
 <Fn repo="node" path="chain/src/chain.rs" line={1567} name="check_header_against_checkpoints" />, the
 skip decision is at <Src repo="node" path="servers/src/common/adapters.rs" line={728} />, and the floor
 is <Fn repo="node" path="servers/src/common/adapters.rs" line={45} kind="const" name="POW_VERIFICATION_THRESHOLD" />.
 
-Set both to `false` if you specifically want to verify all historical proof of work yourself. That is a
-reasonable thing to want for an independent audit and it costs a much longer initial sync. It is not
-required for a node you rely on day to day.
+Set both to `false` to verify all historical proof of work yourself. That costs a much longer initial
+sync.
 
 ### What the node stores
 
 `chain_data`, the config file, log files and the API secret. `chain_data` is the large item and it is
-disposable: deleting it costs a resync and nothing else. A node holds no keys, so nothing in its data
+disposable, so deleting it costs a resync and nothing else. A node holds no keys, so nothing in its data
 directory needs backing up.
 
 ## 2. Create the wallet
@@ -85,8 +102,8 @@ You will be asked to set a password and shown a recovery phrase.
 
 :::danger[Write the recovery phrase down before continuing]
 
-The phrase is the only thing that can reconstruct your funds. It is not shown again without the
-password, and nobody can recover it for you.
+The phrase is the only thing that can reconstruct your funds. It is shown once here, and afterwards only
+by `epic-wallet recover`, which needs the password.
 
 :::
 
@@ -100,48 +117,48 @@ password, and nobody can recover it for you.
 a wallet means moving that wallet aside first. See
 [back up and restore](/guides/backup-and-restore).
 
-### Turn the onion listener off
+### Turn off the Tor listener
+
+The wallet defaults `use_tor_listener` to `true` and expects a Tor binary that the release archives do
+not ship, so `epic-wallet listen` starts a background thread that fails. Two ways to switch it off, and
+one of them is per command:
 
 ```toml title="epic-wallet.toml"
 [tor]
 use_tor_listener = false
 ```
 
-The default is `true` and expects a binary the release archives do not ship, so a plain
-`epic-wallet listen` can fail in a background thread. Either set this or pass `-n` on every `listen`.
-Reasoning is in [what this version does not cover](/start#what-this-version-does-not-cover).
+```bash
+epic-wallet listen -n
+```
+
+`-n` is declared on `listen` only (<Src repo="wallet" path="src/cmd/wallet_args.rs" line={123} />), so it
+has to be repeated on every `listen`. The config key applies to every command in that wallet directory
+and is the setting to prefer. Neither affects Tor use by the node.
 
 ### What the wallet stores
 
-| Item | Contents | Back up |
-| --- | --- | --- |
-| `wallet_data/wallet.seed` | Encrypted master key | **Yes. This is the wallet** |
-| `wallet_data/db/sqlite/epic.db` | Output and transaction database | Yes. `scan` rebuilds outputs but not history |
-| `wallet_data/saved_txs/` | Stored transaction objects | Yes, if you may need `repost` |
-| `.owner_api_secret` | Owner listener credential | Regenerates on next run |
-| `.api_secret` | The credential the wallet presents to the node | Must match the node's |
-| Log file | Diagnostics. Off by default; set `log_to_file = true` | No |
-
-The recovery phrase reconstructs your funds but not your history. Transaction records, account labels and
-payment proof records live only in the database and nothing on the chain can rebuild them.
+[Back up and restore](/guides/backup-and-restore#what-to-back-up) lists every file in a wallet
+directory, what it holds, and whether it needs backing up. The recovery phrase reconstructs your funds
+but not your history. Transaction records, account labels and payment proof records live only in the
+database and nothing on the chain can rebuild them.
 
 ### Ports the wallet opens
 
-| Port | Surface | Open when |
-| --- | --- | --- |
-| <Ver k="ports.walletForeign" /> | Foreign API, the listener | `epic-wallet listen` is running |
-| <Ver k="ports.walletOwner" /> | Owner API | `epic-wallet owner_api` is running |
-
-The Owner port does not shift per network, so a second wallet on the same machine collides there
-whatever chain it runs. Override `owner_api_listen_port`.
+`epic-wallet listen` opens the Foreign API on <Ver k="ports.walletForeign" /> and
+`epic-wallet owner_api` opens the Owner API on <Ver k="ports.walletOwner" />. The Foreign port is derived
+from the network; the Owner port is <Ver k="ports.walletOwner" /> on every network, so a second wallet on
+the same machine collides there whatever chain it runs. Override `owner_api_listen_port`. Full list in
+[the CLI reference](/reference/cli#ports).
 
 ## 3. Point the wallet at the node
 
-The wallet defaults to `http://127.0.0.1:3413`, a node on the same machine, and in the default layout it
+The wallet defaults to a node on loopback at port <Ver k="ports.nodeApi" />, and in the default layout it
 resolves the node's API secret to the same file the node created. Nothing to configure.
 
-Two things change that. If you moved either directory, set `node_api_secret_path` to the node's
-`.api_secret`. If you want a different node, set `check_node_api_http_addr` in `epic-wallet.toml`.
+Two things change that. If you moved either directory, set `node_api_secret_path` to
+[the credential the wallet presents to the node](/api/authentication#the-credential-the-wallet-presents-to-the-node).
+If you want a different node, set `check_node_api_http_addr` in `epic-wallet.toml`.
 
 ```bash
 epic-wallet info
@@ -150,13 +167,8 @@ epic-wallet info
 A balance of zero and no error means the wallet reached the node and the node answered. A 401 means the
 two disagree about the secret.
 
-:::note[On using someone else's public node]
-
-It works, and it is a real trade. The node you query learns which outputs you ask about, and a wallet
-cannot verify chain state it did not validate itself. For anything holding value worth the disk, run
-your own.
-
-:::
+A wallet pointed at a public node works. That node sees which outputs the wallet asks about, and the
+wallet does not validate the chain state it is given.
 
 ## Next
 

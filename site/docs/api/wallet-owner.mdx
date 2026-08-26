@@ -165,17 +165,18 @@ that way completes and yields no proof. Pick the transport first:
 **`ttl_blocks` does not release outputs on expiry.** See
 [outputs and locking](/concepts/outputs-and-locking).
 
-**An unrecognised `src_acct_name` falls back to the default account** rather than returning an error.
-Validate account names yourself.
+**`src_acct_name` names the source account for one call.** A label that `accounts` does not return
+resolves to the active account (<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={383} />).
+See [accounts](/concepts/accounts#which-account-a-transfer-uses).
 
 **`send_args` runs the exchange inside the call.** It delivers the slate, then finalises and posts if you
-asked it to, so the call blocks for as long as the counterparty takes. Do not call it on a request thread.
+asked it to, so the call blocks for as long as the counterparty takes.
 
-**With `send_args.method` set to `epicbox`, `finalize` and `post_tx` are ignored.** That branch returns as
-soon as the slate is posted to the relay and the inputs are locked
-(<Src repo="wallet" path="api/src/owner.rs" line={761} />). The wallet's epicbox handler finalises and
-posts when the counterparty's reply arrives, which is also where the mempool wait happens. Treat an
-epicbox send as accepted for delivery, not completed.
+**With `send_args.method` set to `epicbox`, the call returns the round-one slate** as soon as it is
+posted to the relay and the inputs are locked
+(<Src repo="wallet" path="api/src/owner.rs" line={761} />). `finalize` and `post_tx` apply to the
+`http` and `keybase` paths. On the epicbox path the wallet's own subscription finalises and posts when
+the counterparty's reply arrives, which is also where the mempool wait happens.
 
 ## Fees
 

@@ -33,124 +33,105 @@ and write attribution when the slate arrives.
 
 ### Map a per-user path onto a listener
 
-```nginx title="/etc/nginx/conf.d/epic-deposits.conf"
-# Per-user deposit endpoints. The path carries the identity the chain cannot.
-server {
-    listen 443 ssl;
-    server_name deposits.example.com;
+The Epic-specific part is one `location` block inside your existing TLS server. It captures the account
+identifier from the path, passes it to your attribution service as a header, and refuses every other
+path:
 
-    ssl_certificate     /etc/letsencrypt/live/deposits.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/deposits.example.com/privkey.pem;
+```text title="/etc/nginx/conf.d/epic-deposits.conf"
+location ~ ^/deposit/([A-Za-z0-9_-]{1,64})$ {
+    proxy_set_header X-Epic-Account $1;
+    proxy_pass http://127.0.0.1:8080/receive;
 
-    # /deposit/<account_id>  ->  your attribution service, which records the
-    # account and then forwards to a wallet Foreign API listener.
-    location ~ ^/deposit/([A-Za-z0-9_-]{1,64})$ {
-        proxy_set_header X-Epic-Account $1;
-        proxy_set_header X-Real-IP      $remote_addr;
-        proxy_pass http://127.0.0.1:8080/receive;
-
-        client_max_body_size 1m;   # slates are small; reject anything large
-        proxy_read_timeout   120s; # the exchange is interactive
-    }
-
-    # Never proxy anything else through to a wallet.
-    location / { return 404; }
+    client_max_body_size 1m;   # slates are small
+    proxy_read_timeout   120s; # the exchange is interactive
 }
+
+location / { return 404; }
 ```
+
+`proxy_read_timeout` has to outlast a round of slate building. The wallet's Foreign API is never the
+`proxy_pass` target directly. The attribution service is, so the account is recorded before anything is
+signed.
 
 ### Record the account before you co-sign
 
 Your service at `127.0.0.1:8080` records `X-Epic-Account` against the incoming slate id, then calls
 `receive_tx` on the wallet's Foreign API. The
-[receive example](/examples/send-receive#receiving) shows that call.
+[receive example](/examples/send-receive#receiving) shows that call. The Epic-specific requirement is the
+ordering:
 
-```python title="attribution.py"
-"""Record who paid, then co-sign the slate. Attribution must be durable before we sign."""
-
-from fastapi import FastAPI, Header, HTTPException
-
-app = FastAPI()
-
-
-@app.post("/receive")
-async def receive(slate: dict, x_epic_account: str = Header(...)) -> dict:
-    slate_id = slate.get("id")
-    if not slate_id:
-        raise HTTPException(status_code=400, detail="slate has no id")
-
-    # Write attribution first and commit it. If this fails, refuse the deposit:
-    # an unattributed credit cannot be reconstructed from the chain later.
-    await record_pending_deposit(account=x_epic_account, slate_id=slate_id)
-
-    return await receive_tx(slate)   # from the receive example
+```python
+# Write attribution first and commit it. An unattributed credit cannot be
+# reconstructed from the chain later, so a failed write refuses the deposit.
+await record_pending_deposit(account=x_epic_account, slate_id=slate["id"])
+return await receive_tx(slate)
 ```
+
+The slate id is the join key. It is the `id` field of the slate you were handed, and it is the same value
+that appears as `tx_slate_id` in the wallet's own transaction log, so attribution can be reconciled
+against the wallet afterwards even though it cannot be reconciled against the chain.
 
 :::danger[Your database is the only record of who paid you]
 
-User attribution cannot be reconciled against the chain afterwards, because the chain never held it. If that
-data is lost or corrupted it cannot be reconstructed. Treat it as primary financial data with backups to
-match, not as a cache.
+The chain never held the account identifier, so lost or corrupted attribution data cannot be
+reconstructed from it. Back it up as primary financial data.
 
 :::
 
 ## Architecture
 
-1. **Your own fully validating node.** A public node sees every output query you make. See
-   [node and wallet setup](/guides/mainnet-setup).
+1. **Your own fully validating node.** See [node and wallet setup](/guides/mainnet-setup).
 2. **Hot wallets** running the Foreign API to receive and the Owner API for your backend to drive.
-3. **A reverse proxy** mapping per-user paths onto listeners, terminating TLS and adding authentication.
-4. **Your attribution database**, written synchronously as slates arrive.
-5. **Withdrawal processing** through the Owner API, with retry and cancellation logic.
-
-The Foreign API has no authentication (counterparties do not hold your credentials). Terminate TLS at
-the proxy layer.
+3. **A reverse proxy** terminating TLS, mapping per-user paths onto listeners, and exposing nothing but
+   those paths. The Foreign API takes no credential, because a counterparty cannot hold one, so the proxy
+   is the whole of the access control on that surface.
+4. **A credential on the Owner API.** That surface does take one, and your backend is the only client of
+   it. See
+   [the surfaces](/api/authentication#the-surfaces).
+5. **Your attribution database**, written synchronously as slates arrive.
+6. **Withdrawal processing** through the Owner API, with retry and cancellation logic.
 
 ## Withdrawals need a state machine
 
-This is where an integration built on transparent-chain assumptions breaks. A withdrawal is an exchange with
-the user's wallet that may not complete.
+A withdrawal is an exchange with the user's wallet that may not complete.
 
-- Starting a send **reserves your outputs immediately**. A queue of incomplete withdrawals will progressively
-  immobilise your hot wallet balance. See [outputs and locking](/concepts/outputs-and-locking).
-- Nothing expires on its own. You decide when to give up, and cancel explicitly.
-- Cancelling requires a reachable node and a transfer that has not yet been posted and observed.
-- The send path blocks for up to four minutes polling the mempool. Do not run it on a request thread.
+- Starting a send reserves your outputs immediately, so a queue of incomplete withdrawals progressively
+  immobilises your hot wallet balance. See
+  [what reserves outputs](/concepts/outputs-and-locking#what-reserves-outputs).
+- Nothing expires on its own. You decide when to give up, and cancel explicitly. See
+  [cancelling has preconditions](/concepts/outputs-and-locking#cancelling-has-preconditions).
+- The send path blocks while it polls the mempool, so do not run it on a request thread. See
+  [the send appears to hang](/guides/stuck-transactions#case-3-the-send-appears-to-hang).
 
-Model a withdrawal as: created, awaiting counterparty, finalised, posted, confirmed, or cancelled. Set your
-own deadline, since the protocol does not provide one, and cancel on expiry to release the outputs.
+Model a withdrawal as: created, awaiting counterparty, finalised, posted, confirmed, or cancelled. Set
+your own deadline, since the protocol does not provide one, and cancel on expiry to release the outputs.
 
 ## Confirmation depth
 
-Choose your own and err on the side of caution. The target block time is 60 seconds and coinbase maturity is
-1,440 blocks. The protocol does not prescribe a deposit confirmation depth.
+The protocol prescribes no deposit confirmation depth. What it fixes is the cost of one block of depth,
+<Ver k="blockTimeSeconds" /> seconds at the target block time. <Ver k="coinbaseMaturity" /> blocks is the
+depth consensus itself requires before a coinbase can be spent
+([emission timing](/mining/emission#timing)).
 
-:::note[Base the depth on observed behaviour]
-
-Pick a depth from reorg depths actually seen on mainnet rather than by analogy with another chain. The
-maintainers and the block explorer are the sources for that.
-
-:::
+Read the depth of a specific deposit as the chain tip height minus the transaction's
+`confirmation_height`, described in
+[confirmation depth of a transaction](/guides/wallet-operations#confirmation-depth-of-a-transaction).
+Both values come from calls your backend already makes, `get_status` on the node and `retrieve_txs` on the
+wallet.
 
 ## Cold storage
 
-Receiving requires interactive participation, so a receiving wallet has to run and communicate. That makes
-cold storage a harder problem than on a transparent chain, where you can receive to an offline key.
+Receiving requires interactive participation, so the keys that receive have to sign at the moment of
+receipt. That rules out receiving to an offline key the way a transparent chain allows.
 
-The `file` transport is the natural building block, since it requires no network. Whether it composes into a
-custody procedure that meets your requirements is a question to settle with the maintainers before designing
-around it.
+The `file` transport is the building block that separates the network from the keys. It needs no network
+at either end, and the slate is a file. A receiving wallet can therefore live off the network, with the
+slate carried to it and the response carried back, at the cost of the exchange no longer being automatic.
+The transports and what each requires to be online are in
+[transports](/concepts/transports#comparison).
 
-## Before going live
-
-- Your own fully validating node, not a public one.
-- Foreign API never directly exposed.
-- Attribution database backed up and treated as irreplaceable.
-- Withdrawal state machine with explicit expiry and cancellation.
-- Tested on a private chain, including the failure paths. Floonet is not maintained as of August 2026,
-  so run your own local network. See
-  [run a local network](/guides/local-network).
-- Payment proof requirements settled, and the transport chosen to match. See
-  [payment proofs](/concepts/payment-proofs).
+Sweeping to cold storage after the fact is a normal send from a hot wallet to a wallet you control, and it
+carries the same reservation and cancellation behaviour as any other send.
 
 ## Next
 
@@ -160,5 +141,11 @@ around it.
   </Card>
   <Card title="Outputs and locking" to="/concepts/outputs-and-locking">
     Why a withdrawal queue can immobilise a hot wallet.
+  </Card>
+  <Card title="Run a local network" to="/guides/local-network">
+    A private chain to test the failure paths against.
+  </Card>
+  <Card title="Payment proofs" to="/concepts/payment-proofs#choose-the-transport-accordingly">
+    Which transports carry a proof, and how to ask for one.
   </Card>
 </CardGrid>

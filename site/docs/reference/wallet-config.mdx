@@ -41,7 +41,7 @@ check_node_api_http_addr = "http://127.0.0.1:3413"
 data_file_dir = "/home/you/wallets/bob/wallet_data"
 
 [tor]
-# Out of scope here, and the default of true needs a binary the release archives do not ship.
+# The default of true needs a tor binary next to the wallet executable.
 use_tor_listener = false
 socks_proxy_addr = "127.0.0.1:9050"
 send_config_dir = "/home/you/wallets/bob"
@@ -65,15 +65,15 @@ log_file_path = "/home/you/wallets/bob/epic-wallet.log"
 | --- | --- | --- | --- |
 | `chain_type` | enum, optional | `Mainnet` | `Mainnet`, `Floonet`, `UserTesting`, `AutomatedTesting` |
 | `api_listen_interface` | string | `127.0.0.1` | Bind address of the Foreign API listener. Set to `0.0.0.0` to accept transfers from other hosts |
-| `api_listen_port` | u16 | `3415`, 13415 floonet, 23415 usernet | Foreign API port, used by `listen` |
-| `owner_api_listen_port` | u16, optional | `3420` on every network | Owner API port |
+| `api_listen_port` | u16 | <Ver k="ports.walletForeign" />, 13415 floonet, 23415 usernet | Foreign API port, used by `listen` |
+| `owner_api_listen_port` | u16, optional | <Ver k="ports.walletOwner" /> on every network | Owner API port |
 | `owner_api_interface` | string, optional | `127.0.0.1` | Owner API bind address. Emitted commented out |
 | `api_secret_path` | string, optional | `<wallet dir>/.owner_api_secret` | Basic auth secret for the Foreign path on the owner listener. `/v3/owner` takes a token from `open_wallet`; see [authentication](/api/authentication) |
 | `node_api_secret_path` | string, optional | `<wallet dir>/.api_secret` | Basic auth secret the wallet presents when calling the node |
-| `check_node_api_http_addr` | string | `http://127.0.0.1:3413` | Node the wallet queries. Override per run with `-r` |
+| `check_node_api_http_addr` | string | <code>http://127.0.0.1:<Ver k="ports.nodeApi" /></code> | Node the wallet queries. Override per run with `-r` |
 | `owner_api_include_foreign` | bool, optional | `false` | Serve the Foreign API on the Owner API port, for single-port environments |
 | `data_file_dir` | string | `<wallet dir>/wallet_data` | Where the seed and database live |
-| `no_commit_cache` | bool, optional | `false` | Documented as a privacy option. Currently has no effect |
+| `no_commit_cache` | bool, optional | `false` | Reserved |
 | `tls_certificate_file` | string, optional | unset | TLS certificate for the listener |
 | `tls_certificate_key` | string, optional | unset | TLS private key. Setting the certificate without this is a startup error |
 | `dark_background_color_scheme` | bool, optional | `true` | Colour scheme for CLI tables |
@@ -82,49 +82,41 @@ log_file_path = "/home/you/wallets/bob/epic-wallet.log"
 :::warning[The Owner API port is the same on every network]
 
 `owner_api_listen_port` is not adjusted per network, unlike `api_listen_port` and
-`check_node_api_http_addr`. Two wallets on one machine collide on 3420, including a mainnet and a
-floonet wallet. Override it when running more than one.
+`check_node_api_http_addr`. A mainnet wallet and a floonet wallet both take
+<Ver k="ports.walletOwner" />, so running more than one at a time means overriding it. See
+[the port table](/reference/cli#ports).
 
 :::
 
 ## `[tor]`
 
-Marked experimental in the generated file, and out of scope for this documentation. See
-[what this version does not cover](/start#what-this-version-does-not-cover). The keys are listed for
-completeness.
+The generated file marks this section experimental. See
+[what this version does not cover](/start#what-this-version-does-not-cover).
 
 | Key | Type | Default | Purpose |
 | --- | --- | --- | --- |
 | `use_tor_listener` | bool | `true` | Start a hidden service on `listen`. Override per run with `-n` / `--no_tor` |
 | `socks_proxy_addr` | string | `127.0.0.1:9050` | SOCKS proxy address |
-| `send_config_dir` | string | `<wallet dir>` | Documented as an output directory for sending. Currently has no effect |
-
-Two behaviours affect wallets that do not use Tor:
+| `send_config_dir` | string | `<wallet dir>` | Reserved |
 
 `use_tor_listener` is not optional. A `[tor]` section that omits the key fails to parse, so either give
 it a value or leave the whole section out.
 
-The default is `true` and it needs a `tor` binary sitting next to the wallet executable, which release
-archives do not ship. A plain `epic-wallet listen` therefore panics in the Tor thread. Set
-`use_tor_listener = false`, or pass `-n` on every `listen`, and the listener starts cleanly. Enabling
-Tor requires supplying the binary yourself.
+The default of `true` needs a `tor` binary sitting next to the wallet executable, which
+[the release archives do not ship](/downloads). Either supply the binary, or set
+`use_tor_listener = false` and pass `-n` on `listen`.
 
 ## `[epicbox]`
 
 | Key | Type | Default | Purpose |
 | --- | --- | --- | --- |
 | `epicbox_domain` | string, optional | `epicbox.epiccash.com` | Relay host, and the domain shown after `@` in your epicbox address |
-| `epicbox_port` | u16, optional | `443` | Relay port |
+| `epicbox_port` | u16, optional | <Ver k="ports.epicbox" /> | Relay port |
 | `epicbox_protocol_unsecure` | bool, optional | `false` | `false` uses `wss://`, `true` uses `ws://` |
-| `epicbox_address_index` | u32, optional | `0` | Documented as an address index. Currently has no effect; every derivation uses 0 |
+| `epicbox_address_index` | u32, optional | `0` | Reserved. Every derivation uses index 0 |
 
-:::warning[Do not comment out `epicbox_domain`]
-
-The domain and port are read without a fallback in the address and send paths, so removing the key
-causes `epic-wallet address` and epicbox sends to fail rather than falling back to the default. Set an
-explicit value or leave the section out entirely.
-
-:::
+The address and send paths read `epicbox_domain` and `epicbox_port` without a fallback, so set both
+explicitly or leave the whole `[epicbox]` section out and take the defaults from code.
 
 See [the epicbox protocol](/api/epicbox) for what the relay does.
 
@@ -137,21 +129,22 @@ See [the epicbox protocol](/api/epicbox) for what the relay does.
 | `log_to_file` | bool | `false` | Log to a file |
 | `file_log_level` | enum | `Debug` | Level for the file log |
 | `log_file_path` | string | `<wallet dir>/epic-wallet.log` | Log file path |
-| `log_file_append` | bool | `true` | Append rather than truncate |
-| `log_max_size` | bytes, optional | `16777216` | Rotate above this size |
-| `log_max_files` | u32, optional | `32` | Rotated files to keep |
-| `tui_running` | bool, optional | unset | Belongs to the node. Ignore it |
+| `log_file_append` | bool | `true` | Append rather than truncate on each run |
+| `log_max_size` | bytes, optional | `16777216` | Rotate above this size. Comment out to disable rotation |
+| `log_max_files` | u32, optional | `32` | How many rotated files to keep |
+| `tui_running` | bool, optional | unset | Set from the node's `run_tui` at startup |
 
-A fresh wallet writes no log file, because `log_to_file` is `false`. Set it to `true` if you need one.
+A fresh wallet writes no log file, because `log_to_file` is `false` while `log_file_path` is populated.
+Set `log_to_file = true` for a log on disk.
 
 ## Per-network defaults
 
 | Network | `api_listen_port` | `check_node_api_http_addr` | Wallet directory |
 | --- | --- | --- | --- |
-| Mainnet | 3415 | `http://127.0.0.1:3413` | `~/.epic/main` |
+| Mainnet | <Ver k="ports.walletForeign" /> | <code>http://127.0.0.1:<Ver k="ports.nodeApi" /></code> | `~/.epic/main` |
 | Floonet | 13415 | `http://127.0.0.1:13413` | `~/.epic/floo` |
 | UserTesting | 23415 | `http://127.0.0.1:23413` | `~/.epic/user` |
-| AutomatedTesting | 3415 | `http://127.0.0.1:3413` | `~/.epic/auto` |
+| AutomatedTesting | <Ver k="ports.walletForeign" /> | <code>http://127.0.0.1:<Ver k="ports.nodeApi" /></code> | `~/.epic/auto` |
 
 ## Paths set on first run
 
@@ -170,6 +163,7 @@ Relative defaults in the code are rewritten to absolute paths when the file is c
 ## Source
 
 - <Src repo="wallet" path="config/src/types.rs" /> for the structs and their defaults
+- <Src repo="wallet" path="config/src/types.rs" line={223} /> for `[logging]`, which is the logging config the node shares
 - <Src repo="wallet" path="config/src/comments.rs" /> for the annotated template written to disk
 - <Src repo="wallet" path="config/src/config.rs" /> for file discovery, per-network overrides and path rewriting
 
@@ -181,5 +175,8 @@ Relative defaults in the code are rewritten to absolute paths when the file is c
   </Card>
   <Card title="epic-server.toml" to="/reference/node-config">
     The node's configuration file.
+  </Card>
+  <Card title="CLI reference" to="/reference/cli">
+    Commands, flags, ports and networks.
   </Card>
 </CardGrid>

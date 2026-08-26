@@ -6,8 +6,8 @@ description: What an Epic payment proof establishes, how to request one, and whi
 # Payment proofs
 
 On a transparent chain, proving you paid someone means pointing at a transaction. On Epic there is
-nothing to point at: the ledger holds blinded commitments with no sender, recipient or readable amount.
-Proof of payment therefore has to be constructed deliberately, at the time of the transfer.
+nothing to point at, because the ledger holds blinded commitments with no sender, recipient or readable
+amount. Proof of payment therefore has to be constructed deliberately, at the time of the transfer.
 
 A payment proof is that construct. It binds an amount, a sender and a recipient into evidence the sender
 can present later.
@@ -18,7 +18,8 @@ A payment proof shows that the holder of a particular recipient key acknowledged
 amount from a particular sender, as part of a specific transaction.
 
 It does not show that goods were delivered, that the transaction confirmed, or that the recipient is who
-they claim to be outside the protocol. It is a cryptographic receipt.
+they claim to be outside the protocol. It is a cryptographic receipt, and the only copy is the one you
+keep, since nothing in the chain lets you reconstruct it.
 
 ## Request it when you send
 
@@ -37,21 +38,22 @@ Retrieval and verification are `retrieve_payment_proof` and `verify_payment_proo
 
 ## Choose the transport accordingly
 
-Epicbox uses slate V2, and payment proofs are a V3 field. To request a proof, send over HTTP.
+A payment proof is a V3 slate field, and epicbox converts every slate to V2, so a proof request does not
+survive an epicbox send
+(<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={251} />). Route a transfer that needs a
+proof over any other transport; [the comparison](/concepts/transports#comparison) has the matrix.
 
 ## Verification
 
-`verify_payment_proof` returns `Result<(bool, bool), Error>` at
-<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={2161} />. Neither element is documented in the
-trait or the sample clients. Test against a known-good proof and an altered one to confirm which element
-is authoritative.
+`verify_payment_proof` fails with an error if the transaction kernel named by the proof is not on the
+chain, or if either the recipient signature or the sender signature does not verify against the proof
+message. A successful call therefore means the proof is sound.
 
-## Practical guidance
-
-- Decide at design time whether you need proofs. They cannot be added to past transfers.
-- If you need them, do not route over epicbox.
-- Collect the recipient's proof address as part of whatever flow collects their payment details.
-- Store the proof yourself. Nothing in the chain lets you reconstruct it.
+What it returns is a pair of booleans saying which side of the proof the calling wallet is on,
+`(sender_mine, recipient_mine)`, each true when the wallet's own proof address matches that party
+(<Fn repo="wallet" path="libwallet/src/api_impl/owner.rs" line={1082} name="verify_payment_proof" />,
+returned at <Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={1143} />). The JSON-RPC
+signature is at <Src repo="wallet" path="api/src/owner_rpc_s.rs" line={2161} />.
 
 ## Next
 

@@ -12,7 +12,7 @@ the author's machine.
 ```
 site/       the Docusaurus 3.10.2 site: content, components, styles
 audit/      browser-driven checks, separate so the site ships no test dependencies
-examples/   runnable example clients in Python, JavaScript, Rust and shell
+examples/   runnable example clients in Python and shell
 deploy/     nginx config and the publish script for self-hosting
 ```
 
@@ -33,8 +33,7 @@ npm run build        # production build
 ```
 
 The build fails on a broken internal link or a missing heading anchor. That is the main content gate
-and it is not negotiable: the site this replaces shipped a sample with a URL-breaking typo and a
-stylesheet that never loaded, and nobody noticed for two years.
+and it is not negotiable.
 
 ## Check it
 
@@ -48,9 +47,8 @@ npm run keyboard     # tab order, focus visibility, trap detection
 npm run check        # axe-core over every route, both themes, two viewports
 ```
 
-`audit/README.md` explains what each one proves and what none of them can. The short version: anything
-claimed about rendered appearance is measured in a real browser, because an earlier pass that measured
-contrast by reading CSS reported zero failures on a build that had 1,113.
+`audit/README.md` explains what each one proves. Anything claimed about rendered appearance is
+measured in a real browser rather than by reading CSS.
 
 `npm run sources` needs `epic-server` and `epic-wallet` cloned beside this repository. Without them it
 skips rather than pretending to pass.
@@ -73,16 +71,12 @@ reference pages and a broader rule returns JSON for every one of them.
 ## Rules the content follows
 
 **Every fact is traceable.** A method's page cites the file and line where it is declared, pinned to a
-release tag. `npm run sources` checks those citations against the upstream clones, and found 30 of 68
-wrong the first time it ran.
+release tag. `npm run sources` checks those citations against the upstream clones.
 
 **No invented data.** A captured response or nothing. The API console shows a real response recorded
-against a local chain, or it says the response was not captured. Nothing is fabricated to fill a
-layout, which is how the old site ended up with nine corrupted examples.
+against a local chain, or it says the response was not captured.
 
-**The console makes no network calls.** It assembles the request for you to copy. A docs page that
-fires real requests at a wallet is a page that can spend money, and one that fires them at a node
-wants the reader's API secret typed into a web form. Neither belongs in documentation.
+**The console makes no network calls.** It assembles the request for you to copy.
 
 **Versions live in one file.** `site/src/data/versions.js` holds every value that changes on a
 release: versions, git refs, ports, consensus constants. Pages print them with `<Ver k="node" />`,

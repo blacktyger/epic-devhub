@@ -3,48 +3,50 @@ title: Downloads
 description: Prebuilt Epic node and wallet binaries, with checksum verification and what to do next.
 ---
 
+import {releases} from '@site/src/data/versions';
+
+export const nodeAsset = (key) => releases.node.assets.find((a) => a.key === key);
+export const walletAsset = (key) => releases.wallet.assets.find((a) => a.key === key);
+export const sumFile = (file) => `${file.replace(/\.(tar\.gz|zip|exe)$/, '')}-sha256sum.txt`;
+
 # Downloads
 
-Prebuilt binaries are published on GitHub releases. Each archive has a matching
-`<archive-name>-sha256sum.txt` next to it; verify before running.
+Prebuilt binaries are published on GitHub releases. The Linux binaries link against `GLIBC_2.39`, so
+they need glibc 2.39 or newer, which means Ubuntu 24.04 or later.
 
-The Linux binaries need glibc 2.39 or newer, which means Ubuntu 24.04 or later. Both the node and
-the wallet archive link against `GLIBC_2.39`.
-
-If you would rather build from source, see [build the binaries](/guides/build). Building needs only
-rustup and, on Linux and macOS, no system packages.
+To build from source instead, see [build the binaries](/guides/build).
 
 ## Node <Ver k="node" />
 
-[Release page](https://github.com/EpicCash/epic/releases/tag/v4.0.3) ·
-[Latest release](https://github.com/EpicCash/epic/releases/latest) ·
-[All releases](https://github.com/EpicCash/epic/releases)
+Release <a href={releases.node.url}>tag v<Ver k="node" /></a>, or the{' '}
+<a href={releases.node.latest}>latest release</a> and <a href={releases.node.all}>all releases</a>.
 
-| Platform | Asset |
-| --- | --- |
-| Linux x86-64 | `epic-4.0.3-linux-amd64.tar.gz` |
-| macOS Apple silicon | `MacOS-aarch64-4.0.3.zip` |
-| Windows x86-64 | `Windows-v4.0.3.zip` |
+| Platform | Asset | Unpacks to |
+| --- | --- | --- |
+| {nodeAsset('linux').platform} | <code>{nodeAsset('linux').file}</code> | <code>{releases.node.unpacksTo.linux}/</code> |
+| {nodeAsset('mac').platform} | <code>{nodeAsset('mac').file}</code> | <code>{releases.node.unpacksTo.mac}/</code> |
+| {nodeAsset('windows').platform} | <code>{nodeAsset('windows').file}</code> | `epic.exe`, no wrapping directory |
 
-There is no macOS Intel or Linux ARM build. Those platforms need a source build.
+macOS Intel and Linux ARM need a source build.
 
 ## Wallet <Ver k="wallet" />
 
-[Release page](https://github.com/EpicCash/epic-wallet/releases/tag/v4.0.0) ·
-[Latest release](https://github.com/EpicCash/epic-wallet/releases/latest) ·
-[All releases](https://github.com/EpicCash/epic-wallet/releases)
+Release <a href={releases.wallet.url}>tag v<Ver k="wallet" /></a>, or the{' '}
+<a href={releases.wallet.latest}>latest release</a> and <a href={releases.wallet.all}>all releases</a>.
 
-| Platform | Asset |
-| --- | --- |
-| Archive, Linux x86-64 | `epic-wallet-4.0.zip` |
-| Windows binary | `epic-wallet.exe` |
+| Platform | Asset | Unpacks to |
+| --- | --- | --- |
+| {walletAsset('linux').platform} | <code>{walletAsset('linux').file}</code> | `epic-wallet`, no wrapping directory |
+| {walletAsset('windows').platform} | <code>{walletAsset('windows').file}</code> | the executable itself, not an archive |
 
-The wallet archive is named for the 4.0 line rather than the full `4.0.0` tag. Its checksum file is
-`epic-wallet-4.0-sha256sum.txt`.
+The archive is named for the 4.0 line rather than the full <Ver k="wallet" /> tag, and holds a Linux
+x86-64 ELF binary.
 
-## Verify the checksum
+## Download and verify
 
-Never skip this on a wallet binary.
+Each asset publishes a checksum file beside it, named for the asset with its extension replaced by
+`-sha256sum.txt`: <code>{sumFile(nodeAsset('linux').file)}</code> for the Linux node tarball,
+<code>{sumFile(walletAsset('linux').file)}</code> for the wallet archive.
 
 <Tabs groupId="os">
 <TabItem value="linux" label="Linux">
@@ -71,8 +73,8 @@ shasum -a 256 -c MacOS-aarch64-4.0.3-sha256sum.txt
 unzip MacOS-aarch64-4.0.3.zip
 ```
 
-macOS Gatekeeper will refuse an unsigned binary on first run. Allow it in System Settings, Privacy and
-Security, after confirming the checksum matched.
+Gatekeeper refuses an unsigned binary on first run. Allow it in System Settings, Privacy and
+Security.
 
 </TabItem>
 <TabItem value="win" label="Windows">
@@ -83,7 +85,7 @@ $base = "https://github.com/EpicCash/epic/releases/download/$tag"
 Invoke-WebRequest "$base/Windows-$tag.zip" -OutFile "Windows-$tag.zip"
 Invoke-WebRequest "$base/Windows-$tag-sha256sum.txt" -OutFile "sha256sum.txt"
 
-# Compare the two values yourself; PowerShell has no `sha256sum -c` equivalent.
+# PowerShell has no `sha256sum -c`, so compare the two values.
 (Get-FileHash "Windows-$tag.zip" -Algorithm SHA256).Hash.ToLower()
 Get-Content sha256sum.txt
 
@@ -94,7 +96,7 @@ Expand-Archive "Windows-$tag.zip" -DestinationPath .
 </Tabs>
 
 :::note
-Release binaries do not include Tor (`--features with-tor` is not enabled in release workflows). Set
+Release binaries are built without `--features with-tor`, so they ship no Tor support. Set
 `use_tor_listener = false` in [epic-wallet.toml](/reference/wallet-config), or build from source with
 the feature.
 :::

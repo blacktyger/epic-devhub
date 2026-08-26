@@ -6,8 +6,8 @@ description: Six ways to move a slate between Epic wallets, which tolerate the r
 # Transports
 
 A slate has to travel from one wallet to the other and back. The transport is independent of the
-cryptography: the resulting transaction is identical whichever route you use. What differs is the
-operational cost, whether the receiver must be online at that moment, and whether every slate field
+cryptography, and the resulting transaction is identical whichever route you use. What differs is the
+operational cost, whether the receiver must be reachable at that moment, and whether every slate field
 survives the trip.
 
 Send methods: `http`, `file`, `self`, `keybase`, `emoji`, `epicbox`. Listening accepts `http`, `keybase`
@@ -15,20 +15,29 @@ or `epicbox`.
 
 ## Comparison
 
-| Transport | Receiver online | Needs reachable address | Works behind NAT | Slate version | Payment proofs |
+| Transport | Receiver reachable at send | Needs reachable address | Works behind NAT | Slate version | Payment proofs |
 | --- | --- | --- | --- | --- | --- |
-| `epicbox` | Not required, relay queues | No | Yes | V2 | Not carried |
-| `http` | Required | Yes, public URL | No | Negotiated | Carried |
-| `file` | Not required | No | Yes | Up to V3 | Carried |
-| `emoji` | Not required | No | Yes | Up to V3 | Carried |
-| `keybase` | Not required | Keybase identity | Yes | Negotiated | Unconfirmed |
+| `epicbox` | Not required, the relay stores the slate | No | Yes | V2 always | Not carried |
+| `http` | Required | Yes, public URL | No | Negotiated with the listener | Carried |
+| `file` | Not required | No | Yes | V3 when the slate uses a V3 field | Carried |
+| `emoji` | Not required | No | Yes | V3 when the slate uses a V3 field | Carried |
+| `keybase` | Not required | Keybase identity | Yes | Sent without conversion | Carried |
 | `self` | Same wallet | No | Yes | n/a | n/a |
 
-The first and last columns pull in opposite directions, and that tension decides most integrations.
-Epicbox is the only transport that tolerates the receiver being offline, which is why ordinary users
-rely on it. It is also the only one that does not carry payment proofs.
+Epicbox is the only transport that does not need the receiver reachable at the moment of the send, and
+the only one that drops a payment proof. Those two columns decide most integrations.
 
-### Observed differences in use
+The version column is the reason for the proof column. A payment proof is a V3 slate field.
+`file` and `emoji` serialise V3 as soon as the slate carries `payment_proof` or `ttl_cutoff_height`
+(<Src repo="wallet" path="impls/src/adapters/file.rs" line={30} /> and
+<Src repo="wallet" path="impls/src/adapters/emoji.rs" line={1151} />). `keybase` serialises the slate
+without a version conversion, so every field survives
+(<Src repo="wallet" path="impls/src/adapters/keybase.rs" line={304} />). `http` asks the listener which
+version it speaks and returns an error rather than downgrading a slate that carries a proof
+(<Src repo="wallet" path="impls/src/adapters/http.rs" line={143} />). `epicbox` converts to V2
+unconditionally (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={251} />), so the proof
+request is gone before the slate leaves. To request a proof, see
+[choose the transport accordingly](/concepts/payment-proofs#choose-the-transport-accordingly).
 
 Observed differences across the three transports a developer reaches for:
 
@@ -36,21 +45,28 @@ Observed differences across the three transports a developer reaches for:
 | --- | --- | --- | --- |
 | `file` | 3, split across both wallets | nobody | No, `From/To Address` is `None` |
 | `http` | 1, sender only | recipient | No, `From/To Address` is `None` |
-| `epicbox` | 1, sender only | **both parties** | Yes, the sender's address |
+| `epicbox` | 1 command, but both wallets need a subscription | **both parties** | Yes, the sender's address |
 
-**Epicbox needs the sender listening too.** The signed slate comes back through the relay
-asynchronously rather than as a reply, so it is the sender's own `listen -m epicbox` that finalises and
-posts. Start both subscriptions before sending. An observed round trip took about 1.5 seconds.
+**Epicbox needs the sender listening too.** `send -m epicbox` connects to the relay, publishes the
+slate, locks its inputs and returns
+(<Src repo="wallet" path="controller/src/command.rs" line={566} />). It does not wait for the reply. The
+signed slate comes back through the relay as a new message, and whichever process holds the sender's
+epicbox subscription is what finalises and posts it
+(<Fn repo="wallet" path="impls/src/adapters/epicbox.rs" line={502} name="process_incoming_slate" />). So
+the recipient needs `listen -m epicbox` to sign, and the sender needs `listen -m epicbox` to finalise.
+Neither has to be connected at the moment the other acts, because the relay stores the message until its
+addressee reconnects. Start both subscriptions before sending. An observed round trip took about
+1.5 seconds.
 
 **Only epicbox tells you who paid you.** File and HTTP leave the transaction log's counterparty field
-empty, so attribution has to come from somewhere else in your own system. That is a design constraint
-for anything crediting deposits; see [exchange integration](/guides/exchange-integration).
+empty, so attribution comes from elsewhere in your own system. See
+[exchange integration](/guides/exchange-integration).
 
 ## epicbox
 
 A store-and-forward relay. Your wallet holds a WebSocket connection to the relay, and the relay holds
-slates addressed to you until you reconnect and acknowledge them. This is the practical default and the
-only option when neither party can accept inbound connections.
+slates addressed to you until you reconnect and acknowledge them. It is the only option when neither
+party can accept inbound connections.
 
 ```bash
 # receiver
@@ -60,17 +76,11 @@ epic-wallet listen -m epicbox
 epic-wallet send -m epicbox -d <52-char-key>@epicbox.epiccash.com 1.5
 ```
 
-Points to know:
-
-- The relay **cannot spend your funds**. It stores signed blobs and verifies signatures, and never holds
-  key material.
-- It **can see metadata**: which keys communicate, when, and from which IP addresses. Amounts are inside
-  the commitments and are not visible. Run your own relay if the metadata matters to you.
-- Slates are **not queued indefinitely**. See
-  [delivery and its limits](/api/epicbox#delivery-and-its-limits).
-- It uses slate V2, so payment proofs are not carried.
-- After posting, the send blocks for up to four minutes while it confirms the transaction reached the
-  mempool. The command looks unresponsive during that time.
+The relay stores signed slates and verifies signatures against the sending address. Slates are not
+queued indefinitely; see [delivery and its limits](/api/epicbox#delivery-and-its-limits). After the
+finalising subscription posts the transaction it waits on the node's mempool, which is why the process
+can look unresponsive; see
+[the send appears to hang](/guides/stuck-transactions#case-3-the-send-appears-to-hang).
 
 The wire protocol is documented in [the epicbox reference](/api/epicbox).
 
@@ -91,8 +101,8 @@ The receiver must be reachable, which means a public host or a port forward.
 
 ## file
 
-Write the slate to a file, move it by any means, and have the other side process it. Manual and slow, and
-the option least likely to fail, because it has no network dependency.
+Write the slate to a file, move it by any means, and have the other side process it. It has no network
+dependency.
 
 ```bash
 epic-wallet send -m file -d slate.tx 1.5             # sender, round 1
@@ -111,9 +121,8 @@ The encoding uses a 1,024-entry table, giving 10 bits per glyph. The first glyph
 many padding bits were added, so an emoji slate always begins with one of ten specific glyphs. Expect
 roughly 0.8 glyphs per byte of slate JSON, which is about 3.2 times the byte count once encoded as UTF-8.
 
-Emoji transport has two implementation constraints. Decoding requires the exact glyphs from the table,
-so a chat client that substitutes or normalises emoji will break it. Decoding is also quadratic in
-length, so large slates are slow.
+Decoding requires the exact glyphs from the table, so a chat client that substitutes or normalises emoji
+breaks it, and decoding is quadratic in length, so large slates are slow.
 
 ## keybase
 
@@ -122,7 +131,8 @@ Requires the Keybase client and remains available for compatibility.
 ## self
 
 Both sides of the transfer are the same wallet. Useful for moving value between accounts in one wallet
-and for exercising the transaction machinery without a counterparty.
+and for exercising the transaction machinery without a counterparty. `--dest` names the destination
+account.
 
 ```bash
 epic-wallet send -m self -d <destination_account> 1.5

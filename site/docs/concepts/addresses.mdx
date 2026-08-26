@@ -20,22 +20,19 @@ see [what this version does not cover](/start#what-this-version-does-not-cover).
 
 The format is:
 
-```
+```text
 <public_key>@<domain>[:<port>]
 ```
 
 optionally prefixed with `epicbox://`.
 
-The `public_key` is 52 base58 characters: a compressed secp256k1 public key in base58-check encoding,
+The `public_key` is 52 base58 characters, a compressed secp256k1 public key in base58-check encoding,
 with version bytes `[1, 0]` on mainnet and `[1, 136]` on floonet.
 
-Two useful properties follow from that encoding:
-
-**Typos are caught locally.** A corrupted address fails its checksum and the wallet rejects it before
-sending anything. You do not need the network to discover an address is wrong.
-
-**Mainnet and floonet addresses cannot be confused.** The version bytes differ, so a floonet address
-will not parse as a mainnet one.
+Two properties follow from that encoding. A corrupted address fails its checksum and the wallet rejects
+it locally, without contacting the network; what that does and does not protect against is covered in
+[there are no addresses](/concepts/mimblewimble#there-are-no-addresses). And mainnet and floonet
+addresses cannot be confused, because a floonet address will not parse as a mainnet one.
 
 :::note
 Usernet wallets emit mainnet-prefix addresses (`[1, 0]`). Only floonet gets a distinct prefix (`[1, 136]`).
@@ -48,10 +45,10 @@ Because the identifier is a real public key, a relay can verify you own the addr
 sign a challenge, without ever seeing your private key. See
 [epicbox authentication](/api/epicbox#authentication).
 
-:::note[One epicbox address per wallet]
+:::note[One epicbox address per account]
 
-The `epicbox_address_index` config key currently has no effect because every derivation uses index 0.
-A wallet therefore has one effective epicbox address; the setting cannot provide per-user addresses.
+Every epicbox derivation uses index 0, so a wallet has one epicbox address for each account it holds.
+The `epicbox_address_index` config key is reserved.
 
 :::
 
@@ -59,12 +56,11 @@ A wallet therefore has one effective epicbox address; the setting cannot provide
 
 A separate key used to prove afterwards that a specific party was the intended recipient of a specific
 transfer. It has to be arranged before the transfer, because the recipient signs the proof as part of
-their round.
+their round. `epic-wallet address` prints it under this heading.
 
-Confirm the wallet has a proof address before agreeing to supply a proof: `epic-wallet address` prints
-it under this heading.
-
-See [payment proofs](/concepts/payment-proofs). Requesting one requires the HTTP transport.
+See [payment proofs](/concepts/payment-proofs), and
+[choose the transport accordingly](/concepts/payment-proofs#choose-the-transport-accordingly) for the
+routes that carry one.
 
 ## Next
 

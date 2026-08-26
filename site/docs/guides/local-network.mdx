@@ -14,14 +14,15 @@ Build the three binaries first: [build the binaries](/guides/build).
 
 | Network | Flag | P2P port | API port | Use for |
 | --- | --- | --- | --- | --- |
-| Mainnet | none | 3414 | 3413 | Real value. See [connecting to mainnet](/guides/mainnet-setup) |
+| Mainnet | none | <Ver k="ports.nodeP2p" /> | <Ver k="ports.nodeApi" /> | Real value. See [connecting to mainnet](/guides/mainnet-setup) |
 | Floonet | `--floonet` | 13414 | 13413 | A test network with no public seed running |
 | Usernet | `--usernet` | 23414 | 23413 | A private chain on your own machine |
 
 Use usernet. It needs no seed peers and runs as a private chain on your machine.
+[The CLI reference](/reference/cli#networks) has the full per-network offsets.
 
-Floonet is not maintained as of August 2026. Its DNS seed does not resolve and no public node is
-running, so a floonet node finds no peers at height 0 unless you configure peers manually.
+Floonet's DNS seed does not resolve and no public node is running, so a floonet node finds no peers at
+height 0 unless you configure peers manually.
 
 Neither test network produces blocks on its own. That is what the miner is for.
 
@@ -52,10 +53,13 @@ Generate a config from inside the chain directory, so the paths land there:
 epic --usernet server config
 ```
 
-Then make four changes:
+Then make four changes. `only_randomx` changes consensus, so the comment in the block is part of the
+instruction:
 
 ```toml title=".epic/user/epic-server.toml"
 [server]
+# Consensus-changing. If you set this on a chain that already has blocks, delete
+# chain_data first: blocks mined under the old policy will not validate under this one.
 only_randomx = true
 
 [server.p2p_config]
@@ -68,13 +72,12 @@ enable_stratum_server = true
 log_to_file = true
 ```
 
-Each one is required and none is documented upstream, so here is what each is for.
+Each one is required.
 
 `only_randomx = true` forces a 100% RandomX policy. Epic normally assigns each height one of several
 algorithms, and a single CPU miner can only answer the RandomX ones. On a real network other miners
-cover the rest; on your own chain nobody does, so without this the miner idles on most heights. It
-changes consensus, so delete `chain_data` if you set it on an existing chain: blocks mined under the old
-policy will not validate under the new one.
+cover the rest; on your own chain nobody does, so without this the miner idles on most heights. See
+[the block policy](/mining/proof-of-work#the-block-policy).
 
 `peer_min_preferred_outbound_count = 0` is not written into the generated file, so add the line
 yourself. A node below that threshold reports itself as syncing forever, and a syncing node refuses to
@@ -99,10 +102,24 @@ stopped waiting for peers, which is what allows it to serve mining work.
 
 Each in its own directory, using `-w` so the wallet is created there rather than in `~/.epic/user`:
 
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux and macOS">
+
 ```bash
 cd wallet_alice && epic-wallet --usernet init -w
 cd ../wallet_bob && epic-wallet --usernet init -w
 ```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+Set-Location wallet_alice; epic-wallet --usernet init -w
+Set-Location ..\wallet_bob; epic-wallet --usernet init -w
+```
+
+</TabItem>
+</Tabs>
 
 `-w` takes no value. It is declared on `init` only, so later commands use `--current_dir <path>`
 instead, or you run them from inside the wallet directory.
@@ -120,21 +137,23 @@ use_tor_listener = false
 ```
 
 The Foreign port is derived from the network, so usernet already moved it away from mainnet's. The Owner
-port does not shift per network: it is 3420 everywhere, so a second wallet on the same machine always
-collides there whatever chain it runs. Set `use_tor_listener = false` in both wallets, for the reason in
-[what this version does not cover](/start#what-this-version-does-not-cover).
+port does not shift per network. It is <Ver k="ports.walletOwner" /> everywhere, so a second wallet on the
+same machine always collides there whatever chain it runs. Set `use_tor_listener = false` in both wallets,
+per [turn off the Tor listener](/guides/mainnet-setup#turn-off-the-tor-listener). Both wallets also need an
+`[epicbox]` section before the epicbox transport will work on this chain, which
+[your first transfer](/guides/first-transfer#the-same-transfer-over-epicbox) sets up.
 
 :::note[Wallets outside `~/.epic` need the node's API secret]
 
 Left in the default location, node and wallet share `~/.epic/<network>/` and resolve the node API secret
 to the same `.api_secret` file, so this is invisible. Because `-w` put each wallet elsewhere, each
-generated its own secret, which the node will reject with a 401.
+generated its own secret, which the node will reject with a 401. See
+[the credential the wallet presents to the node](/api/authentication#the-credential-the-wallet-presents-to-the-node).
 
 Two ways out. Either copy the node's `.api_secret` into each wallet directory, which leaves every
 default working, since the wallet only creates that file when it is missing. Or, for a throwaway chain,
 comment out `api_secret_path` in `epic-server.toml` and `node_api_secret_path` in both wallet configs.
-Both keys are optional, so an absent key means no secret. The second option is faster and means your
-client code never exercises its credential path, so do not carry the habit anywhere that matters.
+Both keys are optional, so an absent key means no secret, and no credential path is exercised.
 
 :::
 
@@ -148,8 +167,7 @@ blocks are worth anything.
 epic-wallet --usernet listen -n
 ```
 
-Pass `-n` on every `listen`. Then start the miner from the chain directory, with `epic-miner.toml`
-alongside it:
+Then start the miner from the chain directory, with `epic-miner.toml` alongside it:
 
 ```toml title=".epic/user/epic-miner.toml"
 [mining]
@@ -185,19 +203,11 @@ the 8.88% foundation levy:
 epic-wallet --usernet info
 ```
 
-Coinbase maturity is 3 blocks on usernet, against mainnet's <Ver k="coinbaseMaturity" />. The wallet
-separately defaults `--min_conf` to 10, and that is a CLI flag with no config key. Pass `--min_conf 3`
-on commands that spend (like `send`) so recently-matured outputs are eligible. `info` only reads
-balances, so it does not need the flag.
-
-:::warning[Do not use `run_test_miner`]
-
-It looks like the obvious way to get blocks without an external miner. It only produces Cuckoo proofs
-while the policy asks for RandomX or ProgPow, so every block it finds is rejected with
-`InvalidSortAlgo`. It is inherited Grin code that predates Epic's multi-algorithm consensus and has
-never worked here.
-
-:::
+Coinbase maturity on usernet is 3 blocks
+(<Fn repo="node" path="core/src/global.rs" line={64} kind="const" name="USER_TESTING_COINBASE_MATURITY" />),
+against mainnet's <Ver k="coinbaseMaturity" />. See [emission timing](/mining/emission#timing). The
+wallet's own confirmation floor is separate, so pass `--min_conf 3` on `send` and `info` here; see
+[read what the wallet knows](/guides/wallet-operations#read-what-the-wallet-knows).
 
 ## 4. Decouple mining from the wallets
 
@@ -208,10 +218,9 @@ Once Alice has coins, stop the miner and set:
 burn_reward = true
 ```
 
-Restart the node and the miner. Rewards are now discarded, which is what you want: with
-`burn_reward = false` and no listener up, the node cannot build a coinbase and **stops producing blocks
-entirely**. That couples block production to a wallet being up, and you are about to start and stop
-wallets repeatedly. Alice keeps what she already mined.
+Restart the node and the miner. Rewards are now discarded. With `burn_reward = false` and no listener up,
+the node cannot build a coinbase and **stops producing blocks entirely**, which couples block production
+to a wallet being up. Alice keeps what she already mined.
 
 You can now stop Alice's listener. Blocks keep coming, so transactions keep confirming.
 
@@ -233,10 +242,10 @@ Alice should show a spendable balance and Bob zero. That is the starting state f
 | Miner logs `0 hps` and `algo from job progpow` | `only_randomx` is not set |
 | Node log fills with `Share ... submitted too late` | The same idle miner, still submitting against the previous height's job |
 | Node stops producing blocks | `burn_reward = false` with no wallet listener up, so no coinbase can be built |
-| Node loops on `CoinbaseSumMismatch` at height 1440 and its API goes unreachable | The first foundation levy boundary, one day of blocks in. Observed with `burn_reward = true`. Setting `enable_stratum_server = false` gets the API back so you can read the chain; there is no known fix for mining past it yet, so treat 1440 as the current ceiling for a burned-reward chain |
+| Node loops on `CoinbaseSumMismatch` at height 1440 and its API goes unreachable | The first foundation levy boundary, one day of blocks in. Observed with `burn_reward = true`. Set `enable_stratum_server = false` to get the API back and read the chain, and treat 1440 as the ceiling for a burned-reward chain |
 | Wallet gets 401 from the node | Wallet and node disagree about the API secret, see step 2 |
-| Balance shows but `Currently Spendable` is zero | Coinbase maturity, or the `--min_conf 10` default |
-| Blocks rejected with `InvalidSortAlgo` | `run_test_miner` is enabled somewhere |
+| Balance shows but `Currently Spendable` is zero | Coinbase maturity, or the `--min_conf` default of 10 |
+| Blocks rejected with `InvalidSortAlgo`, or `Block rejected` with `Expected RandomX got Cuckoo15` | `run_test_miner` is enabled somewhere. It produces Cuckoo proofs only, which the RandomX policy rejects |
 | A wallet command acts on the wrong wallet | Run it from that wallet's directory, or pass `--current_dir <path>` |
 
 ## Reset

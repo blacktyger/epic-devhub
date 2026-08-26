@@ -20,6 +20,7 @@ const sidebars = {
         'concepts/interactive-transactions',
         'concepts/outputs-and-locking',
         'concepts/addresses',
+        'concepts/accounts',
         'concepts/transports',
         'concepts/payment-proofs',
       ],

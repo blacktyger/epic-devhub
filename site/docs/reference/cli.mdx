@@ -1,6 +1,6 @@
 ---
 title: CLI reference
-description: Node and wallet commands, default ports, networks, data directory layout and build commands.
+description: Node and wallet commands, their flags, default ports, networks and data directory layout.
 ---
 
 # CLI reference
@@ -12,7 +12,7 @@ Configuration files have their own pages: [epic-server.toml](/reference/node-con
 
 | Command | Purpose |
 | --- | --- |
-| `init` | Create a wallet. `-r` restores from a recovery phrase, `-w` creates it in the current directory |
+| `init` | Create a wallet |
 | `info` | Balance summary |
 | `txs` | Transaction log |
 | `outputs` | Raw output list |
@@ -24,105 +24,127 @@ Configuration files have their own pages: [epic-server.toml](/reference/node-con
 | `pay` | Pay an invoice slate |
 | `cancel` | Abandon a transfer and release its reserved outputs |
 | `post` | Post a finalised slate file |
-| `repost` | Repost or dump a stored transaction. Requires `-i` |
-| `listen` | Run a receiving listener. `-m http\|keybase\|epicbox` |
+| `repost` | Repost or dump a stored transaction |
+| `listen` | Run a receiving listener |
 | `owner_api` | Run the Owner API |
-| `scan` | Rescan the chain and rebuild output state. `-s` sets a start height, `-d` deletes unconfirmed |
+| `scan` | Rescan the chain and rebuild output state |
 | `recover` | Print the existing recovery phrase |
 | `account` | List accounts, or create one with `-c <name>` |
-| `export_tx` / `import_tx` | Move transaction log entries between wallets. Both require a file argument |
-| `export_proof` / `verify_proof` | Payment proofs. `export_proof -i <id> <file>`, `verify_proof <file>` |
+| `export_tx` / `import_tx` | Move transaction log entries between wallets |
+| `export_proof` / `verify_proof` | Payment proofs |
 | `change_password` | Re-encrypt the seed file |
 
-`issue_invoice` appears in `--help` but has no dispatch arm, so it exits with "Unknown wallet command".
-Use `invoice`.
+## Wallet command flags
+
+Declared in <Src repo="wallet" path="src/cmd/wallet_args.rs" line={66} />. Defaults are in
+parentheses.
+
+| Command | Positionals and flags |
+| --- | --- |
+| `init` | `-w`/`--cwd` create in the current directory, `-s`/`--short_wordlist` produce a 12-word recovery phrase instead of 24, `-r`/`--recover` initialise from an existing phrase |
+| `info` | `-c`/`--min_conf <n>` (10) |
+| `txs` | `-i`/`--id <id>`, `-t`/`--txid <uuid>`, `-l`/`--limit <n>`, `-o`/`--offset <n>`, `-s`/`--sort_order <asc or desc>` (desc) |
+| `outputs` | `-f`/`--show_full_history`, `-l`/`--limit <n>`, `-o`/`--offset <n>`, `-s`/`--sort_order <asc or desc>` (desc) |
+| `send` | `<amount>` positional, `-d`/`--dest <destination>`, `-m`/`--method <transport>` (http), `-c`/`--min_conf <n>` (10), `-s`/`--selection <all or smallest>` (smallest), `-e`/`--estimate-selection`, `-o`/`--change_outputs <n>` (1), `-y`/`--request_payment_proof`, `-z`/`--proof_address <address>`, `-g`/`--message <text>`, `-t`/`--stored_tx <id>`, `-b`/`--ttl_blocks <n>`, `-v`/`--slate_version <n>`, `-f`/`--fluff` |
+| `receive` | `-i`/`--input <file or emoji string>`, `-m`/`--method <file or emoji>` (file), `-g`/`--message <text>` |
+| `finalize` | `-i`/`--input <file>`, `-m`/`--method <file or emoji>` (file), `-d`/`--dest <file>` to save the finalised slate, `-n`/`--nopost` to finalise without posting, `-f`/`--fluff` |
+| `invoice` | `<amount>` positional, `-d`/`--dest <file>`, `-g`/`--message <text>`, `-v`/`--slate_version <n>` |
+| `pay` | `-i`/`--input <file>`, `-m`/`--method <file, http or self>` (file), `-d`/`--dest <destination>`, `-c`/`--min_conf <n>` (10), `-s`/`--selection <all or smallest>` (all), `-e`/`--estimate-selection`, `-g`/`--message <text>`, `-b`/`--ttl_blocks <n>` |
+| `cancel` | `-i`/`--id <id>` or `-t`/`--txid <uuid>` |
+| `post` | `-i`/`--input <file>`, `-f`/`--fluff` |
+| `repost` | `-i`/`--id <id>`, required, `-m`/`--dumpfile <file>` to write the transaction instead of posting it, `-f`/`--fluff` |
+| `listen` | `-m`/`--method <http, keybase or epicbox>` (http), `-l`/`--port <n>`, `-n`/`--no_tor` |
+| `owner_api` | `-l`/`--port <n>`, `--run_foreign` to serve the Foreign API on the same port |
+| `scan` | `-s`/`--start_height <n>` (1), `-d`/`--delete_unconfirmed` |
+| `export_tx` | `-o`/`--output <file>`, required, `-i`/`--id <id>` or `--all`, `--format <csv or json>` (json) |
+| `import_tx` | `-i`/`--input <file>`, required, `--format <csv or json>` (json) |
+| `export_proof` | `<file>` positional, `-i`/`--id <id>` or `-t`/`--txid <uuid>` |
+| `verify_proof` | `<file>` positional |
+| `change_password` | `<old password>` and `<new password>` positionals, each prompted for when omitted, and `--remove-backup` |
+
+`-f`/`--fluff` broadcasts immediately rather than through the Dandelion relay. `-e`/`--estimate-selection`
+prints the fee for every selection strategy without building a transaction.
 
 Send transports for `-m`: `http`, `file`, `self`, `keybase`, `emoji`, `epicbox`, defaulting to `http`.
 `receive` and `finalize` accept `file` and `emoji`, defaulting to `file`. `pay` accepts `file`, `http` and
 `self`. See [transports](/concepts/transports).
 
-Global flags, which go before the subcommand: `-p <password>`, `-a <account>`, `-r <node url>`,
+`change_password` copies the seed file, re-encrypts it under the new password, and deletes the copy once
+the new seed verifies against the old mnemonic. `--remove-backup` keeps the copy instead
+(<Src repo="wallet" path="src/cmd/wallet_args.rs" line={452} />).
+
+Global flags, which go before the subcommand: `-p <password>`, `-a <account>` (defaults to `default`),
+`-r <node url>`,
 `-t <dir>`/`--top_level_dir`, `-c <dir>`/`--current_dir`, `-e`/`--external`, `-s`/`--show_spent`,
 `--offline_mode`, and the network selectors `--floonet` and `--usernet`.
 
 `-w`/`--cwd` is a flag on `init` alone and takes no value, so `epic-wallet -w . init` is not valid. To act
 on a wallet outside `~/.epic/<network>`, run the command from that directory or pass `--current_dir <path>`.
 
-:::warning[CLI quirks]
-
-`change_password` removes the backup seed unless you pass `--remove-backup`. The flag name suggests
-the opposite of what it does.
-
-`repost` requires `-i`. Without it the command exits with no output instead of printing usage.
-
-:::
-
 ## Node commands
 
 | Command | Purpose |
 | --- | --- |
 | `epic` | Run the node |
-| `epic server` | Server control, including `config` to write a fresh `epic-server.toml`, and `--api_port` to move the API to `0.0.0.0` |
+| `epic server config` | Write a fresh `epic-server.toml` into the current directory |
+| `epic server run` | Run the node in this console |
 | `epic client status` | Node status |
 | `epic client listconnectedpeers` | Connected peers |
-| `epic client ban` / `unban` | Peer management |
-| `epic taxes` | Foundation coinbase tooling. Takes `start_height` |
+| `epic client ban -p <ip:port>` | Ban a peer |
+| `epic client unban -p <ip:port>` | Lift a ban |
+| `epic taxes -w <wallet listener> -g <count>` | Generate foundation coinbases. `-p <dir>` sets the output directory, `-s <height>` the start height |
 
-Top-level flags: `--floonet`, `--usernet`, and `--noprogpow` / `--onlyrandomx`, which are declared but not
-read. Use the `no_progpow` and `only_randomx` config keys instead, and only off mainnet.
+`epic server` also takes `-c`/`--config_file <path>`, `-s`/`--seed <ip:port>` to override the seed
+node, and `-w`/`--wallet_url <url>` to set the Stratum coinbase listener. Top-level flags are
+`--floonet` and `--usernet`. Declared in
+<Src repo="node" path="src/bin/cmd/epic_args.rs" line={18} />.
 
-`epic client` builds its URLs with a literal `http://`, so these subcommands do not work when TLS is
-enabled on the node. Query the API with `curl` in that case.
+The block policy and the API listen address are configured in the file rather than on the command
+line. See [`epic-server.toml`](/reference/node-config) and
+[the block policy](/mining/proof-of-work#the-block-policy).
 
 ## Ports
 
 | Port | Service | Shifts per network |
 | --- | --- | --- |
-| 3413 | Node API | Yes. 13413 floonet, 23413 usernet |
-| 3414 | Node P2P | Yes. 13414 floonet, 23414 usernet |
-| 3415 | Wallet Foreign API | Yes. 13415 floonet, 23415 usernet |
-| 3416 | Node Stratum server | Yes. 13416 floonet, 23416 usernet |
-| 3420 | Wallet Owner API | **No** |
-| 443 | Epicbox relay | Not applicable |
+| <Ver k="ports.nodeApi" /> | Node API | Yes. 13413 floonet, 23413 usernet |
+| <Ver k="ports.nodeP2p" /> | Node P2P | Yes. 13414 floonet, 23414 usernet |
+| <Ver k="ports.walletForeign" /> | Wallet Foreign API | Yes. 13415 floonet, 23415 usernet |
+| <Ver k="ports.stratum" /> | Node Stratum server | Yes. 13416 floonet, 23416 usernet |
+| <Ver k="ports.walletOwner" /> | Wallet Owner API | No, the same on every network |
+| <Ver k="ports.epicbox" /> | Epicbox relay | Not applicable |
 
 ## Networks
 
-| Network | Flag | Directory | Notes |
-| --- | --- | --- | --- |
-| Mainnet | none | `~/.epic/main` | Coinbase maturity 1,440 blocks |
-| Floonet | `--floonet` | `~/.epic/floo` | Coinbase maturity 30 blocks. **No live seed**, so it only works between nodes you point at each other with `epic server -s` |
-| Usernet | `--usernet` | `~/.epic/user` | Private local chain. Coinbase maturity 3 blocks. Needs `epic-miner` over Stratum plus `peer_min_preferred_outbound_count = 0` and `only_randomx = true` to produce blocks; `run_test_miner` does not work |
-| Automated testing | | `~/.epic/auto` | Used by the test suites. Cannot be selected from the command line |
+| Network | Flag | Directory |
+| --- | --- | --- |
+| Mainnet | none | `~/.epic/main` |
+| Floonet | `--floonet` | `~/.epic/floo` |
+| Usernet | `--usernet` | `~/.epic/user` |
+| Automated testing | none, selected by the test suites rather than the command line | `~/.epic/auto` |
 
-Mainnet and floonet epicbox addresses use different version bytes and cannot be confused for each other.
+Coinbase maturity differs per network. See [timing](/mining/emission#timing).
+
+Floonet has no live DNS seed, so it works between nodes pointed at each other with `epic server -s`.
+A usernet chain produces blocks with `epic-miner` over Stratum plus
+`peer_min_preferred_outbound_count = 0` and
+[`only_randomx = true`](/mining/proof-of-work#the-block-policy). See
+[run a local network](/guides/local-network).
+
+Epicbox addresses carry a two-byte base58check version prefix, `[1, 0]` on mainnet and usernet and
+`[1, 136]` on floonet. A wallet parsing an address from the other network returns
+`InvalidBase58Version` (<Src repo="wallet" path="libwallet/src/epicbox_address.rs" line={23} />).
 
 ## Data directories
 
-**Node.** `chain_data`, `epic-server.toml`, `epic-server.log` and `.api_secret`. Holds no keys, so
-nothing needs backing up. Deleting `chain_data` costs a resync.
+**Node.** `chain_data`, `epic-server.toml`, `epic-server.log` and `.api_secret`. Holds no keys.
+Deleting `chain_data` costs a resync.
 
 **Wallet.** `wallet_data/` containing the seed file and the database, plus `epic-wallet.toml`,
-`epic-wallet.log`, `.owner_api_secret`, `.api_secret` and `wallet_tor/`.
-
-The seed file is the wallet. Back up the recovery phrase, which is equivalent and easier to store safely.
-The database holds your transaction history, account labels and payment proof records. `epic-wallet scan`
-rebuilds outputs and balances from the chain, but not history. See
-[back up and restore](/guides/backup-and-restore).
-
-The wallet database is SQLite, at `wallet_data/db/sqlite/epic.db`.
-
-## Building and testing
-
-Install rustup. Both repositories pin their toolchain version, so it is selected automatically. No
-additional system packages are needed on Linux, macOS or Windows.
-
-```bash
-cargo build --release                                    # binaries
-cargo build --workspace --all-targets                    # everything, including tests
-cargo test --workspace -- --nocapture --test-threads=1    # test suite
-```
-
-The node has cucumber feature tests behind a `cucumber-tests` feature flag.
+`epic-wallet.log`, `.owner_api_secret`, `.api_secret` and `wallet_tor/`. The database is SQLite, at
+`wallet_data/db/sqlite/epic.db`, and holds transaction history, account labels and payment proof
+records. `epic-wallet scan` rebuilds outputs and balances from the chain, not history. For what to
+copy and how to restore it, see [back up and restore](/guides/backup-and-restore).
 
 ## Next
 
@@ -132,6 +154,9 @@ The node has cucumber feature tests behind a `cucumber-tests` feature flag.
   </Card>
   <Card title="epic-wallet.toml" to="/reference/wallet-config">
     Every wallet configuration key.
+  </Card>
+  <Card title="Build the binaries" to="/guides/build">
+    Toolchain, build and test commands.
   </Card>
   <Card title="Authentication and TLS" to="/api/authentication">
     Which surfaces are protected and how to change that.

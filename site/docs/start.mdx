@@ -25,8 +25,8 @@ Skip the sequence and go straight to the reference:
 
 ## What this version does not cover
 
-**Tor.** Release archives do not include the `tor` binary required by the wallet's onion listener. The
-wallet's `use_tor_listener` setting defaults to `true`, so a plain `epic-wallet listen` can fail in a
-background thread. Set `use_tor_listener = false` in `epic-wallet.toml`, or pass `-n` on every `listen`.
-Tor operation is not documented or runtime-verified here; its configuration keys remain listed in the
-[wallet](/reference/wallet-config) and [node](/reference/node-config) references.
+**Tor.** Release archives do not include the `tor` binary the wallet's onion listener requires, and
+`use_tor_listener` defaults to `true`, so a plain `epic-wallet listen` can fail in a background
+thread. [Turn off the Tor listener](/guides/mainnet-setup#turn-off-the-tor-listener) has the change.
+The Tor configuration keys are listed in the [wallet](/reference/wallet-config) and
+[node](/reference/node-config) references.

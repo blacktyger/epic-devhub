@@ -38,10 +38,7 @@ export const surfaces = {
     label: 'Wallet owner',
     path: '/v3/owner',
     portKey: 'ports.walletOwner',
-    // Left as 'token' rather than 'basic' because RpcConsole hardcodes ~/.epic/main/.api_secret
-    // for a basic surface, and this listener reads .owner_api_secret. Switch this to 'basic' in
-    // the same change that makes RpcConsole read secretPath.
-    credential: 'token',
+    credential: 'basic',
     secretPath: '~/.epic/main/.owner_api_secret',
     credentialNote:
       'HTTP Basic, username epic, password from ~/.epic/<network>/.owner_api_secret, plus a token from open_wallet inside the encrypted envelope. Loopback only',
@@ -577,8 +574,8 @@ groups.push(
         params: [WALLET_TOKEN_PARAM],
         src: {repo: 'wallet', path: 'api/src/owner_rpc_s.rs', line: 78},
         notes: [
-          'Accounts are separate derivation paths inside one seed, so they share the recovery phrase and are a bookkeeping convenience rather than a security boundary.',
-          'Validate labels against this list before passing one anywhere else: an unrecognised account name falls back to the default account silently.',
+          'Each account is one BIP32 derivation path inside the wallet seed. The path identifier is one depth byte followed by four big-endian child indices.',
+          'A label this method does not return resolves to the active account when passed as src_acct_name or dest_acct_name.',
         ],
         example: {
           params: {token: '<token>'},
@@ -602,6 +599,10 @@ groups.push(
         paramStyle: 'named',
         params: [WALLET_TOKEN_PARAM, {name: 'label', type: 'string', required: true, default: '"default"', help: 'Account label to activate.'}],
         src: {repo: 'wallet', path: 'api/src/owner_rpc_s.rs', line: 144},
+        notes: [
+          'The active account is state on the wallet instance, shared by every token the listener serves, and it is not written to disk. A restarted listener starts on default unless epic-wallet was given -a.',
+          'To choose an account for one call without changing the active one, pass src_acct_name in InitTxArgs or dest_acct_name to the Foreign API.',
+        ],
         example: null,
       },
       {

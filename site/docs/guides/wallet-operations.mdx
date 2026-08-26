@@ -32,13 +32,24 @@ Currently Spendable     15.00000000
 Amounts print with 8 decimals, because 1 EPIC is <Ver k="epicBase" /> <Ver k="smallestUnit" />s. Rows at
 zero are sometimes suppressed rather than shown.
 
-A gap between `Total` and `Currently Spendable` is normal and means one of three things: coinbase
+A gap between `Total` and `Currently Spendable` is normal and means one of three things. Coinbase
 maturity has not passed, a transfer is in flight and has reserved inputs, or the confirmation threshold
 has not been met. [Outputs and locking](/concepts/outputs-and-locking) explains which is which.
 
-`--min_conf` defaults to 10 and is a CLI flag with no config key. It controls which outputs are
-considered spendable, so pass it on `send`, `invoice`, and `pay` when you want a lower threshold. `info`
-reads balances and does not spend, so the flag is unnecessary there.
+`--min_conf` sets that confirmation threshold, the minimum depth an output needs before the wallet will
+treat it as spendable. It defaults to 10 and is declared on exactly three subcommands, `send`
+(<Src repo="wallet" path="src/cmd/wallet_args.rs" line={143} />), `pay`
+(<Src repo="wallet" path="src/cmd/wallet_args.rs" line={263} />) and `info`
+(<Src repo="wallet" path="src/cmd/wallet_args.rs" line={361} />). There is no configuration key, so the
+default applies unless you pass the flag. On `info` it changes the `Currently Spendable` figure the
+summary reports, which is how you check what a given threshold would make available:
+
+```bash
+epic-wallet info --min_conf 1
+```
+
+Coinbase maturity is a separate, consensus-level floor and is not affected by this flag. See
+[emission timing](/mining/emission#timing).
 
 ```bash
 epic-wallet txs
@@ -47,6 +58,37 @@ epic-wallet txs
 Per-transaction detail. `Sent (Created)` with `Confirmed?` false is an incomplete transfer holding
 reserved inputs. The `From/To Address` column is populated only for epicbox transfers; file and HTTP
 leave it empty, so the log alone cannot tell you who paid you.
+
+### Confirmation depth of a transaction
+
+A transaction's depth is the current chain height minus the height at which the wallet saw it confirm.
+The wallet records that height in the transaction log as `confirmation_height`
+(<Src repo="wallet" path="libwallet/src/types.rs" line={849} />), set when the refresh finds the outputs
+on the chain (<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={370} />). It is `null`
+until `confirmed` is true. The chain height comes from the node's `get_status`, field `tip.height`.
+
+Both fields are on the Owner API's `retrieve_txs` result. `epic-wallet txs` prints the height in its
+output rather than the depth, so an integration computes the subtraction itself.
+
+## Automating these commands
+
+Every command above prompts for the wallet password when it needs one. Two ways to supply it without a
+prompt:
+
+**On the command line.** `-p` is a global flag, so it goes before the subcommand
+(<Src repo="wallet" path="src/cmd/wallet_args.rs" line={78} />). Read it from the environment rather
+than typing it, so the value stays out of shell history:
+
+```bash
+epic-wallet -p "$EPIC_WALLET_PASSWORD" info
+```
+
+**Through the Owner API.** `open_wallet` takes the password as a parameter and returns a session token
+for every later call. The example clients read `EPIC_WALLET_PASSWORD` from the environment and pass it
+straight to `open_wallet`, which is the pattern to copy:
+
+```python file=<rootDir>/examples/python/balance.py#L14-L15
+```
 
 ## Receive
 
@@ -57,8 +99,7 @@ means a listener, or a slate file you process by hand.
 epic-wallet listen -m epicbox -n
 ```
 
-This holds a connection to an epicbox relay, so transfers sent while you were offline are delivered when
-you reconnect. Print the address to give out:
+This holds a connection to an epicbox relay. Print the address to give out:
 
 ```bash
 epic-wallet address
@@ -66,10 +107,12 @@ epic-wallet address
 
 The epicbox address is 52 base58 characters, `@`, then the relay domain. It routes slates to you. It is
 not an on-chain account, it cannot be looked up in the chain, and it does not reveal your balance. A
-corrupted address fails its checksum locally, so a typo cannot send funds anywhere.
+corrupted address fails its checksum locally before anything is sent.
 
-Relay delivery is not indefinite. An undelivered slate is retried for roughly nine minutes and then
-discarded, so a sender whose transfer never lands has to cancel and retry rather than wait.
+A slate sent while you were offline is delivered when you reconnect. Two separate limits bound how long
+the relay holds one, and the shorter is not the storage expiry, so a sender whose transfer never lands
+cancels and retries rather than waiting indefinitely. See
+[delivery and its limits](/api/epicbox#delivery-and-its-limits).
 
 To process a slate file instead of listening:
 
@@ -85,7 +128,7 @@ epic-wallet send -m epicbox -d <recipient-address> <amount>
 ```
 
 <Risk level="spend" /> This reserves your inputs immediately, before the recipient has done anything.
-The reservation is released by completion or by `cancel`, and by nothing else.
+See [what reserves outputs](/concepts/outputs-and-locking#what-reserves-outputs).
 
 Quote the fee before committing to it:
 
@@ -96,13 +139,34 @@ epic-wallet send --estimate_only -m epicbox -d <recipient-address> <amount>
 Fees follow the number of inputs and outputs rather than a flat rate. Consolidating many small outputs
 increases the estimate.
 
-Two behaviours to expect. The command can appear to hang after posting: it polls the node's mempool for
-up to <Ver k="mempoolWaitMinutes" /> minutes to confirm the transaction arrived. And with
+After posting, the command polls the node's mempool to confirm the transaction arrived; see
+[the send appears to hang](/guides/stuck-transactions#case-3-the-send-appears-to-hang). With
 `-m epicbox` both sides need a subscription, because the countersigned slate returns through the relay
 and your own listener finalises it.
 
-Choosing a transport is a real decision on mainnet, mostly because epicbox uses slate V2 and cannot carry
-a payment proof. See [transports](/concepts/transports).
+Epicbox uses slate V2 and cannot carry
+a payment proof. See [transports](/concepts/transports#comparison).
+
+## Repost a completed transfer that never confirmed
+
+A finalised transaction is written to `wallet_data/saved_txs/` before it is posted, so it can be posted
+again without rebuilding it. That is the case when the transfer completed both rounds but the post did
+not reach the node.
+
+```bash
+epic-wallet txs                        # find the id of the unconfirmed Sent entry
+epic-wallet repost -i <id>
+```
+
+| Flag | Effect |
+| --- | --- |
+| `-i <id>` | The transaction log id holding the stored transaction |
+| `-m <file>` | Write the transaction to that file instead of posting it |
+| `-f` | Post directly, bypassing Dandelion relay |
+
+Declared at <Src repo="wallet" path="src/cmd/wallet_args.rs" line={335} />. `repost` needs the stored
+transaction object, so it works only for transfers whose `saved_txs/` entry is still present. A wallet
+recovered from a phrase alone has none.
 
 ## Cancel a transfer that cannot complete
 
@@ -113,10 +177,9 @@ epic-wallet txs                 # find the id of the incomplete transfer
 epic-wallet cancel -i <id>
 ```
 
-Cancel the transfer you actually mean. `cancel` needs a reachable node, exactly one matching
-transaction, and a state that is not yet confirmed, so a transaction already in the mempool cannot be
-cancelled at all. [Diagnose a stuck transaction](/guides/stuck-transactions) is the decision procedure,
-including what to do when `cancel` refuses.
+See
+[cancelling has preconditions](/concepts/outputs-and-locking#cancelling-has-preconditions), and
+[diagnose a stuck transaction](/guides/stuck-transactions) for what to do when `cancel` refuses.
 
 ## Repair a wallet that disagrees with the chain
 
@@ -124,12 +187,10 @@ including what to do when `cancel` refuses.
 epic-wallet scan
 ```
 
-Rescans the chain against your keys and rebuilds the local view of your outputs. Non-destructive, and
-the right first move when the balance looks wrong.
+Rescans the chain against your keys and rebuilds the local view of your outputs.
 
-It does not release locked outputs, because a lock is a local record the chain knows nothing about.
-`cancel` is the only thing that releases those, and restarting the wallet does not, since the state is on
-disk.
+It does not release locked outputs, because a lock is a local record the chain knows nothing about. See
+[what releases them](/concepts/outputs-and-locking#what-releases-them).
 
 :::warning[`scan --delete_unconfirmed` is a different thing]
 
@@ -140,14 +201,21 @@ rebuilding them. Reach for plain `scan` first.
 
 ## Accounts
 
+An account is a label bound to one derivation path inside the wallet's single seed. Every wallet has
+one named `default`.
+
 ```bash
-epic-wallet account            # list
-epic-wallet account -c savings # create
-epic-wallet -a savings info    # act as one
+epic-wallet account            # list every label with its derivation path
+epic-wallet account -c savings # create one
+epic-wallet -a savings info    # run any command against it
 ```
 
-Accounts are separate derivation paths inside one seed, so they share the recovery phrase and back up
-together. They are a bookkeeping convenience, not a security boundary.
+`-a` goes before the subcommand and defaults to `default`. It selects the account for that one
+invocation, and it sets which account a `send` spends from and which one a `receive` or an epicbox
+listener credits.
+
+Accounts share the recovery phrase, the password and the backup, so they back up together. See
+[accounts](/concepts/accounts) for the derivation scheme and what each account holds separately.
 
 ## Change the password
 
@@ -155,7 +223,9 @@ together. They are a bookkeeping convenience, not a security boundary.
 epic-wallet change_password
 ```
 
-This removes the backup seed file unless you pass `--remove-backup`.
+The seed is re-encrypted with the new password and the phrase does not change. `wallet.seed.bak` is
+written and then deleted; pass `--remove-backup` to keep it. See
+[changing your password](/guides/backup-and-restore#changing-your-password).
 
 ## Next
 
@@ -164,7 +234,7 @@ This removes the backup seed file unless you pass `--remove-backup`.
     Funds and the history the chain cannot reconstruct.
   </Card>
   <Card title="Diagnose a stuck transaction" to="/guides/stuck-transactions">
-    The most common real problem, case by case.
+    Reserved inputs, maturity, delivery and confirmation, case by case.
   </Card>
   <Card title="CLI reference" to="/reference/cli">
     Every command and flag.

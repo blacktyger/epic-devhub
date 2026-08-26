@@ -1,7 +1,7 @@
 ---
 title: Build the binaries
 sidebar_label: Build the binaries
-description: Build the Epic node, wallet and miner from source on Linux, macOS and Windows, including the two Windows dependencies upstream does not mention.
+description: Build the Epic node, wallet and miner from source on Linux, macOS and Windows, including the two extra Windows dependencies.
 ---
 
 # Build the binaries
@@ -23,26 +23,43 @@ repository, so rustup selects the right one on its own. Do not pass a `+toolchai
 specific version yourself.
 
 That is the whole list on Linux and macOS. Both projects build on stock `ubuntu-latest` and
-`macos-latest` CI runners with no additional system packages, so if a build fails there, suspect the
-toolchain rather than a missing library.
+`macos-latest` CI runners with no additional system packages.
 
 ## Windows needs two more things
 
-Neither is mentioned in any upstream instruction, and both produce errors that do not name the real
-cause.
-
 **LLVM, for `libclang.dll`.** The `randomx` and `progpow` crates run `bindgen`, which loads
 `libclang` at build time. The LLVM component in the Visual Studio "Desktop development with C++"
-workload ships only `clang-format.exe` and `clang-tidy.exe`, so it does not satisfy this. Install LLVM
-separately and point `LIBCLANG_PATH` at its `bin` directory.
+workload ships only `clang-format.exe` and `clang-tidy.exe`. Install LLVM separately and point
+`LIBCLANG_PATH` at its `bin` directory.
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux and macOS">
+
+```bash
+# Only needed when libclang is not in a default location.
+export LIBCLANG_PATH=/path/to/llvm/lib
+```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+# Current session only.
+$env:LIBCLANG_PATH = 'C:\Program Files\LLVM\bin'
+
+# Persist it for future sessions.
+[Environment]::SetEnvironmentVariable('LIBCLANG_PATH', 'C:\Program Files\LLVM\bin', 'User')
+```
+
+</TabItem>
+</Tabs>
 
 **Windows SDK 10.0.20348 or later.** `croaring-sys` compiles with `-std:c11`, and MSVC's C11 mode needs
 the UCRT `<stdalign.h>` that arrived in that SDK. With only an older SDK present the build stops with
 `fatal error C1083: Cannot open include file: 'stdalign.h'`.
 
-What you do **not** need on Windows, despite older Epic instructions listing them: `openssl` and
-`strawberryperl` for the node and wallet. TLS goes through SChannel there, so `openssl-sys` is never
-compiled. The miner is a different story, below.
+The node and wallet need neither `openssl` nor `strawberryperl` on Windows. TLS goes through SChannel
+there, so `openssl-sys` is never compiled. The miner is a different story, below.
 
 ## Node
 
@@ -52,17 +69,20 @@ cd epic
 cargo build --release
 ```
 
-The binary lands at `target/release/epic`.
+The binary lands at `target/release/epic`, or `target\release\epic.exe` on Windows.
 
 Docker is an alternative if you want the node and nothing else:
 
 ```bash
 docker build -t epic-mainnet -f etc/Dockerfile .
-docker run -d --name epic-mainnet -p 3413:3413 -p 3414:3414 epic-mainnet
+docker run -d --name epic-mainnet -p 127.0.0.1:3413:3413 -p 3414:3414 epic-mainnet
 ```
 
-`docker compose up -d` also works, with one trap: `docker-compose.yml` maps chain data under
-`./target/`, so a later `cargo clean` deletes a synced chain.
+Publishing <Ver k="ports.nodeApi" /> to loopback only matches the binding the node uses outside Docker.
+[Node and wallet setup](/guides/mainnet-setup#ports) has the full port table.
+
+`docker compose up -d` also works. `docker-compose.yml` maps chain data under `./target/`, so a later
+`cargo clean` deletes a synced chain.
 
 ## Wallet
 
@@ -72,14 +92,11 @@ cd epic-wallet
 cargo build --release
 ```
 
-The binary lands at `target/release/epic-wallet`.
+The binary lands at `target/release/epic-wallet`, or `target\release\epic-wallet.exe` on Windows.
 
 ## Miner
 
-The miner builds on Linux and macOS. `EpicCash/epic-miner` master is from September 2022 and its CI
-covers Linux and macOS only.
-
-On Linux and macOS, build it the same way as the others:
+On Linux and macOS, build the miner the same way as the others:
 
 ```bash
 git clone --recursive https://github.com/EpicCash/epic-miner.git
@@ -87,17 +104,13 @@ cd epic-miner
 cargo build --release
 ```
 
-`--recursive` matters: the [RandomX and ProgPow](/mining/proof-of-work) implementations are submodules.
+`--recursive` matters, because the [RandomX and ProgPow](/mining/proof-of-work) implementations are
+submodules. The binary lands at `target/release/epic-miner`.
 
 :::note[Windows: build from the patched fork]
 
-`EpicCash/epic-miner` master is from September 2022 and does not build on Windows with a current
-toolchain. Four independent problems surface in sequence, from a dependency that no longer compiles to
-a build script that writes unescaped backslashes into generated Rust.
-
-Windows builds therefore come from
-[blacktyger/epic-miner](https://github.com/blacktyger/epic-miner), which is upstream plus those four
-fixes and nothing else. Every change is a candidate for upstream and this note goes away if they land.
+Windows builds come from [blacktyger/epic-miner](https://github.com/blacktyger/epic-miner), which is
+upstream plus the fixes needed for a current MSVC toolchain.
 
 ```bash
 git clone --recursive https://github.com/blacktyger/epic-miner.git
@@ -105,24 +118,29 @@ cd epic-miner
 cargo build --release
 ```
 
-`--recursive` is not optional here, and neither is cloning that fork rather than adding it as a remote
-to an upstream checkout: `.gitmodules` uses relative submodule URLs, so the RandomX and ProgPow
-submodules resolve against whichever repository you cloned. A clone of upstream pulls upstream's
-submodules, including the RandomX crate that does not compile on Windows.
+The binary lands at `target\release\epic-miner.exe`, built for `x86_64-pc-windows-msvc`.
+
+Clone that fork rather than adding it as a remote to an upstream checkout. `.gitmodules` uses relative
+submodule URLs, so the RandomX and ProgPow submodules resolve against whichever repository you cloned,
+and a clone of upstream pulls upstream's submodules.
 
 You also need [Strawberry Perl](https://strawberryperl.com) on `PATH`. The miner depends on `openssl`
 with the `vendored` feature, so it compiles OpenSSL from source, and OpenSSL's `Configure` rejects the
 msys perl that ships with Git for Windows.
 
-Verified on 2026-08-24: a fresh `--recursive` clone of that fork plus `cargo build --release` produces a
-working `epic-miner.exe` on `x86_64-pc-windows-msvc` with Rust 1.89.0, in about five minutes.
-
-A stock Windows build mines RandomX only. No [cuckoo](/mining/proof-of-work) plugins are built there, and ProgPow needs the
-`opencl` or `cuda` feature.
+A stock Windows build mines RandomX only. No [cuckoo](/mining/proof-of-work) plugins are built there,
+and ProgPow needs the `opencl` or `cuda` feature.
 
 :::
 
 ## Confirm you have three binaries
+
+Put all three binaries somewhere on your `PATH`, or note where they are. Both the node and the wallet
+resolve configuration from the **current working directory** before falling back to
+`~/.epic/<network>`, so where you run them from matters more than where the binary lives. That is what
+lets one wallet binary drive several wallets.
+
+With them on `PATH`:
 
 ```bash
 epic --version
@@ -130,10 +148,21 @@ epic-wallet --version
 epic-miner --version
 ```
 
-Put all three somewhere on your `PATH`, or note where they are. Both the node and the wallet resolve
-configuration from the **current working directory** before falling back to `~/.epic/<network>`, so
-where you run them from matters more than where the binary lives. That is the mechanism the next page
-uses to run two wallets from one binary.
+## Build and test everything in a repository
+
+Either repository builds and tests as a workspace:
+
+```bash
+cargo build --workspace --all-targets
+cargo test --workspace -- --nocapture --test-threads=1
+```
+
+`--test-threads=1` matters because several tests use a shared data directory. The node's integration
+tests are behind a feature flag:
+
+```bash
+cargo test --features cucumber-tests
+```
 
 ## Next
 

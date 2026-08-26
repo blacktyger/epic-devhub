@@ -1,0 +1,130 @@
+---
+title: Accounts
+description: How an Epic wallet account maps to a BIP32 derivation path, what is scoped to an account, and which account a transfer spends from or credits.
+---
+
+# Accounts
+
+An account is a label bound to one BIP32 derivation path inside the wallet's single seed. A wallet
+holds as many as you create, and one named `default` exists from the moment the wallet is
+initialised.
+
+The record is two fields, a label and a parent derivation path
+(<Src repo="wallet" path="libwallet/src/types.rs" line={992} />). The label is the storage key
+(<Src repo="wallet" path="impls/src/backends/lmdb.rs" line={823} />), so it is fixed once created.
+Everything the wallet stores about coins is keyed on the path.
+
+## What belongs to an account
+
+| Scoped to one account | Shared by the whole wallet |
+| --- | --- |
+| Outputs and the balance computed from them | The seed and the recovery phrase |
+| Transaction log entries, numbered from 0 in each account | The password |
+| The next child derivation index | Finalised transactions in `saved_txs/` |
+| Last confirmed height | The in-flight slate cache |
+| The epicbox and payment proof addresses | The last scanned block height |
+
+The balance summary, the output list and the transaction list all read one account
+(<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={479} />). Transaction log ids
+restart at 0 per account (<Src repo="wallet" path="impls/src/backends/lmdb.rs" line={721} />), so an
+id is only unique within the account that holds it.
+
+`epic-wallet address` prints the identifiers of one account, and each account has its own
+(<Src repo="wallet" path="controller/src/command.rs" line={1360} />). See
+[addresses](/concepts/addresses).
+
+## Derivation
+
+`default` is a depth-2 identifier with every child index at zero. Account *n* takes the highest
+existing first index and adds one (<Src repo="wallet" path="libwallet/src/internal/keys.rs" line={81} />),
+so paths are allocated in creation order and never reused.
+
+The `accounts` method returns the label and the path identifier as hex, one depth byte followed by
+four big-endian child indices:
+
+```json
+[
+  {
+    "label": "default",
+    "path": "0200000000000000000000000000000000"
+  }
+]
+```
+
+Captured from a wallet running <Ver k="wallet" /> on 2026-08-26. An account created second returns
+`0200000001000000000000000000000000`
+(<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={99} />).
+
+Two branches hang below each account path. Output keys are `m/<n>/0/<index>`, and address keys are
+`m/<n>/1/<index>`, hashed with blake2b into a secp256k1 secret
+(<Src repo="wallet" path="libwallet/src/address.rs" line={31} />). A tool holding the seed can
+derive both for any account without the wallet database. The label is the one thing the database
+alone carries.
+
+## From the command line
+
+```bash
+epic-wallet account                 # list every label with its derivation path
+epic-wallet account -c savings      # create one
+epic-wallet -a savings info         # run any command against it
+```
+
+`-a` defaults to `default` (<Src repo="wallet" path="src/cmd/wallet_args.rs" line={81} />) and takes
+effect when the wallet opens, so it selects the account for that one invocation. The listing prints
+two columns, the name and the parent BIP-32 derivation path
+(<Src repo="wallet" path="controller/src/display.rs" line={431} />).
+
+## Which account a transfer uses
+
+**Sending** spends from the account `-a` selected. On the Owner API, `src_acct_name` in `InitTxArgs`
+names it for a single call, and a label that is not in `accounts` resolves to the active account
+(<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={383} />). Pass a label the
+`accounts` method returned.
+
+**Receiving over file or http** credits the account `-a` selected. The Foreign API takes it as
+`dest_acct_name` on `receive_tx`.
+
+**Receiving over epicbox** credits the account that was active when the listener opened the wallet
+(<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={513} />). That listener subscribes
+with that account's address, so one process serves one account.
+
+**Moving value between two accounts in one wallet** uses the `self` transport, where `-d` names the
+destination account:
+
+```bash
+epic-wallet -a savings send -m self -d default 1.5
+```
+
+See [transports](/concepts/transports#self).
+
+## Refreshing and scanning
+
+`refresh_from_node` updates the active account
+(<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={245} />). `scan` walks every
+account, because it recovers outputs by the derivation path each one carries
+(<Src repo="wallet" path="libwallet/src/internal/scan.rs" line={376} />). The scan cursor is
+wallet-wide while last confirmed height is per account, so after a scan each account's height is set
+from its own outputs.
+
+## After a recovery
+
+A wallet restored from its phrase recovers derivation paths, not labels. `default` keeps its name and
+every other path discovered is labelled `account_1`, `account_2` and so on in discovery order
+(<Src repo="wallet" path="libwallet/src/internal/scan.rs" line={512} />). Funds land in the branch
+they were derived under.
+
+See [what recovery does not bring back](/guides/backup-and-restore#what-recovery-does-not-bring-back).
+
+## Next
+
+<CardGrid>
+  <Card title="Wallet operations" to="/guides/wallet-operations#accounts">
+    Creating, listing and selecting an account.
+  </Card>
+  <Card title="Session and accounts" to="/api/wallet/session">
+    The three Owner API methods that manage them.
+  </Card>
+  <Card title="Addresses" to="/concepts/addresses">
+    The identifiers each account derives.
+  </Card>
+</CardGrid>

@@ -5,86 +5,101 @@ description: The Epic node's Stratum mining server, covering transport, methods,
 
 # Stratum
 
-The node includes a Stratum server for miners. It listens on `127.0.0.1:3416` by default, 13416 on
-floonet and 23416 on usernet, and it is off unless `enable_stratum_server` is set.
+The node includes a Stratum server for miners. It listens on `127.0.0.1` port
+<Ver k="ports.stratum" />, shifted per network like every other node port, and it runs only when
+`enable_stratum_server = true`. That key defaults to `false` on every network, so a generated
+`epic-server.toml` always has to be edited before a miner can connect, usernet included. See
+[the port table](/reference/cli#ports) and
+[`epic-server.toml`](/reference/node-config).
 
-It is off on **every** network, usernet included.
-<Src repo="node" path="servers/src/common/types.rs" line={301} /> has a `UserTesting` branch that
-sets it `true`, and that branch never executes: the `Default` impl reads the process-global chain
-type, which is still `Mainnet` at the point a config file is generated. A usernet
-`epic-server.toml` comes out with `enable_stratum_server = false`.
+The transport is raw TCP carrying newline-delimited JSON. Each JSON-RPC message is one line
+terminated by a newline, with no HTTP headers, paths or status codes.
 
-## Transport
+## Methods and error codes
 
-**Raw TCP with newline-delimited JSON.** Each JSON-RPC message is one line terminated by a newline. There
-are no HTTP headers, paths or status codes.
+Five methods are dispatched. Anything else returns `-32601`.
 
-## Authentication
+| Method | Params | Result on success |
+| --- | --- | --- |
+| `login` | `login`, `pass`, `agent`, all required | `"ok"`. Records the worker name and agent (<Src repo="node" path="servers/src/mining/stratumserver.rs" line={928} />) |
+| `getjobtemplate` | `algorithm` | A job template object |
+| `submit` | `height`, `job_id`, `nonce`, `pow` | `"ok"`, or `"blockfound - <block hash>"` when the share is a block |
+| `keepalive` | none | `"ok"` |
+| `status` | none | `id`, `height`, `difficulty`, `accepted`, `rejected`, `stale` for the calling worker |
 
-There is none. Any client that can open the port can request work and submit shares.
+Error codes, as the server sends them:
 
-A `login` method exists and is accepted, alongside `keepalive` and `status`. It records a worker name and
-sets an `authenticated` flag that nothing ever reads, and the password is not checked
-(<Src repo="node" path="servers/src/mining/stratumserver.rs" line={930} />).
+| Code | Message |
+| --- | --- |
+| `-32000` | Node is syncing - Please wait |
+| `-32501` | Share rejected due to low difficulty |
+| `-32502` | Failed to validate solution |
+| `-32503` | Solution submitted too late |
+| `-32600` | Invalid Request |
+| `-32601` | Method not found |
+| `32603` | Internal error |
 
 ## Requesting work
 
-A node returns `-32000 Node is syncing - Please wait` when `peer_min_preferred_outbound_count` outbound
-peers have not been reached. On usernet (no peers by design) set this to `0` or the node stays in syncing
-state permanently. See [run a local network](/guides/local-network#why-usernet).
+`getjobtemplate` requires an `algorithm` parameter naming which of the three proof-of-work algorithms
+you intend to mine. Epic runs all three concurrently, so a job is algorithm-specific.
 
-`getjobtemplate` requires an `algorithm` parameter naming which of the three proof-of-work algorithms you
-intend to mine. Epic runs all three concurrently, so a job is algorithm-specific. See
-[proof of work](/mining/proof-of-work).
+The `algorithm` in the reply is the one the policy requires at that height, not necessarily the one
+you asked for, so a miner needs one worker per algorithm it intends to mine. `only_randomx` narrows
+the policy to a single algorithm on a private chain. See
+[the block policy](/mining/proof-of-work#the-block-policy).
 
-The algorithm you get back is the one the policy requires at that height, not necessarily the one you
-asked for. A miner that only supports one algorithm therefore sits idle on the heights assigned to the
-others, and `epic-miner` logs this as `my algo: randomx, algo from job progpow` followed by `0 hps`.
-Covering a mixed policy needs one miner per algorithm; restricting the policy with `only_randomx` is
-the alternative on a private chain.
+A node returns `-32000 Node is syncing - Please wait` until it has reached
+`peer_min_preferred_outbound_count` outbound peers. On usernet, which has no peers by design, set that
+key to `0`. See [run a local network](/guides/local-network#why-usernet).
 
-The job template carries `height`, `job_id`, `pre_pow`, `algorithm`, `epochs`, and both `difficulty` and
-`block_difficulty` as arrays of `[algorithm_name, value]` pairs rather than single values
-(<Src repo="node" path="servers/src/mining/stratumserver.rs" line={176} />).
+Job template fields (<Src repo="node" path="servers/src/mining/stratumserver.rs" line={176} />):
+
+| Field | Type |
+| --- | --- |
+| `height` | u64 |
+| `job_id` | u64, the index of the block version the job was built from |
+| `pre_pow` | hex string of the serialised header up to and including the pre-nonce fields |
+| `algorithm` | `cuckoo`, `randomx` or `progpow` |
+| `difficulty` | array of `[algorithm_name, minimum_share_difficulty]` pairs |
+| `block_difficulty` | array of `[algorithm_name, current_block_difficulty]` pairs |
+| `epochs` | array of `[start_height, end_height, seed_hash]` triples, for RandomX seed selection |
+
+Both difficulty lists cover Cuckatoo, RandomX and ProgPow, in that order.
 
 ## Submitting shares
 
-`submit` takes `height`, `job_id`, `nonce` as a number, and `pow`. `pow` is an externally tagged enum, so
-it is a single-key object whose value is a tuple: `{"Cuckoo": [edge_bits, [nonces]]}`,
-`{"RandomX": [32 bytes]}` or `{"ProgPow": [32 bytes]}`. Edge bits are the first element of the Cuckoo
-tuple rather than a sibling field
-(<Src repo="node" path="servers/src/mining/stratumserver.rs" line={161} />).
+`submit` takes `height`, `job_id`, `nonce` as a number, and `pow`. `pow` is an externally tagged enum,
+so it is a single-key object whose value is a tuple
+(<Src repo="node" path="servers/src/mining/stratumserver.rs" line={161} />):
 
-## Methods
+| Algorithm | `pow` |
+| --- | --- |
+| Cuckoo and Cuckatoo | `{"Cuckoo": [edge_bits, [nonces]]}`, edge bits first, then 42 nonces |
+| RandomX | `{"RandomX": [32 bytes]}` |
+| ProgPow | `{"ProgPow": [32 bytes]}` |
 
-`login`, `submit`, `keepalive`, `getjobtemplate`, `status`. Anything else returns `-32601`.
-
-## Error codes
-
-Errors follow JSON-RPC conventions, except that the internal error is emitted as `32603` rather than the
-specified `-32603`. Match on the absolute value if you need to detect it reliably.
-
-## Mining over HTTP instead
-
-The node's foreign JSON-RPC surface offers `get_block_template`, `finalize_block_template` and
-`submit_block`. It is ordinary JSON-RPC over HTTP and is often simpler to work with than the socket
-protocol. See [the node API](/api/node#mining-over-http).
+A share whose difficulty clears `block_difficulty` is processed as a block and the result reads
+`blockfound - <block hash>`. A share that clears only `difficulty` is counted and the result is `"ok"`.
 
 ## Message reference
 
-Message shapes below are the current field sets. Exact serialisation is defined by the structs in
+Serialisation is defined by the structs in
 <Src repo="node" path="servers/src/mining/stratumserver.rs" />.
 
-### Requesting a job
+### Requests
 
-```json title="client -> server, one line"
+`id` is an integer or a string, `jsonrpc` is `"2.0"`, and `params` is the method's parameter object or
+null (<Src repo="node" path="servers/src/mining/stratumserver.rs" line={64} />).
+
+```json title="client -> server, one line each"
 {"id":"1","jsonrpc":"2.0","method":"getjobtemplate","params":{"algorithm":"randomx"}}
+{"id":"2","jsonrpc":"2.0","method":"keepalive","params":null}
+{"id":"3","jsonrpc":"2.0","method":"status","params":null}
 ```
 
-### Submitting a share
-
-```json title="client -> server, one line"
-{"id":"2","jsonrpc":"2.0","method":"submit","params":{
+```json title="client -> server, a RandomX share, one line"
+{"id":"4","jsonrpc":"2.0","method":"submit","params":{
   "height":1000001,
   "job_id":7,
   "nonce":13476209874311234567,
@@ -93,18 +108,30 @@ Message shapes below are the current field sets. Exact serialisation is defined 
 }}
 ```
 
-A Cuckatoo share puts edge bits first and the nonce list second. The list holds 42 entries:
-
-```json title="client -> server, one line"
-{"id":"3","jsonrpc":"2.0","method":"submit","params":{
+```json title="client -> server, a Cuckatoo share, nonce list abbreviated to 3 of 42, one line"
+{"id":"5","jsonrpc":"2.0","method":"submit","params":{
   "height":1000001,"job_id":7,"nonce":42,
   "pow":{"Cuckoo":[31,[1042,20984,31006]]}
 }}
 ```
 
+### Replies
+
+Every reply carries the same four keys, and echoes the method that produced it
+(<Src repo="node" path="servers/src/mining/stratumserver.rs" line={73} />). `result` and `error` are
+both present, one of them null.
+
+```text title="server -> client, envelope"
+{"id": <same as the request>, "jsonrpc": "2.0", "method": <the method called>,
+ "result": <method result> | null, "error": {"code": <int>, "message": <string>} | null}
+```
+
+`result` is `"ok"` for `login` and `keepalive`, the string `"blockfound - <hash>"` or `"ok"` for
+`submit`, the job template object for `getjobtemplate`, and the worker status object for `status`.
+
 ### Watch a live session
 
-You can observe a live session with `nc`:
+One request, one reply, with `nc`:
 
 ```bash
 # Enable the server first: stratum_mining_config.enable_stratum_server = true
@@ -112,91 +139,20 @@ printf '{"id":"1","jsonrpc":"2.0","method":"getjobtemplate","params":{"algorithm
   | nc 127.0.0.1 3416
 ```
 
-<Tabs groupId="lang">
-<TabItem value="py" label="Python">
+One job per algorithm, with the replies pretty-printed:
 
-```python title="stratum_probe.py"
-"""Connect to the Stratum server, request one job per algorithm, print the replies."""
-
-import json
-import socket
-
-HOST, PORT = "127.0.0.1", 3416
-ALGORITHMS = ("randomx", "progpow", "cuckatoo")
-
-
-def probe() -> None:
-    with socket.create_connection((HOST, PORT), timeout=15) as sock:
-        stream = sock.makefile("rw", encoding="utf-8", newline="\n")
-
-        for index, algorithm in enumerate(ALGORITHMS, start=1):
-            request = {
-                "id": str(index),
-                "jsonrpc": "2.0",
-                "method": "getjobtemplate",
-                "params": {"algorithm": algorithm},
-            }
-            # Newline-delimited JSON over raw TCP. There is no HTTP framing.
-            stream.write(json.dumps(request) + "\n")
-            stream.flush()
-
-            line = stream.readline()
-            if not line:
-                print(f"{algorithm}: connection closed")
-                return
-            print(f"{algorithm}: {json.dumps(json.loads(line), indent=2)}")
-
-
-if __name__ == "__main__":
-    probe()
+```python title="examples/python/stratum_probe.py" file=<rootDir>/examples/python/stratum_probe.py
 ```
-
-</TabItem>
-<TabItem value="js" label="JavaScript">
-
-```js title="stratumProbe.mjs"
-import net from 'node:net';
-
-const ALGORITHMS = ['randomx', 'progpow', 'cuckatoo'];
-
-const socket = net.createConnection({host: '127.0.0.1', port: 3416}, () => {
-  ALGORITHMS.forEach((algorithm, index) => {
-    // Newline-delimited JSON over raw TCP. There is no HTTP framing.
-    socket.write(
-      JSON.stringify({
-        id: String(index + 1),
-        jsonrpc: '2.0',
-        method: 'getjobtemplate',
-        params: {algorithm},
-      }) + '\n',
-    );
-  });
-});
-
-let buffer = '';
-socket.on('data', (chunk) => {
-  buffer += chunk.toString();
-  let newline;
-  while ((newline = buffer.indexOf('\n')) !== -1) {
-    const line = buffer.slice(0, newline).trim();
-    buffer = buffer.slice(newline + 1);
-    if (line) console.log(JSON.stringify(JSON.parse(line), null, 2));
-  }
-});
-
-socket.on('error', (err) => console.error('stratum error:', err.message));
-```
-
-</TabItem>
-</Tabs>
-
-## Mining clients
-
-`EpicCash/epic-miner` is the reference miner.
 
 ## Next
 
+`EpicCash/epic-miner` is the reference miner. The node's foreign JSON-RPC surface offers the same work
+over HTTP through `get_block_template`, `finalize_block_template` and `submit_block`.
+
 <CardGrid>
+  <Card title="Mining over HTTP" to="/api/node#mining-over-http">
+    The three foreign JSON-RPC methods that build and submit a block.
+  </Card>
   <Card title="Proof of work" to="/mining/proof-of-work">
     The three algorithms and the ratio between them.
   </Card>

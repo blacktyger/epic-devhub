@@ -28,6 +28,11 @@ field.
 Addresses are `<public_key>@<domain>[:<port>]`, where `public_key` is 52 base58-check characters encoding
 a compressed secp256k1 public key. See [addresses](/concepts/addresses).
 
+The key is derived per account, so a wallet holds one epicbox address for each account it has, and a
+listener subscribes with the address of the account it opened
+(<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={145} />). See
+[accounts](/concepts/accounts#which-account-a-transfer-uses).
+
 The wallet's default relay domain is <Ver k="epicboxDomain" />.
 
 ## Authentication
