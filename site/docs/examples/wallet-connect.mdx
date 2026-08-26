@@ -1,13 +1,13 @@
 ---
 title: "Wallet: connect and read"
 sidebar_label: "Wallet: connect and read"
-description: Complete the Epic wallet Owner API v3 encrypted handshake and read a balance, in Python, JavaScript and Rust.
+description: Complete the Epic wallet Owner API v3 encrypted handshake and read a balance in Python.
 ---
 
 # Wallet: connect and read
 
-Every Owner API v3 call travels inside an encrypted envelope. Getting that envelope right is the only
-hard part of integrating Epic, and once you have it every other method is an ordinary JSON-RPC call.
+Every Owner API v3 call travels inside an encrypted envelope. Once the client holds the shared
+secret, every method is an ordinary JSON-RPC call.
 
 Start the API:
 
@@ -15,43 +15,21 @@ Start the API:
 epic-wallet owner_api
 ```
 
-## What the handshake does
+## The handshake
 
-In words: your client generates a secp256k1 keypair, exchanges public keys with the wallet through
-`init_secure_api`, multiplies to get a shared secret, and then wraps every subsequent JSON-RPC request in
-`encrypted_request_v3`. The first wrapped call is `open_wallet`, which returns the token every later call
-carries.
+The client generates a secp256k1 keypair, exchanges public keys through `init_secure_api`, and
+wraps every later request in `encrypted_request_v3`. The first wrapped call is `open_wallet`, which
+returns the token every subsequent call carries. Message by message, it is documented in
+[the Owner API reference](/api/wallet-owner#the-encrypted-handshake).
 
 <HandshakeTrace />
 
-### Where client implementations go wrong
-
-Four things to get right, and each is a place implementations go wrong:
-
-1. **The shared secret is the raw x coordinate** of the ECDH point, 32 bytes. It is **not** hashed.
-2. **The cipher is AES-256-GCM** with a fresh 12-byte nonce per message, and the 16-byte auth tag is
-   **appended to the ciphertext** before base64 encoding.
-3. **The inner payload is a complete JSON-RPC request**, including `jsonrpc`, `id`, `method` and
-   `params`, not just the params.
-4. **Unwrap twice.** The outer response has an `Ok`/`Err` envelope, and so does the decrypted inner
-   response.
-
-### The Basic header these clients send
-
-The clients below send an HTTP Basic header built from `~/.epic/main/.owner_api_secret`. On this
-listener that header is not what authorizes the call, the `token` is, but sending it costs nothing and
-keeps the client working against a listener that does check it. See
-[authentication](/api/authentication).
-
 ## A complete client
 
-<Tabs groupId="lang">
-<TabItem value="py" label="Python">
-
-Needs `requests`, `coincurve` and `pycryptodome`.
+Needs `requests`, `coincurve` and `pycryptodome`. Run it from the `examples` directory.
 
 <details>
-<summary><code>epic_wallet.py</code>, the client</summary>
+<summary><code>python/epic_wallet.py</code>, the client</summary>
 
 ```python title="examples/python/epic_wallet.py" file=<rootDir>/examples/python/epic_wallet.py
 ```
@@ -63,70 +41,9 @@ Using it:
 ```python title="examples/python/balance.py" file=<rootDir>/examples/python/balance.py
 ```
 
-</TabItem>
-<TabItem value="js" label="JavaScript">
-
-Node 20 or newer. No dependencies: the ECDH and AES-GCM both come from `node:crypto`.
-
-<details>
-<summary><code>epicWallet.mjs</code>, the client</summary>
-
-```js title="examples/javascript/epicWallet.mjs" file=<rootDir>/examples/javascript/epicWallet.mjs
+```bash
+EPIC_WALLET_PASSWORD=... python python/balance.py
 ```
-
-</details>
-
-Using it:
-
-```js title="examples/javascript/balance.mjs" file=<rootDir>/examples/javascript/balance.mjs
-```
-
-</TabItem>
-<TabItem value="rust" label="Rust">
-
-One crate with two binaries. `cargo run --bin wallet-balance` after
-`export EPIC_WALLET_PASSWORD=...`.
-
-<details>
-<summary><code>src/wallet.rs</code>, the client</summary>
-
-```rust title="examples/rust/src/wallet.rs" file=<rootDir>/examples/rust/src/wallet.rs
-```
-
-</details>
-
-Using it:
-
-```rust title="examples/rust/src/bin/wallet_balance.rs" file=<rootDir>/examples/rust/src/bin/wallet_balance.rs
-```
-
-Dependencies, pinned so the example keeps compiling:
-
-```toml title="examples/rust/Cargo.toml" file=<rootDir>/examples/rust/Cargo.toml
-```
-
-:::warning[Do not use `SharedSecret::new` in Rust]
-
-`secp256k1::ecdh::SharedSecret::new` applies SHA-256 to the point, which produces a different key and
-every request will fail to decrypt. Epic uses the raw x coordinate, so use
-`ecdh::shared_secret_point` and take the first 32 bytes.
-
-:::
-
-</TabItem>
-<TabItem value="sh" label="Shell">
-
-There is no shell client for this surface, and that is a deliberate omission rather than a gap.
-
-Reaching the first method call needs a secp256k1 keypair, an ECDH multiplication, and AES-256-GCM with a
-per-message nonce. That is not something to assemble out of `openssl` invocations in a script, and a
-half-correct implementation of it fails in ways that look like a wallet problem.
-
-The node's JSON-RPC surface is a different matter, and [node queries](/examples/node-api) has a shell
-client for it.
-
-</TabItem>
-</Tabs>
 
 ## Reading a balance
 
@@ -137,121 +54,32 @@ node, and the summary itself.
 | --- | --- |
 | `last_confirmed_height` | Height the figures are current as of |
 | `total` | Everything the wallet knows about |
-| `amount_currently_spendable` | What you can actually send right now |
+| `amount_currently_spendable` | What you can send right now |
 | `amount_awaiting_confirmation` | Received but not yet deep enough |
 | `amount_awaiting_finalization` | Part of a transfer still in progress |
 | `amount_locked` | Reserved as inputs to a transfer you started |
 | `amount_immature` | Coinbase outputs still inside the maturity window |
 
-A gap between `total` and `amount_currently_spendable` is normal. See
-[outputs and locking](/concepts/outputs-and-locking) for why, and
-[stuck transactions](/guides/stuck-transactions) if it looks wrong.
+A gap between `total` and `amount_currently_spendable` comes from
+[outputs and locking](/concepts/outputs-and-locking).
 
 :::note[Amounts are strings in JSON]
 
-`u64` values are serialised as strings to survive JavaScript's number precision. Parse them as integers
-before doing arithmetic, and divide by 100,000,000 for EPIC.
+`u64` values are serialised as strings to survive JavaScript's number precision. Parse them as
+integers, and divide by <Ver k="epicBase" /> for EPIC.
 
 :::
 
 ## Listing outputs and transactions
 
-Both calls return an object with a `pager`, not a bare array. This changed in wallet 4.0 and is the most
-common thing to get wrong when porting a 3.x client. `limit`, `offset` and `sort_order` are optional in
-the request, but supply them explicitly: without a limit a large wallet returns everything in one
-response.
+`retrieve_outputs` and `retrieve_txs` each return an object carrying a `pager` alongside the
+records, not a bare array. Supply `limit`, `offset` and `sort_order`: without a limit a large wallet
+returns every record in one response.
 
-### Requesting a page
-
-<Tabs groupId="lang">
-<TabItem value="py" label="Python">
-
-```python
-result = wallet.call(
-    "retrieve_outputs",
-    {
-        "token": wallet.token,
-        "include_spent": False,
-        "refresh_from_node": True,
-        "tx_id": None,
-        "limit": 100,
-        "offset": 0,
-        "sort_order": "desc",
-    },
-)
-
-print(f"{result['pager']['records_read']} of {result['pager']['total_records']} outputs")
-for entry in result["outputs"]:
-    output = entry["output"]
-    print(f"{output['status']:<12} {int(output['value']) / 1e8:>16.8f} EPIC  height {output['height']}")
+```python title="examples/python/list_paged.py" file=<rootDir>/examples/python/list_paged.py#L17-L46
 ```
 
-</TabItem>
-<TabItem value="js" label="JavaScript">
-
-```js
-const result = await wallet.call('retrieve_outputs', {
-  token: wallet.token,
-  include_spent: false,
-  refresh_from_node: true,
-  tx_id: null,
-  limit: 100,
-  offset: 0,
-  sort_order: 'desc',
-});
-
-const epic = (freemen) => (Number(freemen) / 1e8).toFixed(8);
-const {records_read, total_records} = result.pager;
-console.log(`${records_read} of ${total_records} outputs`);
-
-for (const {output} of result.outputs) {
-  console.log(`${output.status.padEnd(12)} ${epic(output.value)} EPIC  height ${output.height}`);
-}
-```
-
-</TabItem>
-<TabItem value="rust" label="Rust">
-
-```rust
-let result = wallet.call(
-    "retrieve_outputs",
-    json!({
-        "token": wallet.token,
-        "include_spent": false,
-        "refresh_from_node": true,
-        "tx_id": null,
-        "limit": 100,
-        "offset": 0,
-        "sort_order": "desc"
-    }),
-)?;
-
-println!(
-    "{} of {} outputs",
-    result["pager"]["records_read"], result["pager"]["total_records"]
-);
-
-if let Some(list) = result["outputs"].as_array() {
-    for entry in list {
-        let output = &entry["output"];
-        println!("{:<12} {}  height {}", output["status"], output["value"], output["height"]);
-    }
-}
-```
-
-</TabItem>
-<TabItem value="sh" label="Shell">
-
-Not applicable on this surface, for the reason in
-[a complete client](#a-complete-client).
-
-</TabItem>
-</Tabs>
-
-`retrieve_txs` takes the same shape with `tx_slate_id` in place of `include_spent`, and returns `txs`
-rather than `outputs`.
-
-### The pager in the response
+`every_output` in the same file walks the whole set a page at a time.
 
 ```json title="result.Ok"
 {
@@ -271,17 +99,6 @@ rather than `outputs`.
 <Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={185} kind="struct" name="RetrieveTxsResult" />,
 <Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={174} kind="struct" name="RetrieveOutputsResult" />
 and <Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={196} kind="struct" name="Pager" />.
-
-`retrieve_summary_info` returns a two-element array of `[validated_against_node, WalletInfo]`.
-
-### Validate account names before you pass them
-
-:::note[Account names]
-
-An account label the wallet does not know resolves to the default account. Validate names against
-`accounts` before passing them.
-
-:::
 
 ## Next
 

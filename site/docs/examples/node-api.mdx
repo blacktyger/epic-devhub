@@ -1,36 +1,36 @@
 ---
 title: Node queries
-description: Read chain height, blocks, the mempool and peers from an Epic node in shell, Python, JavaScript and Rust.
+description: Read chain height, blocks, the mempool and peers from an Epic node with curl and Python.
 ---
 
 # Node queries
 
-The node speaks plain JSON-RPC 2.0 over HTTP POST. No handshake, no encryption, and the credential for
-the owner surface is created for you, so this is the easiest place to start.
+The node speaks plain JSON-RPC 2.0 over HTTP POST. No handshake, no encryption, and the credential
+for the owner surface is created for you.
 
 Two things decide every call you write:
 
 - **Which surface.** `/v2/owner` is node administration. `/v2/foreign` is every chain read plus
-  transaction submission. Getting it wrong returns method-not-found rather than a hint. The split is
-  listed in [the node API](/api/node#which-json-rpc-method-lives-where).
-- **The double envelope.** A response has a JSON-RPC `result`, and inside it an `Ok` or `Err`. A call can
-  succeed at both HTTP and JSON-RPC layers and still have failed. Every client below unwraps both.
+  transaction submission. The split is listed in
+  [the node API](/api/node#which-json-rpc-method-lives-where).
+- **The double envelope.** A response has a JSON-RPC `result`, and inside it an `Ok` or `Err`. See
+  [the response envelope](/api/index#the-response-envelope).
 
 The owner credential is at `~/.epic/main/.api_secret` (`floo` or `user` for other networks) and the
-username is the literal string `epic`. Foreign calls need no credential. See
+username is the literal string `epic`. Foreign calls take no credential. See
 [authentication](/api/authentication).
 
-Every client below honours two environment variables so you can point it at the local chain from
-[run a local network](/guides/local-network) without editing anything:
+Both clients honour `NODE_URL` and `EPIC_NETWORK`, so the local chain from
+[run a local network](/guides/local-network) needs no edit. Run them from the `examples` directory:
 
 ```bash
-NODE_URL=http://127.0.0.1:23413 EPIC_NETWORK=user node epicNode.mjs
+NODE_URL=http://127.0.0.1:23413 EPIC_NETWORK=user python python/epic_node.py
 ```
 
 ## A complete client
 
 <Tabs groupId="lang">
-<TabItem value="sh" label="Shell">
+<TabItem value="cli" label="CLI">
 
 Needs `curl` and `jq`.
 
@@ -46,34 +46,14 @@ Needs `requests`.
 ```
 
 </TabItem>
-<TabItem value="js" label="JavaScript">
-
-Node 20 or newer, no dependencies.
-
-```js title="examples/javascript/epicNode.mjs" file=<rootDir>/examples/javascript/epicNode.mjs
-```
-
-</TabItem>
-<TabItem value="rust" label="Rust">
-
-```rust title="examples/rust/src/node.rs" file=<rootDir>/examples/rust/src/node.rs
-```
-
-Run it with `cargo run --bin node-status`:
-
-```rust title="examples/rust/src/bin/node_status.rs" file=<rootDir>/examples/rust/src/bin/node_status.rs
-```
-
-</TabItem>
 </Tabs>
 
 ## Chain status
 
-`get_status` on the owner surface returns height, total difficulty, connected peers and sync state. It
-is the single most useful call.
+`get_status` on the owner surface returns height, total difficulty, connected peers and sync state.
 
 <Tabs groupId="lang">
-<TabItem value="sh" label="Shell">
+<TabItem value="cli" label="CLI">
 
 ```bash
 curl -s -u "epic:$(cat ~/.epic/main/.api_secret)" \
@@ -81,6 +61,8 @@ curl -s -u "epic:$(cat ~/.epic/main/.api_secret)" \
   -d '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}' \
   http://127.0.0.1:3413/v2/owner | jq '.result.Ok'
 ```
+
+On Windows PowerShell:
 
 ```powershell
 $secret = (Get-Content "$HOME\.epic\main\.api_secret" -Raw).Trim()
@@ -99,28 +81,12 @@ print(status["tip"]["height"], status["sync_status"], status["connections"])
 ```
 
 </TabItem>
-<TabItem value="js" label="JavaScript">
-
-```js
-const status = await nodeRpc('get_status');
-console.log(status.tip.height, status.sync_status, status.connections);
-```
-
-</TabItem>
-<TabItem value="rust" label="Rust">
-
-```rust
-let status = client.call("get_status", json!([]))?;
-println!("{} {} {}", status["tip"]["height"], status["sync_status"], status["connections"]);
-```
-
-</TabItem>
 </Tabs>
 
 :::note[`total_difficulty` is an object, not a number]
 
-Epic runs several proof-of-work algorithms, so difficulty is tracked per algorithm. Anything expecting a
-single integer here fails to parse. See [proof of work](/mining/proof-of-work).
+Epic runs several proof-of-work algorithms, so difficulty is tracked per algorithm. See
+[proof of work](/mining/proof-of-work).
 
 ```json
 {"total_difficulty": {"cuckaroo": 0, "cuckatoo": 1234, "randomx": 5678, "progpow": 9012}}
@@ -130,11 +96,11 @@ single integer here fails to parse. See [proof of work](/mining/proof-of-work).
 
 ## Fetch a block
 
-`get_block` is on the **foreign** surface and takes positional params, `[height, hash, commit]`. Pass one
-and leave the others null.
+`get_block` is on the **foreign** surface and takes positional params, `[height, hash, commit]`.
+Pass one and leave the others null.
 
 <Tabs groupId="lang">
-<TabItem value="sh" label="Shell">
+<TabItem value="cli" label="CLI">
 
 ```bash
 curl -s -H 'Content-Type: application/json' \
@@ -153,38 +119,20 @@ print(f"{len(block['kernels'])} kernels, {len(block['outputs'])} outputs")
 ```
 
 </TabItem>
-<TabItem value="js" label="JavaScript">
-
-```js
-const block = await getBlock({height: 1_000_000});
-const {header} = block;
-console.log(`${header.height} via ${header.proof} at ${header.timestamp}`);
-console.log(`${block.kernels.length} kernels`);
-```
-
-</TabItem>
-<TabItem value="rust" label="Rust">
-
-```rust
-let block = client.get_block(Some(1_000_000), None)?;
-let header = &block["header"];
-println!("{} via {}", header["height"], header["proof"]);
-```
-
-</TabItem>
 </Tabs>
 
 Kernels appear in two shapes depending on the method. `get_block` returns a flattened form, while
-`get_kernel` and `get_last_n_kernels` return the raw type with an externally tagged `features` field.
+`get_kernel` and `get_last_n_kernels` return the raw type with an externally tagged `features`
+field.
 
 ## Watch for new blocks
 
 The node API has no subscription mechanism, so polling is the approach. At a
-<Ver k="blockTimeSeconds" />-second target block time, every 10 to 15 seconds is ample. Poll `get_tip`
-on the foreign surface rather than `get_status`, since it needs no credential.
+<Ver k="blockTimeSeconds" />-second target block time, every 10 to 15 seconds is ample. Poll
+`get_tip` on the foreign surface, which needs no credential.
 
 <Tabs groupId="lang">
-<TabItem value="sh" label="Shell">
+<TabItem value="cli" label="CLI">
 
 ```bash title="examples/shell/watch-blocks.sh" file=<rootDir>/examples/shell/watch-blocks.sh
 ```
@@ -192,74 +140,19 @@ on the foreign surface rather than `get_status`, since it needs no credential.
 </TabItem>
 <TabItem value="py" label="Python">
 
+```python title="examples/python/epic_node.py" file=<rootDir>/examples/python/epic_node.py#L62-L75
+```
+
 ```python
-import time
-
-
-def watch_blocks(poll_seconds: int = 10):
-    """Yield each new block as the chain advances."""
-    last = node_rpc("get_tip", [], surface="foreign")["height"]
-    while True:
-        time.sleep(poll_seconds)
-        height = node_rpc("get_tip", [], surface="foreign")["height"]
-        # Catch up rather than skipping, so a slow consumer misses nothing.
-        while last < height:
-            last += 1
-            yield get_block(height=last)
-
-
 for block in watch_blocks():
     header = block["header"]
     print(f"block {header['height']} via {header['proof']}")
 ```
 
 </TabItem>
-<TabItem value="js" label="JavaScript">
-
-```js
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-export async function* watchBlocks(pollSeconds = 10) {
-  let last = (await nodeRpc('get_tip', [], 'foreign')).height;
-  for (;;) {
-    await sleep(pollSeconds * 1000);
-    const {height} = await nodeRpc('get_tip', [], 'foreign');
-    // Catch up rather than skipping, so a slow consumer misses nothing.
-    while (last < height) {
-      last += 1;
-      yield await getBlock({height: last});
-    }
-  }
-}
-```
-
-</TabItem>
-<TabItem value="rust" label="Rust">
-
-```rust
-let mut last = client.call_on("foreign", "get_tip", json!([]))?["height"]
-    .as_u64()
-    .unwrap_or(0);
-
-loop {
-    std::thread::sleep(std::time::Duration::from_secs(10));
-    let height = client.call_on("foreign", "get_tip", json!([]))?["height"]
-        .as_u64()
-        .unwrap_or(last);
-    while last < height {
-        last += 1;
-        let block = client.get_block(Some(last), None)?;
-        println!("block {}", block["header"]["height"]);
-    }
-}
-```
-
-</TabItem>
 </Tabs>
 
-### Webhooks instead of polling
-
-If you need push rather than poll, the node has a webhook mechanism. See `[server.webhook_config]` in
+For push rather than poll, see `[server.webhook_config]` in
 [epic-server.toml](/reference/node-config), which can POST on transaction, header and block events.
 
 ## Mempool and peers
@@ -267,7 +160,7 @@ If you need push rather than poll, the node has a webhook mechanism. See `[serve
 Mempool size and version are foreign-surface calls. Peer lists are owner-surface calls.
 
 <Tabs groupId="lang">
-<TabItem value="sh" label="Shell">
+<TabItem value="cli" label="CLI">
 
 ```bash
 rpc() { curl -s -H 'Content-Type: application/json' -d "$1" http://127.0.0.1:3413/v2/foreign; }
@@ -287,23 +180,6 @@ curl -s -u "epic:$(cat ~/.epic/main/.api_secret)" -H 'Content-Type: application/
 print("mempool:", node_rpc("get_pool_size", [], surface="foreign"))
 print("stempool:", node_rpc("get_stempool_size", [], surface="foreign"))
 print("peers:", len(node_rpc("get_connected_peers", [], surface="owner")))
-```
-
-</TabItem>
-<TabItem value="js" label="JavaScript">
-
-```js
-console.log('mempool:', await nodeRpc('get_pool_size', [], 'foreign'));
-console.log('peers:', (await nodeRpc('get_connected_peers', [], 'owner')).length);
-```
-
-</TabItem>
-<TabItem value="rust" label="Rust">
-
-```rust
-let pool = client.call_on("foreign", "get_pool_size", json!([]))?;
-let peers = client.call("get_connected_peers", json!([]))?;
-println!("mempool: {pool}, peers: {}", peers.as_array().map_or(0, |p| p.len()));
 ```
 
 </TabItem>

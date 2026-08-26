@@ -1,13 +1,15 @@
 ---
 title: Code examples
 sidebar_label: Overview
-description: Working Epic Cash client examples in Python, JavaScript, Rust and shell, covering node queries and the full wallet transaction workflow.
+description: Working Epic Cash client examples in Python and bash, covering node queries and the full wallet transaction workflow.
 ---
 
 # Code examples
 
-Runnable examples for the workflows most integrations need, in four languages. Every page uses the same
-tab layout so you can compare approaches.
+Runnable examples for the workflows most integrations need, as a command line and as Python. Every
+code block on these pages is imported from a real file in
+[`examples/`](https://github.com/blacktyger/epic-devhub/tree/main/examples), so what you copy is
+what runs.
 
 <CardGrid>
   <Card title="Node queries" to="/examples/node-api">
@@ -29,206 +31,82 @@ tab layout so you can compare approaches.
 | Blocks, headers, kernels, mempool | Node `/v2/foreign` | None |
 | Submit a raw transaction | Node `/v2/foreign` | None |
 | Anything involving keys or balances | Wallet Owner API `/v3/owner` | ECDH handshake and a wallet token |
-| Receive a transfer | Wallet Foreign API, or `epic-wallet listen` | None, by design |
+| Receive a transfer | Wallet Foreign API, or `epic-wallet listen` | None |
 
-The node's JSON-RPC methods are split across two paths and the split is not intuitive: `/v2/owner` is
-administration only, and every chain read is on `/v2/foreign`. See
+The node's JSON-RPC methods are split across two paths: `/v2/owner` is administration, and every
+chain read is on `/v2/foreign`. See
 [the node API](/api/node#which-json-rpc-method-lives-where).
-
-The node surface is straightforward JSON-RPC. The wallet Owner API adds an encrypted envelope; see
-[connect and read](/examples/wallet-connect).
 
 ## Prerequisites
 
 <Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+`curl` and `jq`.
+
+```bash
+sudo apt install curl jq      # Debian and Ubuntu
+```
+
+```powershell
+winget install jqlang.jq      # Windows, where curl is already present
+```
+
+</TabItem>
 <TabItem value="py" label="Python">
 
-Python 3.10 or newer.
+Python <Ver k="python" /> or newer.
 
 ```bash
 pip install requests coincurve pycryptodome
 ```
 
-`coincurve` provides secp256k1, `pycryptodome` provides AES-GCM. Both are needed only for the wallet
-Owner API; node queries need `requests` alone.
-
-If you use [uv](https://docs.astral.sh/uv/):
-
-```bash
-uv add requests coincurve pycryptodome
-```
-
-</TabItem>
-<TabItem value="js" label="JavaScript">
-
-Node.js 18 or newer. ECDH and AES-GCM come from the built-in `crypto` module, so the only dependency is
-an HTTP client, and `fetch` is built in from Node 18.
-
-```bash
-npm install jayson    # optional, a JSON-RPC client
-```
-
-Examples here use `fetch` so they run with no dependencies at all.
-
-</TabItem>
-<TabItem value="rust" label="Rust">
-
-```toml title="Cargo.toml"
-[dependencies]
-reqwest = { version = "0.12", features = ["json", "blocking"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-secp256k1 = { version = "0.29", features = ["rand", "std"] }
-aes-gcm = "0.10"
-rand = "0.8"
-hex = "0.4"
-base64 = "0.22"
-```
-
-</TabItem>
-<TabItem value="sh" label="Shell">
-
-`curl` and, for readable output, `jq`.
-
-```bash
-# Debian/Ubuntu
-sudo apt install curl jq
-```
-
-```powershell
-# Windows: curl is built in. PowerShell has ConvertFrom-Json instead of jq.
-winget install jqlang.jq
-```
+`coincurve` provides secp256k1 and `pycryptodome` provides AES-GCM, both for the wallet Owner API.
+Node queries need `requests` alone.
 
 </TabItem>
 </Tabs>
 
 ## Conventions in these examples
 
-- The node is at `http://127.0.0.1:3413` and the wallet Owner API at `http://127.0.0.1:3420`.
-- Amounts are integer **freemen**. 1 EPIC is `100000000`.
-- Secrets are read from their files rather than pasted inline. Never hard-code a wallet password or an
-  API secret in code you keep.
-- Errors are checked, because Epic's JSON-RPC wraps application results in an `Ok`/`Err` envelope
-  *inside* a successful HTTP 200. Ignoring that is the most common integration bug.
+- Run commands from the `examples` directory of the repository, which is where the Python modules
+  import each other from.
+- The node is at port <Ver k="ports.nodeApi" />, the wallet Owner API at
+  <Ver k="ports.walletOwner" /> and the wallet Foreign API at <Ver k="ports.walletForeign" />.
+  Every client honours `NODE_URL`, `EPIC_OWNER_URL` and `EPIC_FOREIGN_URL` so you can point it
+  somewhere else.
+- Amounts are integers, counted in <Ver k="smallestUnit" />. 1 EPIC is <Ver k="epicBase" />.
+- Secrets are read from their files, and the wallet password from `EPIC_WALLET_PASSWORD`.
 
 ## The response envelope
 
-Every Epic JSON-RPC method returns HTTP 200 with a JSON-RPC `result`, and inside that result is a second
-envelope:
+Every Epic JSON-RPC method returns HTTP 200 with a JSON-RPC `result`, and inside that result is a
+second envelope. A successful operation carries `Ok`:
 
 ```json
-{
-  "id": 1,
-  "jsonrpc": "2.0",
-  "result": {
-    "Ok": { "...": "the actual data" }
-  }
-}
+{"id": 1, "jsonrpc": "2.0", "result": {"Ok": {"...": "the actual data"}}}
 ```
 
-A failed operation returns `Err` in the same position:
+A failed one carries `Err` in the same position:
 
 ```json
-{
-  "id": 1,
-  "jsonrpc": "2.0",
-  "result": {
-    "Err": { "NotEnoughFunds": { "available": 0, "needed": 100000000 } }
-  }
-}
+{"id": 1, "jsonrpc": "2.0", "result": {"Err": {"NotEnoughFunds": {"available": 0, "needed": 100000000}}}}
 ```
 
-So a request can succeed at the HTTP layer, succeed at the JSON-RPC layer, and still have failed. Write
-one unwrap helper and use it everywhere:
+Write one unwrap helper and use it everywhere. This is the one the wallet client here uses:
 
-<Tabs groupId="lang">
-<TabItem value="py" label="Python">
-
-```python title="epic_client.py"
-def unwrap(response: dict):
-    """Unwrap Epic's nested Ok/Err result envelope."""
-    if "error" in response:
-        raise RuntimeError(f"JSON-RPC error: {response['error']}")
-
-    result = response.get("result", response)
-    if isinstance(result, dict):
-        if "Err" in result:
-            raise RuntimeError(f"Epic returned an error: {result['Err']}")
-        if "Ok" in result:
-            return result["Ok"]
-    return result
+```python title="examples/python/epic_wallet.py" file=<rootDir>/examples/python/epic_wallet.py#L112-L123
 ```
 
-</TabItem>
-<TabItem value="js" label="JavaScript">
-
-```js title="epicClient.js"
-export function unwrap(response) {
-  if (response.error) {
-    throw new Error(`JSON-RPC error: ${JSON.stringify(response.error)}`);
-  }
-  const result = response.result ?? response;
-  if (result && typeof result === 'object') {
-    if ('Err' in result) {
-      throw new Error(`Epic returned an error: ${JSON.stringify(result.Err)}`);
-    }
-    if ('Ok' in result) return result.Ok;
-  }
-  return result;
-}
-```
-
-</TabItem>
-<TabItem value="rust" label="Rust">
-
-```rust title="src/client.rs"
-use serde_json::Value;
-
-/// Unwrap Epic's nested Ok/Err result envelope.
-pub fn unwrap(response: Value) -> anyhow::Result<Value> {
-    if let Some(err) = response.get("error") {
-        anyhow::bail!("JSON-RPC error: {err}");
-    }
-    let result = response.get("result").cloned().unwrap_or(response);
-    if let Some(err) = result.get("Err") {
-        anyhow::bail!("Epic returned an error: {err}");
-    }
-    Ok(result.get("Ok").cloned().unwrap_or(result))
-}
-```
-
-</TabItem>
-<TabItem value="sh" label="Shell">
-
-```bash
-# jq exits non-zero when the Err branch is present, so a pipeline fails loudly.
-epic_ok() {
-  jq -e 'if .error then error("jsonrpc: \(.error)")
-         elif .result.Err then error("epic: \(.result.Err)")
-         else (.result.Ok // .result) end'
-}
-
-curl -s http://127.0.0.1:3413/v2/owner \
-  -u "epic:$(cat ~/.epic/main/.api_secret)" \
-  -d '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}' | epic_ok
-```
-
-</TabItem>
-</Tabs>
+Field by field, the envelope is documented in
+[the API overview](/api/index#the-response-envelope).
 
 ## Where the reference clients live
 
-Two working clients ship in the wallet repository and are the basis for the Python and JavaScript
-examples here:
+The wallet repository ships a Python client that performs the same handshake:
+<Src repo="wallet" path="doc/samples/python/secure_api_example.py" />.
 
-- <Src repo="wallet" path="doc/samples/python/secure_api_example.py" />
-- <Src repo="wallet" path="doc/samples/v3_api_node/src/index.js" />
-- <Src repo="wallet" path="doc/samples/v3_api_node/src/proof.js" /> for payment proofs
-
-The method signatures they call are defined in
-<Src repo="wallet" path="api/src/owner_rpc_s.rs" />, which carries a worked JSON request and response in
-the documentation comment for almost every method.
-
+The method signatures are defined in <Src repo="wallet" path="api/src/owner_rpc_s.rs" />, which
+carries a worked JSON request and response in the documentation comment for almost every method.
 
 <JourneyNav stage="integrate" />

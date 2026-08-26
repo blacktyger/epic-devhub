@@ -10,6 +10,8 @@ Override the defaults for another network:
 from __future__ import annotations
 
 import os
+import time
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +57,22 @@ def node_rpc(
 def get_block(height: int | None = None, block_hash: str | None = None) -> Any:
     """Fetch a block by height or by hash. Foreign surface, positional params."""
     return node_rpc("get_block", [height, block_hash, None], surface="foreign")
+
+
+def watch_blocks(poll_seconds: int = 10) -> Iterator[Any]:
+    """Yield each new block as the chain advances.
+
+    The node API has no subscription mechanism. get_tip is on the foreign surface, so
+    polling it needs no credential.
+    """
+    last = node_rpc("get_tip", [], surface="foreign")["height"]
+    while True:
+        time.sleep(poll_seconds)
+        height = node_rpc("get_tip", [], surface="foreign")["height"]
+        # Catch up rather than skipping, so a slow consumer misses nothing.
+        while last < height:
+            last += 1
+            yield get_block(height=last)
 
 
 if __name__ == "__main__":
