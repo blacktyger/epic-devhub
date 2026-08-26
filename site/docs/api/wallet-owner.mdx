@@ -10,10 +10,12 @@ verify proofs. For most integrations it is the primary surface.
 
 - **Endpoint**: `http://127.0.0.1:3420/v3/owner`, started with `epic-wallet owner_api`
 - **Protocol**: JSON-RPC 2.0 over HTTP POST
+- **Credential**: HTTP Basic, username `epic`, password from `.owner_api_secret`
 - **Encryption**: an ECDH handshake wraps every call after the first
 
-Access: the `token` returned by `open_wallet`, which needs the wallet password. Keep the port on
-loopback. See [authentication and TLS](/api/authentication).
+Send `-u epic:$(cat ~/.epic/main/.owner_api_secret)` on every request, then the `token` from
+`open_wallet` inside the envelope. Keep the port on loopback. See
+[owner access on the wallet](/api/authentication#owner-access-on-the-wallet).
 
 ## Methods by what they can do
 
@@ -96,25 +98,35 @@ loopback. See [authentication and TLS](/api/authentication).
 
 ## The encrypted handshake
 
-Every call after `init_secure_api` is encrypted.
-
-Your client generates a keypair and sends the public half, the wallet returns its own, both
-sides derive the same shared secret, and from that point every request and response body travels
-encrypted, starting with `open_wallet` and the token it returns.
-
-Step by step:
+Every call after `init_secure_api` travels inside an encrypted envelope. The parameters are fixed and
+declared at <Src repo="wallet" path="api/src/owner_rpc_s.rs" line={1453} />: AES-256 in GCM mode, a
+12-byte nonce, a 16-byte tag appended to the ciphertext, and empty additional authenticated data.
 
 1. Generate a secp256k1 keypair in your client.
-2. Call `init_secure_api` with your public key. The wallet returns its own.
-3. Derive a shared secret by ECDH between your private key and the wallet's public key.
-4. Call `open_wallet` with the wallet name and password. It returns a token.
-5. Encrypt the JSON-RPC request body with the shared secret and send it in the encrypted envelope.
-   Decrypt responses the same way.
-6. Include the token in the params of every call that takes one.
+2. Call `init_secure_api` with your compressed public key as hex in `ecdh_pubkey`. The wallet returns
+   its own in the same form.
+3. Multiply the wallet's public point by your private scalar and keep the 32-byte x coordinate. That
+   is the AES-256 key (<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={2433} />).
+4. Serialise the call you want as a complete JSON-RPC request object. That inner request is what gets
+   encrypted, and it is where the `token` and the method params go.
+5. Encrypt it under a fresh 12-byte nonce and base64 the ciphertext with its tag appended.
+6. Post the method `encrypted_request_v3` with two params, `nonce` as hex and `body_enc` as that
+   base64 string. The envelope has no other fields
+   (<Src repo="wallet" path="api/src/types.rs" line={59} />).
+7. The reply is `encrypted_response_v3` carrying its own `nonce` and `body_enc`. Decrypt with the same
+   key to recover the inner JSON-RPC response, which then has its own `Ok` or `Err` envelope.
+8. `open_wallet` is the first call to send through the envelope. It returns the token every other
+   method takes.
 
-Two working reference clients ship in the wallet repository, at `doc/samples/python/secure_api_example.py`
-and `doc/samples/v3_api_node/src/index.js`. The handshake in both is current; some method signatures
-differ from the latest, notably pagination parameters.
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "encrypted_request_v3", "params": {"nonce": "ef32...", "body_enc": "e0bcd..."}}
+```
+
+`examples/python/epic_wallet.py` implements the sequence, including the Basic credential the listener
+requires and the second unwrap of the decrypted body:
+
+```python title="examples/python/epic_wallet.py" file=<rootDir>/examples/python/epic_wallet.py#L159-L181
+```
 
 ## Reading outputs and transactions
 
@@ -133,7 +145,7 @@ Controls input selection and transaction shape.
 | `num_change_outputs` | u32 | How many change outputs to create |
 | `selection_strategy_is_use_all` | bool | True consolidates every eligible output; false selects the minimum |
 | `message` | string, optional | Message committed into the slate |
-| `target_slate_version` | u16, optional | Slate version to emit. Use 2 or 3 |
+| `target_slate_version` | u16, optional | Slate version to emit, 2 or 3 |
 | `ttl_blocks` | u64, optional | Expiry in blocks. Defaults to none |
 | `payment_proof_recipient_address` | string, optional | Requests a payment proof |
 | `estimate_only` | bool, optional | Compute the fee without reserving anything |
@@ -145,8 +157,10 @@ Additional behaviour:
 transaction, which links them together for anyone analysing the chain. False keeps them separate at the
 cost of a larger UTXO set later.
 
-**`estimate_only` is how to quote a fee safely.** It reserves nothing, so it is what belongs behind a
-"what will this cost" endpoint.
+**A payment proof needs slate V3.** `payment_proof_recipient_address` puts the proof fields in the
+slate, and only V3 carries them. Delivery over epicbox converts the slate to V2, so a transfer sent
+that way completes and yields no proof. Pick the transport first:
+[choose the transport accordingly](/concepts/payment-proofs#choose-the-transport-accordingly).
 
 **`ttl_blocks` does not release outputs on expiry.** See
 [outputs and locking](/concepts/outputs-and-locking).
@@ -176,8 +190,9 @@ no base fee is supplied by the wallet, there is no fee market to bid into.
 
 ## Version 2
 
-An earlier, unencrypted Owner API with 17 methods is also served, at `/v2/owner`. Its methods take no
-token, so the Basic auth credential is the only thing in front of it. New work should target v3.
+An earlier, unencrypted Owner API with 17 methods is served from the same listener, at `/v2/owner`.
+Its methods take no token, so the Basic credential is the only thing in front of it. New work should
+target v3.
 
 ## Full method reference
 
@@ -209,7 +224,7 @@ token, so the Basic auth credential is the only thing in front of it. New work s
 - <Src repo="wallet" path="api/src/owner_rpc.rs" /> for the older v2 surface
 - <Src repo="wallet" path="libwallet/src/api_impl/owner.rs" /> for the implementation behind the methods
 - <Src repo="wallet" path="libwallet/src/api_impl/types.rs" /> for `InitTxArgs` and friends
-- <Src repo="wallet" path="controller/src/controller.rs" line={139} /> for how the listener and its
+- <Src repo="wallet" path="controller/src/controller.rs" line={123} /> for how the listener and its
   middleware are wired
 
 ## Next

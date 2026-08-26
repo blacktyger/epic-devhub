@@ -6,7 +6,7 @@ description: Every Epic Cash API surface in one place, covering the node's JSON-
 
 # API reference
 
-Epic exposes four programmable surfaces across three pieces of software. Which one you want depends on
+Epic exposes seven programmable surfaces across three pieces of software. Which one you want depends on
 whether you need chain data or key operations.
 
 <CardGrid>
@@ -35,19 +35,18 @@ whether you need chain data or key operations.
 | Node `/v2/owner` | node | JSON-RPC 2.0, node administration | <Ver k="ports.nodeApi" /> | No |
 | Node `/v2/foreign` | node | JSON-RPC 2.0, chain reads and tx submission | <Ver k="ports.nodeApi" /> | No |
 | Wallet Owner `/v3/owner` | wallet | JSON-RPC 2.0, encrypted | <Ver k="ports.walletOwner" /> | **Yes** |
+| Wallet Owner `/v2/owner` | wallet | JSON-RPC 2.0, unencrypted | <Ver k="ports.walletOwner" /> | **Yes** |
 | Wallet Foreign `/v2/foreign` | wallet | JSON-RPC 2.0 | <Ver k="ports.walletForeign" /> | No |
 | Epicbox relay | relay | WebSocket over TLS | <Ver k="ports.epicbox" /> | No |
 
 Documented against node <Ver k="node" /> and wallet <Ver k="wallet" />.
 
-The node's `/v1` and `/v2` are two interface styles rather than two generations: REST, where the URL
-names the operation, and JSON-RPC, where the body does. Both are live on the same port and neither is
-deprecated. The [node API page](/api/node#the-v1-rest-surface) covers the distinction and maps every
-v1 route onto its JSON-RPC method.
+The node serves `/v1` and `/v2` from one listener on one port, as
+[two interface styles](/api/node#the-v1-rest-surface) rather than two generations. Both are live and
+that page maps every v1 route onto its JSON-RPC method.
 
-One surface is genuinely superseded rather than merely different: the wallet's unencrypted `/v2/owner`.
-It still responds, it has no token requirement, and it is covered by the warning in
-[authentication](/api/authentication).
+The wallet serves its two owner surfaces from one listener too, and the unencrypted
+[`/v2/owner`](/api/wallet-owner#version-2) is the older of the pair.
 
 ## Choosing a surface
 
@@ -55,8 +54,8 @@ It still responds, it has no token requirement, and it is covered by the warning
 `/v2/owner` for node status and peers. No keys involved. Start at
 [node queries](/examples/node-api).
 
-**Anything involving balances, keys or transfers.** Wallet Owner API. It requires an ECDH handshake and a
-wallet token, which is covered step by step in
+**Anything involving balances, keys or transfers.** Wallet Owner API. It requires a Basic credential, an
+ECDH handshake and a wallet token, which is covered step by step in
 [connect and read](/examples/wallet-connect).
 
 **Receiving a payment.** Running `epic-wallet listen` handles this automatically via the epicbox protocol
@@ -74,19 +73,24 @@ Every Epic JSON-RPC method returns HTTP 200 with a JSON-RPC `result`, and inside
 {"id": 1, "jsonrpc": "2.0", "result": {"Err": {"NotEnoughFunds": {"available": 0}}}}
 ```
 
-A single unwrap helper handles both layers. There is a version for each language in
-[the examples overview](/examples/#the-response-envelope).
+One function unwraps both layers.
+
+```python title="examples/python/epic_wallet.py" file=<rootDir>/examples/python/epic_wallet.py#L112-L123
+```
 
 ## Amounts
 
 Every amount is an integer count of **<Ver k="smallestUnit" />s**, and 1 EPIC is
-<Ver k="epicBase" /> of them. In JSON they are serialised as strings, so parse before doing arithmetic.
+<Ver k="epicBase" /> of them. The wallet Owner API serialises its `u64` fields as JSON strings, so
+`retrieve_summary_info` returns `total` and every `amount_` field as a string, and `node_height`
+returns `height` as one. Parse before doing arithmetic. The node's JSON-RPC returns bare integers,
+including `supply` and `max_supply` on `get_status`.
 
 ## Next
 
 <CardGrid>
   <Card title="Code examples" to="/examples/">
-    Working clients in Python, JavaScript, Rust and shell.
+    Working clients in Python and shell.
   </Card>
   <Card title="CLI reference" to="/reference/cli">
     The command line equivalents of most API calls.

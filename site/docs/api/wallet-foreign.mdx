@@ -6,4 +6,44 @@ description: Epic wallet listener JSON-RPC methods for slate reception, invoice 
 
 # Wallet Foreign API
 
+The Foreign API is the side of the wallet other people call. A sender posts a slate to it and gets back
+a partially signed one, a payer's invoice comes back finalised, and a mining node asks it to build the
+coinbase output that pays this wallet.
+
+- **Endpoint**: `http://127.0.0.1:3415/v2/foreign`, started with `epic-wallet listen`
+- **Protocol**: JSON-RPC 2.0 over HTTP POST
+- **Credential**: none
+- **Default bind**: `api_listen_interface` is `127.0.0.1` and `api_listen_port` is
+  <Ver k="ports.walletForeign" /> (<Src repo="wallet" path="config/src/types.rs" line={71} />)
+
+No credential is possible here, because the counterparty completing a transfer is a stranger who must
+be able to reach the surface. The default bind is loopback, so a counterparty reaching this wallet over
+HTTP needs the interface widened or a reverse proxy in front of it, and whatever is in front is the only
+place access can be restricted. Taking delivery over the [epicbox relay](/api/epicbox) instead needs no
+inbound port at all.
+
+The same six methods are served from the owner listener when `owner_api_include_foreign` is true, and
+`/v2/foreign` is the one path there that the owner Basic credential does not cover
+(<Src repo="wallet" path="controller/src/controller.rs" line={151} />).
+
 <RpcGroup id="wallet-foreign" />
+
+## Source
+
+- <Src repo="wallet" path="api/src/foreign_rpc.rs" line={65} /> defines the six methods
+- <Src repo="wallet" path="controller/src/controller.rs" line={209} /> is the standalone listener
+- <Src repo="wallet" path="libwallet/src/api_impl/foreign.rs" /> for the implementation behind them
+
+## Next
+
+<CardGrid>
+  <Card title="Interactive transactions" to="/concepts/interactive-transactions">
+    What the two rounds are, and which side does what.
+  </Card>
+  <Card title="Transports" to="/concepts/transports">
+    How a slate reaches this surface in the first place.
+  </Card>
+  <Card title="Authentication and TLS" to="/api/authentication">
+    Every surface and the credential it expects.
+  </Card>
+</CardGrid>

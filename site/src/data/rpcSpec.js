@@ -2,20 +2,19 @@
  * Machine-readable description of Epic's JSON-RPC surfaces.
  *
  * One file, two consumers: the per-group reference pages render from it, and the console lets a
- * reader assemble a request against it. That is the point of authoring it rather than writing
- * the same method list into prose twice and watching the two drift.
+ * reader assemble a request against it.
  *
- * Rules this file follows, because the site it replaces broke all three:
+ * Invariants:
  *
- * 1. `example.response` is a real captured response or it is null. Nothing here is invented to
- *    fill a layout. A method with no captured response still documents its request, and the
- *    console says so rather than showing a plausible fiction.
+ * 1. `example.response` is a real captured response or it is null. A method with no captured
+ *    response still documents its request, and the console says so.
  * 2. `verified` is the date a response was observed on a running node, or null. Node REST v1 is
  *    out of scope entirely and does not appear.
  * 3. `src` cites the declaration, and the reference pages turn it into a pinned link.
+ * 4. `surfaces[].secretPath` is the Basic auth secret file for that listener. `epic-wallet` and
+ *    `epic` do not use the same filename.
  *
- * Captured 2026-08-24 against node 4.0.3 and wallet 4.0.0 on a local usernet chain at height
- * 1439. Values are therefore small and real, which is more useful than large and imaginary.
+ * Captured 2026-08-24 against node 4.0.3 and wallet 4.0.0 on a local usernet chain at height 1439.
  */
 
 export const surfaces = {
@@ -24,6 +23,7 @@ export const surfaces = {
     path: '/v2/owner',
     portKey: 'ports.nodeApi',
     credential: 'basic',
+    secretPath: '~/.epic/main/.api_secret',
     credentialNote: 'HTTP Basic, username epic, password from ~/.epic/<network>/.api_secret',
   },
   nodeForeign: {
@@ -31,22 +31,28 @@ export const surfaces = {
     path: '/v2/foreign',
     portKey: 'ports.nodeApi',
     credential: 'none',
+    secretPath: null,
     credentialNote: 'No credential by default. Optional, see foreign_api_secret_path',
   },
   walletOwner: {
     label: 'Wallet owner',
     path: '/v3/owner',
     portKey: 'ports.walletOwner',
+    // Left as 'token' rather than 'basic' because RpcConsole hardcodes ~/.epic/main/.api_secret
+    // for a basic surface, and this listener reads .owner_api_secret. Switch this to 'basic' in
+    // the same change that makes RpcConsole read secretPath.
     credential: 'token',
+    secretPath: '~/.epic/main/.owner_api_secret',
     credentialNote:
-      'Encrypted envelope plus a token from open_wallet. Loopback only, never exposed',
+      'HTTP Basic, username epic, password from ~/.epic/<network>/.owner_api_secret, plus a token from open_wallet inside the encrypted envelope. Loopback only',
   },
   walletForeign: {
     label: 'Wallet foreign',
     path: '/v2/foreign',
     portKey: 'ports.walletForeign',
     credential: 'none',
-    credentialNote: 'Open by design. This is what a counterparty pays you through',
+    secretPath: null,
+    credentialNote: 'None. This is what a counterparty pays you through',
   },
 };
 
@@ -218,9 +224,6 @@ export const groups = [
         paramStyle: 'positional',
         params: [],
         src: {repo: 'node', path: 'api/src/owner_rpc.rs', line: 387},
-        notes: [
-          'Belongs to a transport this documentation does not cover. Listed for completeness.',
-        ],
         example: null,
       },
     ],
@@ -230,7 +233,7 @@ export const groups = [
     surface: 'nodeForeign',
     title: 'Chain reads',
     blurb:
-      'Blocks, headers, kernels and outputs. Every one of these is on the foreign surface and takes no credential on a default install, which surprises people who assume reading needs the secret.',
+      'Blocks, headers, kernels and outputs. Every one of these is on the foreign surface and takes no credential on a default install.',
     methods: [
       {
         name: 'get_tip',
@@ -501,11 +504,10 @@ export function allMethods() {
  *
  * Every method below travels inside the encrypted envelope and carries the `token` that
  * `open_wallet` returns, so the request bodies here are the *inner* JSON-RPC request, the thing
- * you encrypt. The console shows that inner body, because that is the part people get wrong.
+ * you encrypt.
  *
  * Responses marked verified were captured on 2026-08-24 against wallet 4.0.0 on a usernet chain,
- * from a freshly created wallet holding nothing. An empty wallet is the honest example for a
- * reference page: the shape is what matters and invented balances would be fiction.
+ * from a freshly created wallet holding nothing.
  */
 const WALLET_TOKEN_PARAM = {
   name: 'token',
@@ -540,7 +542,7 @@ groups.push(
         src: {repo: 'wallet', path: 'api/src/owner_rpc_s.rs', line: 1495},
         notes: [
           'The only call on this surface that is not encrypted, because it is what sets encryption up.',
-          'The shared secret is the raw x coordinate of the resulting point, 32 bytes, not hashed. Hashing it is the most common implementation mistake and every later call then fails to decrypt.',
+          'The shared secret is the raw x coordinate of the resulting point, 32 bytes, not hashed. It is used directly as the AES-256 key.',
         ],
         example: null,
       },
@@ -611,7 +613,7 @@ groups.push(
           {name: 'chain_type', type: 'string', required: true, default: '"Mainnet"', help: 'Mainnet, Floonet, UserTesting or AutomatedTesting.'},
           {name: 'wallet_config', type: 'object or null', required: false, default: 'null', help: 'Overrides for the generated config.'},
           {name: 'logging_config', type: 'object or null', required: false, default: 'null', help: 'Logging overrides.'},
-          {name: 'tor_config', type: 'object or null', required: false, default: 'null', help: 'Out of scope here. Pass null.'},
+          {name: 'tor_config', type: 'object or null', required: false, default: 'null', help: 'Tor settings for the generated config.'},
           {name: 'epicbox_config', type: 'object or null', required: false, default: 'null', help: 'Relay overrides.'},
         ],
         src: {repo: 'wallet', path: 'api/src/owner_rpc_s.rs', line: 1637},
@@ -711,8 +713,8 @@ groups.push(
         ],
         src: {repo: 'wallet', path: 'api/src/owner_rpc_s.rs', line: 253},
         notes: [
-          'Returns an object with a pager, not a bare array. This changed in wallet 4.0 and is the most common break when porting a 3.x client.',
-          'The paging fields are optional, but pass them: with no limit a large wallet returns every record in one response.',
+          'Returns an object with a pager, not a bare array.',
+          'The paging fields are optional. With no limit, a large wallet returns every record in one response.',
         ],
         example: {
           params: {
@@ -801,8 +803,8 @@ groups.push(
         ],
         src: {repo: 'wallet', path: 'api/src/owner_rpc_s.rs', line: 1995},
         notes: [
-          'derivation_index is required, not optional. Omitting it returns MissingNamedParameter derivation_index, which is not documented anywhere upstream.',
-          'The epicbox_address_index config key implies several addresses per seed, but every derivation currently uses index 0, so treat a wallet as having one epicbox address.',
+          'derivation_index is required, not optional. Pass 0 explicitly.',
+          'Every derivation uses index 0, so a wallet has one epicbox address.',
         ],
         example: {
           params: {token: '<token>', derivation_index: 0},
@@ -826,7 +828,6 @@ groups.push(
         src: {repo: 'wallet', path: 'api/src/owner_rpc_s.rs', line: 2033},
         notes: [
           'Returns a bare hex string rather than an object.',
-          'This surface returns a value even when the CLI prints the proof-address heading with nothing under it, so prefer the API if you need to know whether you have one.',
         ],
         example: {
           params: {token: '<token>', derivation_index: 0},
@@ -975,7 +976,7 @@ groups.push(
         ],
         src: {repo: 'wallet', path: 'api/src/owner_rpc_s.rs', line: 644},
         notes: [
-          'dest_acct_name is hard-coded to None on the CLI path, so an invoice there always credits the active account whatever you pass.',
+          'dest_acct_name is not passed on the CLI path, so an invoice created there credits the active account.',
         ],
         example: null,
       },
@@ -1016,7 +1017,7 @@ groups.push(
         ],
         src: {repo: 'wallet', path: 'api/src/owner_rpc_s.rs', line: 2110},
         notes: [
-          'A transfer that travelled over epicbox has no proof to retrieve. That transport is slate V2 only and the conversion discards the proof field without saying so.',
+          'A transfer that travelled over epicbox has no proof to retrieve. That transport carries slate V2, and the conversion drops the proof fields.',
         ],
         example: null,
       },
@@ -1031,7 +1032,7 @@ groups.push(
         ],
         src: {repo: 'wallet', path: 'api/src/owner_rpc_s.rs', line: 2157},
         notes: [
-          'Returns two booleans with no documented meaning. Test it against both a good proof and an altered one before you rely on which is which.',
+          'Returns a two-element array of booleans.',
         ],
         example: null,
       },
@@ -1044,7 +1045,6 @@ groups.push(
           {name: 'address_v3', type: 'string', required: true, default: '"<onion address>"', help: 'An onion v3 address.'},
         ],
         src: {repo: 'wallet', path: 'api/src/owner_rpc_s.rs', line: 2070},
-        notes: ['Belongs to a transport this documentation does not cover. Listed for completeness.'],
         example: null,
       },
       {
@@ -1151,12 +1151,11 @@ groups.push(
       },
       {
         name: 'set_tor_config',
-        summary: 'Runtime configuration for the transport this documentation does not cover.',
+        summary: 'Set the Tor bridge and proxy settings the wallet uses for onion delivery.',
         risk: 'read',
         paramStyle: 'named',
-        params: [{name: 'tor_config', type: 'object or null', required: false, default: 'null', help: 'Out of scope here.'}],
+        params: [{name: 'tor_config', type: 'object or null', required: false, default: 'null', help: 'Tor bridge and proxy settings.'}],
         src: {repo: 'wallet', path: 'api/src/owner_rpc_s.rs', line: 2197},
-        notes: ['Listed for completeness. See what this version does not cover.'],
         example: null,
       },
       {

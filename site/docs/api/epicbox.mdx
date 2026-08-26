@@ -1,41 +1,34 @@
 ---
 title: Epicbox relay protocol
-description: The epicbox wire protocol, version 3.0.0, covering addressing, handshake, message types, delivery behaviour, and how to run a relay.
+description: The epicbox wire protocol, covering addressing, handshake, message types, delivery behaviour, and how to run a relay.
 ---
 
 # Epicbox relay protocol
 
 Epicbox is the store-and-forward relay that carries slates between wallets that cannot reach each other
-directly. It is what makes Epic usable on phones and behind NAT.
+directly, which is what makes a transfer work between two wallets behind NAT.
 
-Protocol version: **3.0.0**.
+Protocol version: **<Ver k="epicboxProtocol" />**.
 
 ## What a relay does
 
 It accepts signed slate blobs addressed to a public key, stores them, and delivers them when the
 recipient connects and proves ownership of that key.
 
-It **cannot spend funds**. It never receives key material, and its only cryptographic operation is
-verifying signatures.
+It never receives key material, and its only cryptographic operation is verifying signatures.
 
-It **can observe metadata**: which public keys communicate, when, and from which IP addresses. Amounts
-are inside the slate's commitments and are not visible to it. A self-hosted relay eliminates that
-metadata exposure.
+A relay sees the public keys it routes between, when they communicate, and the IP addresses they connect
+from. Amounts are inside the slate's commitments and are not visible to it.
 
 ## Transport and addressing
 
-WebSocket over TLS, port 443 by default. Messages are JSON objects with a `type` field.
+WebSocket over TLS, port <Ver k="ports.epicbox" /> by default. Messages are JSON objects with a `type`
+field.
 
 Addresses are `<public_key>@<domain>[:<port>]`, where `public_key` is 52 base58-check characters encoding
 a compressed secp256k1 public key. See [addresses](/concepts/addresses).
 
-Public relays:
-
-| Relay | Note |
-| --- | --- |
-| `epicbox.epiccash.com` | Wallet default |
-| `epicbox.epicnet.us` | Community operated |
-| `epicbox.stackwallet.com` | Operated for Stack Wallet mobile |
+The wallet's default relay domain is <Ver k="epicboxDomain" />.
 
 ## Authentication
 
@@ -46,9 +39,10 @@ Ownership of an address is proved by signing a challenge. The private key never 
 3. The relay verifies the signature. A valid signature proves ownership and the client may receive the
    queue for that address.
 
-The challenge interval is 60 seconds by default, which sets the worst case for how long a queued slate
-waits before a connected client is offered it. A client already connected and registered as a listener
-receives slates immediately instead, without waiting for the next challenge.
+The challenge interval is <Ver k="epicboxChallengeSeconds" /> seconds by default, which sets the worst
+case for how long a queued slate waits before a connected client is offered it. A client already
+connected and registered as a listener receives slates immediately instead, without waiting for the next
+challenge.
 
 Clients that announce protocol version `2.0.0`, or announce none, are issued a fixed challenge string
 instead of a random one, for compatibility with wallets older than 3.5.2.
@@ -66,10 +60,11 @@ instead of a random one, for compatibility with wallets older than 3.5.2.
 | `ClientDetails` | `wallet_version`, `wallet_mode`, `protocol_version` | Announce client identity |
 | `ping` / `pong` | none | Keepalive |
 
-`Challenge`, `GetVersion` and `FastSend` are accepted for compatibility and are not part of 3.0.0.
+`Challenge`, `GetVersion` and `FastSend` are accepted for compatibility and are not part of
+<Ver k="epicboxProtocol" />.
 
-`wallet_mode` is significant: a client announcing `listener` is registered for immediate delivery, so
-slates arriving while it is connected are pushed straight through.
+A client announcing `wallet_mode` of `listener` is registered for immediate delivery, so slates arriving
+while it is connected are pushed straight through.
 
 ### Relay to client
 
@@ -106,21 +101,20 @@ acknowledging blocks its own queue.
 
 Two limits apply, and the shorter one is not the storage expiry:
 
-**Storage expiry, seven days.** Slates are held for 604,800 seconds and then removed regardless of state.
+**Storage expiry, <Ver k="epicboxSlateExpiryDays" /> days.** Slates are held for 604,800 seconds and then
+removed regardless of state.
 
 **Acknowledgement limit, roughly nine challenge rounds.** The relay counts send attempts per socket. After
 three unacknowledged attempts it resets the counter and starts another round, and after three such rounds,
 nine attempts in total, it discards **all** undelivered slates for that recipient rather than only the one
-that was failing (<Src repo="epicbox" path="app_mongo.js" line={366} />). At a 60-second challenge
-interval that is about nine minutes.
+that was failing (<Src repo="epicbox" path="app_mongo.js" line={366} />). At a
+<Ver k="epicboxChallengeSeconds" />-second challenge interval that is about nine minutes.
 
 :::warning[An accepted post is not a delivered slate]
 
 Neither limit notifies the sender. From the sender's side the slate was accepted and then stopped
-existing, while their outputs remain reserved until they cancel.
-
-If you are writing a wallet or an integration, treat `Ok` from `PostSlate` as accepted for delivery and
-track completion by whether the transfer finishes.
+existing, while their inputs stay reserved until the transfer is cancelled. See
+[what releases them](/concepts/outputs-and-locking#what-releases-them).
 
 :::
 
@@ -128,20 +122,20 @@ Additional delivery characteristics:
 
 **Delivery state is per connection.** Acknowledgement counters live with the socket, so a reconnect resets
 them, and separate relay instances behind a load balancer do not share them. The reference deployment pins
-clients by IP, which is unreliable for mobile clients changing networks.
+a client to one instance by IP.
 
-**Forwarded slates are not stored locally.** A slate bound for another relay is forwarded without being
-persisted, so there is no retry if the outbound connection fails, and no bound on how long a stalled
-remote relay can hold the transfer open.
+**Forwarded slates are not stored locally.** A slate bound for another relay is forwarded over a new
+outbound connection without being persisted by the relay that accepted it.
 
 ## Client behaviour
 
 The wallet's relay client:
 
 - Reconnects after a 5-second delay, and keeps retrying.
-- After posting a finalised transaction, polls the node's mempool once per second for up to four minutes.
-- Uses slate V2, so payment proofs and `ttl_cutoff_height` are not carried. See
-  [payment proofs](/concepts/payment-proofs).
+- After posting a finalised transaction, polls the node's mempool once per second for up to
+  <Ver k="mempoolWaitMinutes" /> minutes.
+- Uses slate V2, so neither a payment proof nor `ttl_cutoff_height` is carried. See
+  [choose the transport accordingly](/concepts/payment-proofs#choose-the-transport-accordingly).
 
 ## Run a relay
 
@@ -175,11 +169,11 @@ Production prerequisites:
 the same commands are in the comment block at the top of <Src repo="epicbox" path="app_mongo.js" />.
 Without the TTL index, slates never expire.
 
-**Set `STATS` to true.** It is off by default, and the hourly counters it exposes are the only built-in
-visibility you get. They are in-memory and reset on restart, so export them somewhere if you want history.
+**Set `STATS` to true.** It is off by default. The hourly counters it exposes are in-memory and reset on
+restart, so scrape them if you want history.
 
 The reference compose file publishes the two relay instances on host ports 8888 and 8889 and nginx on
-8443. Map those to 443 in your own deployment, or edit the compose file.
+8443. Map those to <Ver k="ports.epicbox" /> in your own deployment, or edit the compose file.
 
 ## Source
 

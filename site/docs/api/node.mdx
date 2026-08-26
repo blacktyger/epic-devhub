@@ -16,12 +16,10 @@ default, split across two surfaces.
 Credentials, and which of these expects one, are covered once in
 [authentication and TLS](/api/authentication).
 
-The same listener also serves a REST surface under `/v1`. The version numbers name two interface
-styles, not two generations: see [the v1 REST surface](#the-v1-rest-surface).
+The same listener also serves a REST surface under `/v1`. See
+[the v1 REST surface](#the-v1-rest-surface).
 
 ## Which JSON-RPC method lives where
-
-The split is not obvious and getting it wrong returns a method-not-found error rather than a hint.
 
 `/v2/owner` is node administration only:
 
@@ -35,16 +33,15 @@ The split is not obvious and getting it wrong returns a method-not-found error r
 `get_stempool_size`, `get_unconfirmed_transactions`, `push_transaction`, `get_block_template`,
 `finalize_block_template`, `submit_block`.
 
-So reading a block is a foreign-surface call, and checking sync state is an owner-surface call:
+So reading a block is a foreign-surface call, and it takes no credential on a default install:
 
 ```bash
 curl -s -d '{"jsonrpc":"2.0","method":"get_tip","params":[],"id":1}' \
   http://127.0.0.1:3413/v2/foreign
-
-curl -s -u epic:$(cat ~/.epic/main/.api_secret) \
-  -d '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}' \
-  http://127.0.0.1:3413/v2/owner
 ```
+
+Checking sync state is an owner-surface call, and needs
+[the node credential](/api/authentication#the-node-credential).
 
 ## Response shapes
 
@@ -64,8 +61,9 @@ curl -s -u epic:$(cat ~/.epic/main/.api_secret) \
 Block headers describe their proof with two fields: `proof`, a string naming the algorithm, and
 `solution`, a tagged union whose shape follows that algorithm.
 
-`Status` includes `supply`, `max_supply` and `blocks_to_next_halving`, in whole EPIC rather than
-freemen. Reward steps are not all halvings; see [emission](/mining/emission).
+`Status` includes `supply` and `max_supply` in whole EPIC rather than freemen, and
+`blocks_to_next_halving` as a block count. Reward steps are not all halvings; see
+[emission](/mining/emission).
 
 Kernels appear in two shapes depending on the method. `get_block` returns a flattened form, while
 `get_kernel` and `get_last_n_kernels` return the raw type with an externally tagged `features` field.
@@ -145,10 +143,10 @@ The router registers 19 patterns, three of them wildcards. The concrete forms ar
 
 </details>
 
-A call against a node with no `api_secret` set:
+A `/v1` call, which takes the node credential across the whole prefix:
 
 ```bash
-curl -s http://127.0.0.1:3413/v1/status
+curl -s -u epic:$(cat ~/.epic/main/.api_secret) http://127.0.0.1:3413/v1/status
 ```
 
 ```json
@@ -172,8 +170,6 @@ curl -s http://127.0.0.1:3413/v1/status
 Captured on a local usernet chain at height 1439 on 2026-08-24.
 
 ## Full method reference
-
-Per method, with editable request and shell-command tabs plus a response panel:
 
 <CardGrid>
   <Card title="Chain reads" to="/api/node/chain-reads">
