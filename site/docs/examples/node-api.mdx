@@ -140,8 +140,7 @@ The node API has no subscription mechanism, so polling is the approach. At a
 </TabItem>
 <TabItem value="py" label="Python">
 
-```python title="examples/python/epic_node.py" file=<rootDir>/examples/python/epic_node.py#L62-L75
-```
+`watch_blocks()` in `epic_node.py` yields each new block as the tip advances:
 
 ```python
 for block in watch_blocks():

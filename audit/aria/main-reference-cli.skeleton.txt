@@ -26,8 +26,6 @@
           - cell
             - code
           - cell
-            - code
-            - code
         - row
           - cell
             - code
@@ -76,12 +74,6 @@
           - cell
             - code
           - cell
-            - code
-        - row
-          - cell
-            - code
-          - cell
-            - code
         - row
           - cell
             - code
@@ -90,8 +82,10 @@
           - cell
             - code
           - cell
+        - row
+          - cell
             - code
-            - code
+          - cell
         - row
           - cell
             - code
@@ -111,13 +105,240 @@
             - code
             - code
           - cell
-            - code
-            - code
         - row
           - cell
             - code
           - cell
+    - heading [level=2]
+      - link
     - paragraph
+      - link
+        - code
+    - table
+      - rowgroup
+        - row
+          - cell
+          - cell
+      - rowgroup
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+            - code
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - code
+            - code
+    - paragraph
+      - code
       - code
       - code
       - code
@@ -143,6 +364,12 @@
     - paragraph
       - code
       - code
+      - link
+        - code
+    - paragraph
+      - code
+      - code
+      - code
       - code
       - code
       - code
@@ -160,13 +387,6 @@
       - code
       - code
       - code
-      - code
-      - code
-    - img
-    - paragraph
-      - code
-      - code
-    - paragraph
       - code
       - code
     - heading [level=2]
@@ -186,9 +406,6 @@
             - code
           - cell
             - code
-            - code
-            - code
-            - code
         - row
           - cell
             - code
@@ -200,12 +417,20 @@
         - row
           - cell
             - code
+          - cell
+        - row
+          - cell
             - code
           - cell
         - row
           - cell
             - code
           - cell
+        - row
+          - cell
+            - code
+          - cell
+            - code
             - code
     - paragraph
       - code
@@ -214,10 +439,15 @@
       - code
       - code
       - code
+      - code
+      - code
+      - code
+      - link
+        - code
     - paragraph
-      - code
-      - code
-      - code
+      - link
+        - code
+      - link
     - heading [level=2]
       - link
     - table
@@ -247,7 +477,6 @@
           - cell
           - cell
           - cell
-            - strong
         - row
           - cell
           - cell
@@ -260,41 +489,44 @@
           - cell
           - cell
           - cell
-          - cell
       - rowgroup
         - row
           - cell
           - cell
           - cell
             - code
-          - cell
         - row
           - cell
           - cell
             - code
           - cell
             - code
-          - cell
-            - strong
-            - code
         - row
           - cell
           - cell
             - code
           - cell
             - code
-          - cell
-            - code
-            - code
-            - code
-            - code
         - row
           - cell
           - cell
           - cell
             - code
-          - cell
     - paragraph
+      - link
+    - paragraph
+      - code
+      - code
+      - code
+      - link
+        - code
+      - link
+    - paragraph
+      - code
+      - code
+      - code
+      - link
+        - code
     - heading [level=2]
       - link
     - paragraph
@@ -312,20 +544,13 @@
       - code
       - code
       - code
-    - paragraph
+      - code
       - code
       - link
-    - paragraph
-      - code
     - heading [level=2]
       - link
-    - paragraph
-    - code
-    - button
-    - paragraph
-      - code
-    - heading [level=2]
-      - link
+    - link
+      - paragraph
     - link
       - paragraph
     - link

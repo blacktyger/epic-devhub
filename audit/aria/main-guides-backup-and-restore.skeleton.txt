@@ -46,7 +46,8 @@
             - code
           - cell
           - cell
-            - code
+            - link
+              - code
         - row
           - cell
             - code
@@ -65,7 +66,6 @@
       - code
       - code
       - strong
-      - code
       - link
     - heading [level=2]
       - link
@@ -81,6 +81,8 @@
     - tabpanel
       - code
       - button
+    - paragraph
+      - link
     - img
     - paragraph
       - code
@@ -88,8 +90,12 @@
       - code
     - heading [level=2]
       - link
-    - code
-    - button
+    - tablist
+      - tab
+      - tab
+    - tabpanel
+      - code
+      - button
     - paragraph
     - paragraph
       - code
@@ -104,9 +110,18 @@
       - code
     - img
     - paragraph
+      - code
     - code
     - button
     - paragraph
+    - list
+      - listitem
+        - code
+        - code
+      - listitem
+      - listitem
+    - paragraph
+      - code
     - heading [level=2]
       - link
     - table
@@ -137,13 +152,18 @@
           - cell
           - cell
     - paragraph
-      - strong
-    - paragraph
-      - strong
       - code
     - paragraph
+      - code
+      - code
+      - code
+      - link
+        - code
+      - code
     - code
     - button
+    - paragraph
+      - link
     - heading [level=3]
       - link
     - paragraph
@@ -153,6 +173,7 @@
       - link
     - paragraph
       - code
+      - link
     - tablist
       - tab
       - tab
@@ -168,32 +189,31 @@
       - link
         - code
     - paragraph
-    - code
-    - button
+    - tablist
+      - tab
+      - tab
+    - tabpanel
+      - code
+      - button
     - img
     - code
     - code
     - paragraph
       - code
-      - strong
       - code
       - code
-      - code
-    - paragraph
       - code
     - heading [level=2]
       - link
     - code
     - button
     - paragraph
-    - img
-    - code
     - paragraph
+      - code
+      - code
       - code
       - link
         - code
-      - code
-      - code
     - heading [level=2]
       - code
       - link
@@ -203,18 +223,6 @@
     - paragraph
       - code
       - link
-    - heading [level=2]
-      - link
-    - list
-      - listitem
-        - code
-        - code
-      - listitem
-        - code
-        - code
-      - listitem
-      - listitem
-    - paragraph
     - heading [level=2]
       - link
     - link
@@ -254,7 +262,5 @@
       - listitem
         - link
           - code
-      - listitem
-        - link
       - listitem
         - link

@@ -39,7 +39,8 @@ Failures are almost always in delivery rather than on the chain:
 - **The sender went away between rounds.** The receiver has completed their part and returned a slate
   that no wallet is waiting for. Over epicbox the return leg needs the sender's own subscription; see
   [the comparison](/concepts/transports#comparison).
-- **The two wallets disagree on the slate version.** See below.
+- **The two wallets disagree on the slate version.** See
+  [slate versions](/concepts/interactive-transactions#slate-versions).
 
 Retrying the same send does not fix any of them, because the sender's inputs are already committed to the
 first attempt. Cancel, then start again. See

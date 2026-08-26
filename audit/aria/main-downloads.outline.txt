@@ -1,6 +1,6 @@
 h1 Downloads
   h2 Node 4.0.3​
   h2 Wallet 4.0.0​
-  h2 Verify the checksum​
+  h2 Download and verify​
   h2 Other software​
   h2 Next​

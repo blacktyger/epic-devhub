@@ -10,10 +10,7 @@ What to do with a wallet that is set up and pointed at a node. Everything here i
 no network flag, and every command that moves value is real.
 
 Set up first: [node and wallet setup](/guides/mainnet-setup). The transfer mechanics are the ones you
-already ran on the local chain in [your first transfer](/guides/first-transfer), and they are not
-repeated here.
-
-A positive wallet balance is required for the commands below.
+already ran on the local chain in [your first transfer](/guides/first-transfer).
 
 ## Read what the wallet knows
 
@@ -72,7 +69,7 @@ output rather than the depth, so an integration computes the subtraction itself.
 
 ## Automating these commands
 
-Every command above prompts for the wallet password when it needs one. Two ways to supply it without a
+`epic-wallet` prompts for the wallet password when a command needs one. Two ways to supply it without a
 prompt:
 
 **On the command line.** `-p` is a global flag, so it goes before the subcommand
@@ -87,7 +84,9 @@ epic-wallet -p "$EPIC_WALLET_PASSWORD" info
 for every later call. The example clients read `EPIC_WALLET_PASSWORD` from the environment and pass it
 straight to `open_wallet`, which is the pattern to copy:
 
-```python file=<rootDir>/examples/python/balance.py#L14-L15
+```python
+wallet = EpicWallet()
+wallet.open_wallet(password=os.environ["EPIC_WALLET_PASSWORD"])
 ```
 
 ## Receive

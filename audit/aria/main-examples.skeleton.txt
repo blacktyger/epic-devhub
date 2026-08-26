@@ -55,25 +55,17 @@
       - code
       - code
       - link
-    - paragraph
-      - link
     - heading [level=2]
       - link
     - tablist
       - tab
       - tab
-      - tab
-      - tab
     - tabpanel
       - paragraph
+        - code
+        - code
       - code
       - button
-      - paragraph
-        - code
-        - code
-        - code
-      - paragraph
-        - link
       - code
       - button
     - heading [level=2]
@@ -81,18 +73,17 @@
     - list
       - listitem
         - code
-        - code
-      - listitem
-        - strong
-        - code
-      - listitem
       - listitem
         - code
         - code
-        - emphasis
+        - code
+      - listitem
+      - listitem
+        - code
     - heading [level=2]
       - link
     - paragraph
+      - code
       - code
     - code
     - button
@@ -100,28 +91,19 @@
       - code
     - code
     - button
+    - button
     - paragraph
-    - tablist
-      - tab
-      - tab
-      - tab
-      - tab
-    - tabpanel
       - code
-      - button
+      - link
+      - code
+      - code
+    - paragraph
+      - link
     - heading [level=2]
       - link
     - paragraph
-    - list
-      - listitem
-        - link
-          - code
-      - listitem
-        - link
-          - code
-      - listitem
-        - link
-          - code
+      - link
+        - code
     - paragraph
       - link
         - code

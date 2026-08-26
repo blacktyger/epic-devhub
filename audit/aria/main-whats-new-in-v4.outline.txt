@@ -3,7 +3,7 @@ h1 Migrating from 3.x
     h3 total_difficulty is an object​
     h3 Block headers describe proofs with two fields​
     h3 Wallet output and transaction reads take pagination​
-    h3 Status includes supply fields​
+    h3 Status gains supply fields​
     h3 Kernels appear in two shapes​
   h2 Command line changes​
   h2 Toolchain and build​
@@ -14,5 +14,4 @@ h1 Migrating from 3.x
     h3 Mempool confirmation after posting​
     h3 The epicbox relay implementation changed​
   h2 Behaviour to check in your integration​
-  h2 What has not changed​
   h2 Next​

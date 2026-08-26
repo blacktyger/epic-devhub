@@ -6,10 +6,7 @@ description: Working Epic Cash client examples in Python and bash, covering node
 
 # Code examples
 
-Runnable examples for the workflows most integrations need, as a command line and as Python. Every
-code block on these pages is imported from a real file in
-[`examples/`](https://github.com/blacktyger/epic-devhub/tree/main/examples), so what you copy is
-what runs.
+Runnable examples for the workflows most integrations need, as a command line and as Python.
 
 <CardGrid>
   <Card title="Node queries" to="/examples/node-api">
@@ -93,10 +90,9 @@ A failed one carries `Err` in the same position:
 {"id": 1, "jsonrpc": "2.0", "result": {"Err": {"NotEnoughFunds": {"available": 0, "needed": 100000000}}}}
 ```
 
-Write one unwrap helper and use it everywhere. This is the one the wallet client here uses:
-
-```python title="examples/python/epic_wallet.py" file=<rootDir>/examples/python/epic_wallet.py#L112-L123
-```
+Write one unwrap helper and use it everywhere. `_unwrap` in the wallet client on
+[connect and read](/examples/wallet-connect) raises on `Err` and returns the value on `Ok`, and every
+call in that client goes through it.
 
 Field by field, the envelope is documented in
 [the API overview](/api#the-response-envelope).

@@ -181,7 +181,6 @@
   --epic-control-sm: 1.75rem;
   --epic-control-md: 2rem;
   --epic-control-lg: 2.5rem;
-  --epic-control-rail: 3rem;
   /* The floor, for anything that has to be checked against it in CSS. */
   --epic-target-min: 1.5rem;
 }
@@ -407,7 +406,117 @@ div[class^='announcementBar'] a:hover {
 
 [data-theme='dark'] .footer {
   background: var(--epic-gradient-surface);
-  border-top: 1px solid var(--ifm-toc-border-color);
+}
+
+/* ---------------------------------------------------------------- footer
+
+   Charcoal in both themes, so the page is framed top and bottom by the same chrome. The three
+   columns were browser-default: bold sans headings, default link colour, default row spacing. They
+   now carry the system's own devices. Gold appears three times and each time it means something:
+   the leading stretch of the top rule, the short mark above a column heading, and hover or focus on
+   a link. Nothing here is an enclosure, because a column of links does not earn one. */
+
+.footer {
+  position: relative;
+  padding-block: var(--epic-space-48) var(--epic-space-24);
+  border-top: 0;
+}
+
+/* The top rule carries the accent for part of its length and then fades out, rather than running
+   the full width as an institutional divider. Same treatment as the navbar hairline. */
+.footer::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  background-image: linear-gradient(
+    to right,
+    var(--epic-gold-deep) 0%,
+    var(--epic-line-strong) 20%,
+    var(--epic-line) 54%,
+    transparent 92%
+  );
+}
+
+.footer .footer__title {
+  position: relative;
+  margin-bottom: var(--epic-space-16);
+  padding-top: var(--epic-space-12);
+  font-family: var(--ifm-heading-font-family);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* A short gold rule above sentence-case text, which is the approved eyebrow device. The uppercase
+   letterspaced monospace version it replaces is the dated signal named in the visual language. */
+.footer .footer__title::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--epic-space-20);
+  height: 2px;
+  background: var(--epic-gold-deep);
+}
+
+.footer .footer__item {
+  padding: 0;
+}
+
+.footer .footer__link-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--epic-space-6);
+  min-height: var(--epic-control-sm);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+
+.footer .footer__link-item:hover,
+.footer .footer__link-item:focus-visible {
+  color: var(--epic-gold-light);
+  text-decoration: none;
+}
+
+/* The external marker is a marker, not a glyph competing with the label. */
+.footer .footer__link-item svg {
+  opacity: 0.45;
+  transition: opacity 120ms ease;
+}
+
+.footer .footer__link-item:hover svg,
+.footer .footer__link-item:focus-visible svg {
+  opacity: 0.9;
+}
+
+/* The byline sits under a rule that fades from the centre outwards, so the row reads as a close
+   rather than as a fourth section. */
+.footer .footer__bottom {
+  position: relative;
+  margin-top: var(--epic-space-32);
+  padding-top: var(--epic-space-20);
+}
+
+.footer .footer__bottom::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(28rem, 60%);
+  height: 1px;
+  transform: translateX(-50%);
+  background-image: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--epic-line) 30%,
+    var(--epic-line-strong) 50%,
+    var(--epic-line) 70%,
+    transparent 100%
+  );
 }
 
 /* The gold gradient is reserved for small accents. It is never used on text that has
@@ -2611,16 +2720,20 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
   .theme-doc-sidebar-container button[class*='collapseSidebarButton'] {
     /* Out of the flex flow: as the column's last item it was a 36px row the menu had to end above. */
     position: absolute;
-    top: 50%;
+    /* Full height of the rail, not a 48px tab at the vertical centre. Folding and unfolding now have
+       the same target: the unfold affordance is a full-height overlay the theme renders over the
+       folded strip, so a 48px fold tab meant one direction worked anywhere on the column and the
+       other had to be aimed at. The glyph still sits at the centre, so nothing moves on screen; only
+       the hit area changes. The menu is indented by the rail's width, so this cannot cover a link. */
+    inset-block: 0;
     left: 0;
     right: auto;
-    transform: translateY(-50%);
     /* Infima's `.button` carries 24px of horizontal padding, and with border-box sizing a 30px width
        cannot compress below 48px of padding, so the tab was 18px wider than the gutter and reached
        back over the menu. Zeroing the padding is what makes the declared width the real one. */
     padding: 0;
     width: var(--doc-sidebar-hidden-width, 30px);
-    height: 3rem;
+    height: auto;
     /* `display: block !important` comes from the theme's own module CSS, so beating it needs the same
        weight. Flex is what centres the arrow at any tab height; the alternative was a magic padding
        that breaks the day the icon size changes. */
@@ -2640,6 +2753,21 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
   .theme-doc-sidebar-container div[class*='expandButton']:hover,
   .theme-doc-sidebar-container div[class*='expandButton']:focus-visible {
     color: var(--ifm-color-primary);
+  }
+
+  /* Both controls are now the full height of the column, so a flat hover fill would be a 700px slab of
+     colour. The wash is strongest at the glyph and fades out, which says where the control is without
+     painting the whole edge. */
+  .theme-doc-sidebar-container button[class*='collapseSidebarButton']:hover,
+  .theme-doc-sidebar-container div[class*='expandButton']:hover {
+    background-color: transparent;
+    background-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      var(--docusaurus-collapse-button-bg-hover) 42%,
+      var(--docusaurus-collapse-button-bg-hover) 58%,
+      transparent 100%
+    );
   }
 
   /* Folded, the column is a 30px strip. It keeps the same right hairline the open column has, so the
@@ -3824,7 +3952,7 @@ html[class*='docs-doc-id-examples/'],
 
 /* Light footer. Charcoal, so the page is framed top and bottom by the same
    chrome rather than fading into a second near-white band. */
-[data-theme='light'] .footer { background: var(--epic-chrome); border-top: 1px solid var(--epic-chrome-line); color: var(--epic-chrome-dim); }
+[data-theme='light'] .footer { background: var(--epic-chrome); border-top: 0; color: var(--epic-chrome-dim); }
 [data-theme='light'] .footer__title { color: #f7f2e8; }
 [data-theme='light'] .footer__link-item { color: var(--epic-chrome-dim); }
 [data-theme='light'] .footer__link-item:hover { color: #f6d471; }

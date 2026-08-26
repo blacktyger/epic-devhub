@@ -22,7 +22,8 @@ them need `requests`, `coincurve` and `pycryptodome`.
 
 | Path | What it is |
 | --- | --- |
-| `python/epic_wallet.py` | Owner API v3 client, plus complete `InitTxArgs` and `IssueInvoiceTxArgs` builders |
+| `python/epic_wallet.py` | Owner API v3 client, the ECDH handshake and the AES-GCM envelope |
+| `python/tx_args.py` | Complete `InitTxArgs` and `IssueInvoiceTxArgs` builders, imported by the transfer examples |
 | `python/balance.py` | Read a balance |
 | `python/list_paged.py` | Paged `retrieve_outputs` and `retrieve_txs` |
 | `python/send.py` | Quote a fee with `estimate_only`, and send in one call |

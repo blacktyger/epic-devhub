@@ -96,7 +96,7 @@ The difference is where the operation is named.
 
 Both surfaces return the same payloads. `GET /v1/status` and `get_status` on `/v2/owner` produce
 identical bodies, so the [JSON-RPC pages](#full-method-reference) document the response shapes for
-both, and the table below maps each route onto its method.
+both.
 
 `GET /`, `GET /v1/` and `GET /v2/` return a list of v1 routes, from
 <Src repo="node" path="api/src/handlers.rs" line={446} />.
@@ -109,7 +109,7 @@ returns the same thing, and its surface.
 <details>
 <summary>Every v1 route and its JSON-RPC equivalent</summary>
 
-The router registers 19 patterns, three of them wildcards. The concrete forms are below.
+The router registers 19 patterns, three of them wildcards.
 
 | Route | Verb | JSON-RPC equivalent |
 | --- | --- | --- |

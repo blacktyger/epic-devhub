@@ -19,7 +19,7 @@ are required when the wallet deserializes it
 (<Src repo="wallet" path="libwallet/src/api_impl/types.rs" line={53} />). A partial object is
 rejected. `init_tx_args` in the Python client returns a complete one on every call:
 
-```python title="examples/python/epic_wallet.py" file=<rootDir>/examples/python/epic_wallet.py#L27-L60
+```python title="examples/python/tx_args.py" file=<rootDir>/examples/python/tx_args.py
 ```
 
 `IssueInvoiceTxArgs` works the same way, with four required keys: `dest_acct_name`, `amount`,
@@ -43,7 +43,7 @@ epic-wallet send -m http -d http://receiver.example:3415 -c 3 1.5
 </TabItem>
 <TabItem value="py" label="Python">
 
-```python title="examples/python/send.py" file=<rootDir>/examples/python/send.py#L28-L55
+```python title="examples/python/send.py" file=<rootDir>/examples/python/send.py
 ```
 
 </TabItem>
@@ -66,22 +66,13 @@ On the CLI, `--min_conf` defaults to 10 and `--selection` to `smallest`
 
 `estimate_only` computes the fee and selects inputs without reserving anything.
 
-<Tabs groupId="lang">
-<TabItem value="cli" label="CLI">
-
 ```bash
 # Prints the fee for both selection strategies and sends nothing.
 epic-wallet send -e -c 3 1.5
 ```
 
-</TabItem>
-<TabItem value="py" label="Python">
-
-```python title="examples/python/send.py" file=<rootDir>/examples/python/send.py#L16-L25
-```
-
-</TabItem>
-</Tabs>
+In Python, `estimate_fee()` in `send.py` is the same call with
+`estimate_only=True` passed through `init_tx_args`.
 
 The fee is a function of transaction shape, not demand:
 
@@ -150,7 +141,7 @@ curl -s -H 'Content-Type: application/json' \
 </TabItem>
 <TabItem value="py" label="Python">
 
-```python title="examples/python/receive.py" file=<rootDir>/examples/python/receive.py#L20-L46
+```python title="examples/python/receive.py" file=<rootDir>/examples/python/receive.py
 ```
 
 </TabItem>
@@ -174,7 +165,7 @@ epic-wallet scan          # rescan if the figures still disagree with the chain
 </TabItem>
 <TabItem value="py" label="Python">
 
-```python title="examples/python/clear_stuck.py" file=<rootDir>/examples/python/clear_stuck.py#L15-L34
+```python title="examples/python/clear_stuck.py" file=<rootDir>/examples/python/clear_stuck.py
 ```
 
 </TabItem>

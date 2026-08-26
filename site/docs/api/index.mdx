@@ -73,10 +73,9 @@ Every Epic JSON-RPC method returns HTTP 200 with a JSON-RPC `result`, and inside
 {"id": 1, "jsonrpc": "2.0", "result": {"Err": {"NotEnoughFunds": {"available": 0}}}}
 ```
 
-One function unwraps both layers.
-
-```python title="examples/python/epic_wallet.py" file=<rootDir>/examples/python/epic_wallet.py#L112-L123
-```
+One function unwraps both layers. `_unwrap` in
+[`examples/python/epic_wallet.py`](https://github.com/blacktyger/epic-devhub/blob/main/examples/python/epic_wallet.py)
+raises on `Err` and returns the value on `Ok`, and every call in that client goes through it.
 
 ## Amounts
 

@@ -67,11 +67,39 @@
           - cell
             - link
               - code
+    - paragraph
+    - table
+      - rowgroup
+        - row
+          - cell
+          - cell
+      - rowgroup
         - row
           - cell
           - cell
             - link
               - code
+        - row
+          - cell
+          - cell
+            - link
+              - code
+        - row
+          - cell
+          - cell
+            - link
+              - code
+        - row
+          - cell
+          - cell
+            - link
+              - code
+    - paragraph
+      - link
+        - code
+    - paragraph
+      - code
+      - link
     - heading [level=2]
       - link
     - paragraph
@@ -128,14 +156,28 @@
       - code
       - code
     - paragraph
+      - code
+    - table
+      - rowgroup
+        - row
+          - cell
+          - cell
+      - rowgroup
+        - row
+          - cell
+            - code
+          - cell
+            - link
+              - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+            - link
+              - code
     - paragraph
       - code
-      - code
-      - link
-        - code
-      - code
-      - link
-        - code
     - heading [level=2]
       - link
     - paragraph
@@ -193,6 +235,8 @@
       - link
         - code
     - paragraph
+      - link
+        - code
       - code
     - heading [level=2]
       - link

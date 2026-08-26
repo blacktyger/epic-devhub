@@ -8,5 +8,4 @@ h1 Back up and restore a wallet
   h2 Recovering into a directory that already has a wallet​
   h2 Changing your password​
   h2 scan --delete_unconfirmed is destructive​
-  h2 A backup routine worth following​
   h2 Next​

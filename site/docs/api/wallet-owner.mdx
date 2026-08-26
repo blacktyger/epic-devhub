@@ -93,7 +93,7 @@ Send the `token` inside the envelope on every method that declares one. Keep the
 
 ### Transport
 
-<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1495} name="init_secure_api" />, described below.
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1495} name="init_secure_api" />.
 
 ## The encrypted handshake
 
@@ -121,11 +121,9 @@ declared at <Src repo="wallet" path="api/src/owner_rpc_s.rs" line={1453} />: AES
 {"jsonrpc": "2.0", "id": 1, "method": "encrypted_request_v3", "params": {"nonce": "ef32...", "body_enc": "e0bcd..."}}
 ```
 
-`examples/python/epic_wallet.py` implements the sequence, including the second unwrap of the decrypted
-body:
-
-```python title="examples/python/epic_wallet.py" file=<rootDir>/examples/python/epic_wallet.py#L159-L181
-```
+[`examples/python/epic_wallet.py`](https://github.com/blacktyger/epic-devhub/blob/main/examples/python/epic_wallet.py)
+implements the sequence, including the second unwrap of the decrypted body. The client is listed in
+full on [connect and read](/examples/wallet-connect).
 
 ## Reading outputs and transactions
 

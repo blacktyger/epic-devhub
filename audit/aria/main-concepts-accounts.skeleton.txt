@@ -6,6 +6,8 @@
           - link
             - img
         - listitem
+          - link
+        - listitem
     - heading [level=1]
     - button
     - button
@@ -14,82 +16,9 @@
       - code
     - paragraph
       - link
-    - heading [level=2]
+        - code
       - link
-    - paragraph
-      - link
-      - link
-      - link
-    - table
-      - rowgroup
-        - row
-          - cell
-          - cell
-          - cell
-      - rowgroup
-        - row
-          - cell
-          - cell
-            - code
-          - cell
-            - code
-        - row
-          - cell
-          - cell
-            - code
-          - cell
-            - code
-        - row
-          - cell
-          - cell
-            - code
-          - cell
-            - code
-    - paragraph
-    - heading [level=2]
-      - link
-    - paragraph
-      - link
-      - link
-      - link
-    - table
-      - rowgroup
-        - row
-          - cell
-          - cell
-          - cell
-      - rowgroup
-        - row
-          - cell
-          - cell
-            - code
-          - cell
-            - code
-        - row
-          - cell
-          - cell
-            - code
-          - cell
-    - paragraph
-    - heading [level=2]
-      - link
-    - paragraph
-      - code
-      - code
-      - code
-    - tablist
-      - tab
-      - tab
-      - tab
-    - tabpanel
-      - code
-      - button
-      - button
-    - img
-    - paragraph
-      - code
-      - code
-      - link
+        - code
     - heading [level=2]
       - link
     - table
@@ -101,7 +30,9 @@
         - row
           - cell
           - cell
-            - link
+        - row
+          - cell
+          - cell
         - row
           - cell
           - cell
@@ -109,17 +40,97 @@
         - row
           - cell
           - cell
-            - code
         - row
           - cell
           - cell
-            - link
-        - row
-          - cell
-          - cell
-            - code
-            - code
     - paragraph
+      - link
+        - code
+      - link
+        - code
+    - paragraph
+      - code
+      - link
+        - code
+      - link
+    - heading [level=2]
+      - link
+    - paragraph
+      - code
+      - emphasis
+      - link
+        - code
+    - paragraph
+      - code
+    - code
+    - button
+    - paragraph
+      - code
+      - link
+        - code
+    - paragraph
+      - code
+      - code
+      - link
+        - code
+    - heading [level=2]
+      - link
+    - code
+    - button
+    - paragraph
+      - code
+      - code
+      - link
+        - code
+      - link
+        - code
+    - heading [level=2]
+      - link
+    - paragraph
+      - strong
+      - code
+      - code
+      - code
+      - code
+      - link
+        - code
+      - code
+    - paragraph
+      - strong
+      - code
+      - code
+      - code
+    - paragraph
+      - strong
+      - link
+        - code
+    - paragraph
+      - strong
+      - code
+      - code
+    - code
+    - button
+    - paragraph
+      - link
+    - heading [level=2]
+      - link
+    - paragraph
+      - code
+      - link
+        - code
+      - code
+      - link
+        - code
+    - heading [level=2]
+      - link
+    - paragraph
+      - code
+      - code
+      - code
+      - link
+        - code
+    - paragraph
+      - link
     - heading [level=2]
       - link
     - link
@@ -132,8 +143,13 @@
     - time
   - navigation
     - link
+    - link
   - navigation
     - list
+      - listitem
+        - link
+      - listitem
+        - link
       - listitem
         - link
       - listitem

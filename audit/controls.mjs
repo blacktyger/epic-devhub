@@ -37,7 +37,10 @@ import {serveBuild} from './lib/server.mjs';
 import {BUILD, DEV_ORIGIN, PORTS, RESULTS, SITE, readFileRetry} from './lib/paths.mjs';
 
 /** The scale, in px at the 16px root. Mirrors --epic-control-* in site/src/css/custom.css. */
-const SCALE = {sm: 28, md: 32, lg: 40, rail: 48};
+const SCALE = {sm: 28, md: 32, lg: 40};
+
+/** The sidebar fold rail's width, matching --doc-sidebar-hidden-width and the folded strip. */
+const RAIL_WIDTH = 30;
 
 /** WCAG 2.2 SC 2.5.8, level AA. 44 is the AAA figure and the one to prefer for a touch surface. */
 const TARGET_MIN = 24;
@@ -62,9 +65,14 @@ const CONTROLS = [
     note: 'code block copy and word wrap',
   },
   {
+    /* The fold rail spans the column, so its height is whatever the column is and there is nothing on
+       the scale to assert. Width is the invariant that matters: it has to stay equal to the folded
+       strip, because a wider rail reaches back over the menu links, which is the defect the CSS
+       comment for this control records. */
     selector: '.theme-doc-sidebar-container button[class*=collapseSidebarButton]',
-    size: 'rail',
-    note: 'sidebar fold tab, vertical',
+    expect: RAIL_WIDTH,
+    axis: 'w',
+    note: 'sidebar fold rail, full height, gutter width',
   },
 ];
 
@@ -99,10 +107,18 @@ for (const route of ROUTES) {
       };
 
       const named = [];
-      for (const {selector, size, note} of controls) {
+      for (const {selector, size, expect, axis, note} of controls) {
         for (const el of document.querySelectorAll(selector)) {
           if (!visible(el)) continue;
-          named.push({selector, size, note, ...box(el), text: (el.textContent || '').trim().slice(0, 24)});
+          named.push({
+            selector,
+            size,
+            expect,
+            axis,
+            note,
+            ...box(el),
+            text: (el.textContent || '').trim().slice(0, 24),
+          });
         }
       }
 
@@ -135,10 +151,15 @@ for (const route of ROUTES) {
   out.routes[route] = found;
 
   for (const c of found.named) {
-    const expected = SCALE[c.size];
-    if (Math.abs(c.h - expected) > TOLERANCE) {
+    const axis = c.axis === 'w' ? 'w' : 'h';
+    const expected = c.expect ?? SCALE[c.size];
+    const measured = axis === 'w' ? c.w : c.h;
+    const label = axis === 'w' ? 'wide' : 'tall';
+    if (Math.abs(measured - expected) > TOLERANCE) {
       problems.push(
-        `${route} ${c.selector} is ${c.h}px tall, expected ${expected}px for size "${c.size}" (${c.note})`,
+        `${route} ${c.selector} is ${measured}px ${label}, expected ${expected}px${
+          c.size ? ` for size "${c.size}"` : ''
+        } (${c.note})`,
       );
     }
   }

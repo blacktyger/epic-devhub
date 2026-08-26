@@ -68,6 +68,14 @@
           - cell
           - cell
           - cell
+            - strong
+        - row
+          - cell
+            - code
+          - cell
+          - cell
+          - cell
+          - cell
         - row
           - cell
           - cell
@@ -80,8 +88,8 @@
       - code
       - link
     - paragraph
-      - code
       - link
+        - code
     - heading [level=2]
       - link
     - paragraph
@@ -108,11 +116,24 @@
     - code
     - button
     - paragraph
+      - code
       - link
+        - code
+      - code
+      - code
     - heading [level=2]
       - link
     - paragraph
       - strong
+      - code
+      - code
+      - code
+      - code
+      - code
+      - code
+      - code
+      - code
+      - code
     - heading [level=2]
       - link
     - link
