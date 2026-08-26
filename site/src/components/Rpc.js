@@ -195,7 +195,7 @@ export function RpcConsole({method, surface}) {
 
   const request = buildRequest(method, values);
   const curl = [
-    `curl -s ${surface.credential !== 'none' ? `-u epic:$(cat ${surface.secretPath}) ` : ''}\\`,
+    `curl -s ${surface.credential === 'basic' ? `-u epic:$(cat ${surface.secretPath}) ` : ''}\\`,
     `  -H 'Content-Type: application/json' \\`,
     `  -d '${JSON.stringify(request)}' \\`,
     `  http://127.0.0.1:${versionValue(surface.portKey)}${surface.path}`,

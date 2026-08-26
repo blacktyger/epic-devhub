@@ -6,9 +6,10 @@ description: Which Epic API surfaces expect a credential, which are open because
 
 # API authentication and TLS
 
-Epic protects its owner-facing surfaces with HTTP Basic against a secret file on disk. The foreign
-surfaces take no credential, because an interactive transfer needs the receiving side reachable by a
-stranger. TLS termination is left to the operator.
+The node protects its owner-facing surfaces with HTTP Basic against a secret file on disk. The wallet
+Owner API v3 uses a token obtained with the wallet password. The foreign surfaces take no credential,
+because an interactive transfer needs the receiving side reachable by a stranger. TLS termination is
+left to the operator.
 
 ## The surfaces
 
@@ -17,8 +18,8 @@ stranger. TLS termination is left to the operator.
 | Node `/v1/*` | <Ver k="ports.nodeApi" /> | Basic, `api_secret_path`, across the whole prefix | You, from the same machine |
 | Node `/v2/owner` | <Ver k="ports.nodeApi" /> | Basic, `api_secret_path` | You, from the same machine |
 | Node `/v2/foreign` | <Ver k="ports.nodeApi" /> | Optional Basic, `foreign_api_secret_path` | Anything that reads the chain |
-| Wallet Owner `/v3/owner` | <Ver k="ports.walletOwner" /> | Basic, `api_secret_path`, plus a token from `open_wallet` | You, from the same machine |
-| Wallet Owner `/v2/owner` | <Ver k="ports.walletOwner" /> | Basic, `api_secret_path` | You, from the same machine |
+| Wallet Owner `/v3/owner` | <Ver k="ports.walletOwner" /> | Token from `open_wallet`, inside the encrypted envelope | You, from the same machine |
+| Wallet Owner `/v2/owner` | <Ver k="ports.walletOwner" /> | None. Superseded by `/v3/owner` | Nothing. Bind the listener to loopback |
 | Wallet Foreign `/v2/foreign` | <Ver k="ports.walletForeign" /> | None | A counterparty paying you |
 
 The wallet's Foreign API receives a slate, returns a partially signed one, builds a coinbase for a miner
@@ -28,24 +29,19 @@ The node's `/v1` credential covers the whole prefix, including the chain reads t
 `/v2/foreign`. See [the v1 REST surface](/api/node#the-v1-rest-surface).
 
 `api_secret_path` names a different file in each binary's configuration. Both node surfaces read the
-node's, which is `.api_secret`. The wallet owner listener reads the wallet's, which is
-`.owner_api_secret`.
+node's, which is `.api_secret`.
 
 ## Owner access on the wallet
 
-`epic-wallet owner_api` wraps every path on its listener in HTTP Basic whenever `api_secret_path`
-resolves, with the username literally `epic` and the secret file's contents as the password
-(<Src repo="wallet" path="controller/src/controller.rs" line={142} />). That covers `/v3/owner` and
-`/v2/owner`. The one exempt path is `/v2/foreign`, which the owner listener serves only when
-`owner_api_include_foreign` is true.
+`/v3/owner` is gated on a token, not on an HTTP credential. Every method in the v3 trait takes one
+(<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={78} />), and getting one means completing the
+ECDH handshake and then calling `open_wallet` with the wallet password. The password is the gate. See
+[the encrypted handshake](/api/wallet-owner#the-encrypted-handshake).
 
-The file is `.owner_api_secret`. `api_secret_path` defaults to that name
-(<Src repo="wallet" path="config/src/types.rs" line={75} />) and `epic-wallet init` creates it in the
-wallet directory (<Src repo="wallet" path="config/src/config.rs" line={125} />), so the credential
-exists before the first call:
+The first call establishes the shared key and carries no credential:
 
 ```bash
-curl -s -u epic:$(cat ~/.epic/main/.owner_api_secret) \
+curl -s \
   -d '{"jsonrpc":"2.0","method":"init_secure_api","params":{"ecdh_pubkey":"<your compressed public key, hex>"},"id":1}' \
   http://127.0.0.1:3420/v3/owner
 ```

@@ -10,11 +10,10 @@ verify proofs. For most integrations it is the primary surface.
 
 - **Endpoint**: `http://127.0.0.1:3420/v3/owner`, started with `epic-wallet owner_api`
 - **Protocol**: JSON-RPC 2.0 over HTTP POST
-- **Credential**: HTTP Basic, username `epic`, password from `.owner_api_secret`
+- **Credential**: the `token` returned by `open_wallet`, which takes the wallet password
 - **Encryption**: an ECDH handshake wraps every call after the first
 
-Send `-u epic:$(cat ~/.epic/main/.owner_api_secret)` on every request, then the `token` from
-`open_wallet` inside the envelope. Keep the port on loopback. See
+Send the `token` inside the envelope on every method that declares one. Keep the port on loopback. See
 [owner access on the wallet](/api/authentication#owner-access-on-the-wallet).
 
 ## Methods by what they can do
@@ -122,8 +121,8 @@ declared at <Src repo="wallet" path="api/src/owner_rpc_s.rs" line={1453} />: AES
 {"jsonrpc": "2.0", "id": 1, "method": "encrypted_request_v3", "params": {"nonce": "ef32...", "body_enc": "e0bcd..."}}
 ```
 
-`examples/python/epic_wallet.py` implements the sequence, including the Basic credential the listener
-requires and the second unwrap of the decrypted body:
+`examples/python/epic_wallet.py` implements the sequence, including the second unwrap of the decrypted
+body:
 
 ```python title="examples/python/epic_wallet.py" file=<rootDir>/examples/python/epic_wallet.py#L159-L181
 ```
@@ -192,8 +191,7 @@ no base fee is supplied by the wallet, there is no fee market to bid into.
 ## Version 2
 
 An earlier, unencrypted Owner API with 17 methods is served from the same listener, at `/v2/owner`.
-Its methods take no token, so the Basic credential is the only thing in front of it. New work should
-target v3.
+Its methods take no token. New work should target v3, and the listener belongs on loopback.
 
 ## Full method reference
 

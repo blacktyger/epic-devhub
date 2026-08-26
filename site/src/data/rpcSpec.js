@@ -38,10 +38,10 @@ export const surfaces = {
     label: 'Wallet owner',
     path: '/v3/owner',
     portKey: 'ports.walletOwner',
-    credential: 'basic',
-    secretPath: '~/.epic/main/.owner_api_secret',
+    credential: 'token',
+    secretPath: null,
     credentialNote:
-      'HTTP Basic, username epic, password from ~/.epic/<network>/.owner_api_secret, plus a token from open_wallet inside the encrypted envelope. Loopback only',
+      'Token from open_wallet, inside the encrypted envelope. Loopback only',
   },
   walletForeign: {
     label: 'Wallet foreign',

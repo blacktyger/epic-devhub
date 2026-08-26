@@ -22,8 +22,7 @@ HTTP needs the interface widened or a reverse proxy in front of it, and whatever
 place access can be restricted. Taking delivery over the [epicbox relay](/api/epicbox) instead needs no
 inbound port at all.
 
-The same six methods are served from the owner listener when `owner_api_include_foreign` is true, and
-`/v2/foreign` is the one path there that the owner Basic credential does not cover
+The same six methods are served from the owner listener when `owner_api_include_foreign` is true
 (<Src repo="wallet" path="controller/src/controller.rs" line={151} />).
 
 <RpcGroup id="wallet-foreign" />
