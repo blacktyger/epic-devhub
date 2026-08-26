@@ -1,0 +1,228 @@
+---
+title: "Кошелёк: отправка и получение"
+sidebar_label: "Кошелёк: отправка и получение"
+description: Отправляйте, получайте, финализируйте и отменяйте переводы Epic через Owner API и CLI на bash и Python.
+---
+
+# Wallet: отправка и получение
+
+Перевод строится совместно обеими сторонами, поэтому отправка представляет собой последовательность
+вызовов, а не один вызов. См. [интерактивные транзакции](/concepts/interactive-transactions).
+
+Эти примеры основаны на клиенте из [connect and read](/examples/wallet-connect) и запускаются из каталога `examples`.
+
+## `InitTxArgs` содержит все поля {/* #inittxargs-carries-every-field */}
+
+`init_send_tx` и `process_invoice_tx` принимают объект `InitTxArgs`, и все двенадцать его ключей обязательны при десериализации
+кошельком (<Src repo="wallet" path="libwallet/src/api_impl/types.rs" line={53} />). Неполный объект отклоняется. `init_tx_args` в Python-клиенте возвращает полный объект при
+каждом вызове:
+
+```python title="examples/python/tx_args.py" file=<rootDir>/examples/python/tx_args.py
+```
+
+`IssueInvoiceTxArgs` работает аналогично и требует четыре обязательных ключа: `dest_acct_name`, `amount`, `message` и `target_slate_version`. Значения
+полей описаны в [справочнике Owner API](/api/wallet-owner#inittxargs).
+
+## Передать управление обменом кошельку {/* #let-the-wallet-drive-the-exchange */}
+
+Укажите `send_args`, и `init_send_tx` выполнит обмен за вас.
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+epic-wallet send -m epicbox -d 'esYQ...52chars@epicbox.epiccash.com' -c 3 1.5
+
+# По HTTP к доступному слушателю
+epic-wallet send -m http -d http://receiver.example:3415 -c 3 1.5
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python title="examples/python/send.py" file=<rootDir>/examples/python/send.py
+```
+
+</TabItem>
+</Tabs>
+
+`method` принимает `http`, `keybase` и `epicbox` (<Src repo="wallet" path="api/src/owner.rs" line={749} />). На путях `http` и `keybase` вызов блокируется до ответа
+контрагента, затем учитывает `finalize` и `post_tx` (<Src repo="wallet" path="api/src/owner.rs" line={787} />) — ставьте его в очередь, а не запускайте в потоке
+запроса. На пути `epicbox` вызов публикует слейт (slate) на релей, блокирует входы (inputs) и возвращает
+слейт первого раунда отправителя (<Src repo="wallet" path="api/src/owner.rs" line={761} />); запущенный им слушатель завершает перевод, когда контрагент
+отвечает.
+
+В CLI `--min_conf` по умолчанию равно 10, а `--selection` — `smallest` (<Src repo="wallet" path="src/cmd/wallet_args.rs" line={143} />), что соответствует `selection_strategy_is_use_all: false`. Передайте `-c 3`
+для минимального порога подтверждений, используемого в этих примерах.
+
+## Рассчитать комиссию без подтверждения {/* #quote-a-fee-without-committing */}
+
+`estimate_only` вычисляет комиссию и выбирает входы, не резервируя их.
+
+```bash
+# Выводит комиссию для обеих стратегий выбора, ничего не отправляет.
+epic-wallet send -e -c 3 1.5
+```
+
+В Python `estimate_fee()` в `send.py` — это тот же вызов с `estimate_only=True`, переданным через `init_tx_args`.
+
+Комиссия зависит от формы транзакции, а не от спроса:
+
+```
+fee = max(4 × outputs + kernels − inputs, 1) × 0.001 EPIC
+```
+
+Рынка комиссий нет, поэтому оценка точная, а не ставка. См. [эмиссия и комиссии](/mining/emission).
+
+## Управление шагами вручную {/* #driving-the-steps-yourself */}
+
+Используйте это, когда слейт передаётся по вашему собственному транспорту. Это также
+последовательность, которую выполняет CLI.
+
+1. `init_send_tx` собирает слейт.
+2. `tx_lock_outputs` резервирует входы. <Risk level="spend" /> С этого момента выходы (outputs) недоступны до завершения перевода
+   или до тех пор, пока `cancel_tx` не освободит их.
+3. Вы доставляете слейт выбранным транспортом.
+4. Получатель возвращает его подписанным.
+5. `finalize_tx` завершает агрегированную подпись.
+6. `post_tx` транслирует в сеть транзакцию, содержащуюся в финализированном слейте.
+
+`tx_lock_outputs` принимает четыре параметра: `token`, `slate`, `participant_id` и `addr_to` (<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={897} />). Отправитель — участник 0.
+Ничто не освобождает выходы по таймеру, поэтому всё после блокировки должно находиться внутри
+обработчика ошибок, вызывающего `cancel_tx`. См. [что освобождает их](/concepts/outputs-and-locking#what-releases-them).
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash title="examples/shell/send-file.sh" file=<rootDir>/examples/shell/send-file.sh
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python title="examples/python/send_manual.py" file=<rootDir>/examples/python/send_manual.py
+```
+
+</TabItem>
+</Tabs>
+
+## Получение {/* #receiving */}
+
+Слушатель обрабатывает сторону получателя:
+
+```bash
+epic-wallet listen -m epicbox    # ставится в очередь, пока вы офлайн
+epic-wallet listen               # HTTP, требует доступности
+```
+
+Чтобы обработать слейт самостоятельно, используйте метод Foreign API `receive_tx`. Он работает на порту
+<Ver k="ports.walletForeign" />, не требует токена и принимает четыре позиционных параметра: `slate`, `dest_acct_name`, `message` и `addr_from`
+(<Src repo="wallet" path="api/src/foreign_rpc.rs" line={359} />).
+
+<Tabs groupId="lang">
+<TabItem value="curl" label="curl">
+
+```bash
+curl -s -H 'Content-Type: application/json' \
+  -d "{\"jsonrpc\":\"2.0\",\"method\":\"receive_tx\",\"params\":[$(cat slate.json),null,null,null],\"id\":1}" \
+  http://127.0.0.1:3415/v2/foreign | jq '.result.Ok'
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python title="examples/python/receive.py" file=<rootDir>/examples/python/receive.py
+```
+
+</TabItem>
+</Tabs>
+
+Foreign API не требует учётных данных. Ограничьте доступ к нему на уровне прокси и см.
+[аутентификация](/api/authentication).
+
+## Поиск и устранение застрявших переводов {/* #finding-and-clearing-stuck-transfers */}
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+epic-wallet info          # если доступно к трате меньше общего — что-то зарезервировано
+epic-wallet txs           # искать Sent (Created) с Confirmed? false
+epic-wallet cancel -i 42  # освободить входы этого перевода
+epic-wallet scan          # пересканировать, если цифры по-прежнему расходятся с цепочкой
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python title="examples/python/clear_stuck.py" file=<rootDir>/examples/python/clear_stuck.py
+```
+
+</TabItem>
+</Tabs>
+
+Для отмены необходим доступный узел и перевод, который ещё не подтверждён. Алгоритм принятия решения
+описан в [застрявшие транзакции](/guides/stuck-transactions).
+
+## Инвойсы {/* #invoices */}
+
+Получатель запрашивает сумму, а плательщик её финансирует. Криптография та же; меняется инициатор.
+`finalize_invoice_tx` — метод Foreign API, поэтому получатель финализирует там и публикует через Owner API.
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+epic-wallet invoice -d invoice.tx 2         # payee
+epic-wallet pay -c 3 -i invoice.tx          # плательщик, записывает invoice.tx.response
+epic-wallet finalize -i invoice.tx.response # payee
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python title="examples/python/invoice.py" file=<rootDir>/examples/python/invoice.py
+```
+
+</TabItem>
+</Tabs>
+
+## Доказательства платежа {/* #payment-proofs */}
+
+Запрашивайте доказательство платежа при отправке — добавить его впоследствии невозможно. Epicbox
+передаёт слейт версии V2, а доказательство платежа является полем V3, поэтому при необходимости
+отправляйте через HTTP. См. [доказательства платежа](/concepts/payment-proofs#choose-the-transport-accordingly).
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+epic-wallet send --request_payment_proof \
+  --proof_address <recipient proof address> \
+  -m http -d http://receiver.example:3415 -c 3 1
+
+epic-wallet export_proof -i 42 proof.json
+epic-wallet verify_proof proof.json
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python title="examples/python/payment_proof.py" file=<rootDir>/examples/python/payment_proof.py
+```
+
+</TabItem>
+</Tabs>
+
+`verify_payment_proof` возвращает два булевых значения, описанных в [доказательства платежа](/concepts/payment-proofs#verification).
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="Справочник Owner API" to="/api/wallet-owner">
+    Все методы <Ver k="ownerApiMethods" /> и поля `InitTxArgs` с описанием каждого.
+  </Card>
+  <Card title="Интеграция с биржей" to="/guides/exchange-integration">
+    Превращение этих вызовов в систему депозитов и вывода средств.
+  </Card>
+</CardGrid>

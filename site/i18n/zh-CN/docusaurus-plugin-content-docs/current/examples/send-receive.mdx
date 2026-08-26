@@ -1,0 +1,208 @@
+---
+title: 钱包：发送与接收
+sidebar_label: 钱包：发送与接收
+description: 通过Owner API和CLI，使用bash和Python发送、接收、最终确认和取消Epic转账。
+---
+
+# 钱包：发送与接收
+
+转账由双方共同构建，因此发送是一个序列而非单次调用。参见[交互式交易](/concepts/interactive-transactions)。
+
+以下示例基于[连接与读取](/examples/wallet-connect)中的客户端，并在`examples`目录下运行。
+
+## `InitTxArgs`包含每个字段{/* #inittxargs-carries-every-field */}
+
+`init_send_tx`和`process_invoice_tx`均接受一个`InitTxArgs`对象，钱包反序列化时要求其全部十二个键（<Src repo="wallet" path="libwallet/src/api_impl/types.rs" line={53} />）。不完整的对象会被拒绝。Python客户端中的`init_tx_args`每次调用均返回完整对象：
+
+```python title="examples/python/tx_args.py" file=<rootDir>/examples/python/tx_args.py
+```
+
+`IssueInvoiceTxArgs`的工作方式相同，有四个必填键：`dest_acct_name`、`amount`、`message`和`target_slate_version`。字段含义见[Owner API参考](/api/wallet-owner#inittxargs)。
+
+## 让钱包驱动交易所交互{/* #let-the-wallet-drive-the-exchange */}
+
+提供`send_args`，`init_send_tx`将自动完成转换。
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+epic-wallet send -m epicbox -d 'esYQ...52chars@epicbox.epiccash.com' -c 3 1.5
+
+# 通过HTTP发送至可达的监听器
+epic-wallet send -m http -d http://receiver.example:3415 -c 3 1.5
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python title="examples/python/send.py" file=<rootDir>/examples/python/send.py
+```
+
+</TabItem>
+</Tabs>
+
+`method`接受`http`、`keybase`和`epicbox`（<Src repo="wallet" path="api/src/owner.rs" line={749} />）。在`http`和`keybase`路径上，调用会阻塞直到对方响应，然后遵守`finalize`和`post_tx`（<Src repo="wallet" path="api/src/owner.rs" line={787} />），因此应将其加入队列而非在请求线程上运行。在`epicbox`路径上，调用将slate发布到中继，锁定输入（input）并返回发送方的第一轮slate（<Src repo="wallet" path="api/src/owner.rs" line={761} />）；其启动的监听器在对方回复后完成转账。
+
+在CLI中，`--min_conf`默认值为10，`--selection`默认值为`smallest`（<Src repo="wallet" path="src/cmd/wallet_args.rs" line={143} />），即`selection_strategy_is_use_all: false`。本示例使用的确认数下限请传入`-c 3`。
+
+## 预估手续费而不提交{/* #quote-a-fee-without-committing */}
+
+`estimate_only`计算手续费并选择输入（input），不预留任何内容。
+
+```bash
+# 打印两种选择策略的手续费，不实际发送。
+epic-wallet send -e -c 3 1.5
+```
+
+在Python中，`send.py`里的`estimate_fee()`是相同的调用，通过`init_tx_args`传入`estimate_only=True`。
+
+手续费是交易形态的函数，与需求无关：
+
+```
+fee = max(4 × outputs + kernels − inputs, 1) × 0.001 EPIC
+```
+
+不存在手续费市场，因此估算值是精确值而非竞价。参见[发行与手续费](/mining/emission)。
+
+## 手动执行各步骤{/* #driving-the-steps-yourself */}
+
+当slate通过自有传输方式传递时使用此方式。这也是CLI所执行的序列。
+
+1. `init_send_tx`构建slate。
+2. `tx_lock_outputs`预留输入（input）。<Risk level="spend" />从此刻起，相关输出（output）不可用，直到转账完成或`cancel_tx`释放它们。
+3. 通过任意传输方式交付slate。
+4. 接收方返回已签名的slate。
+5. `finalize_tx`完成聚合签名。
+6. `post_tx`广播最终确认的slate中携带的交易。
+
+`tx_lock_outputs`接受四个参数：`token`、`slate`、`participant_id`和`addr_to`（<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={897} />）。发送方为参与者0。没有任何机制会按计时器释放输出（output），因此锁定之后的所有操作都应放在调用`cancel_tx`的错误处理逻辑中。参见[释放条件](/concepts/outputs-and-locking#what-releases-them)。
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash title="examples/shell/send-file.sh" file=<rootDir>/examples/shell/send-file.sh
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python title="examples/python/send_manual.py" file=<rootDir>/examples/python/send_manual.py
+```
+
+</TabItem>
+</Tabs>
+
+## 接收{/* #receiving */}
+
+监听器处理接收方一侧：
+
+```bash
+epic-wallet listen -m epicbox    # 离线时进入队列
+epic-wallet listen               # HTTP，需要可达性
+```
+
+如需自行处理slate，Foreign API方法为`receive_tx`。该方法位于端口<Ver k="ports.walletForeign" />，不需要令牌，接受四个位置参数：`slate`、`dest_acct_name`、`message`和`addr_from`（<Src repo="wallet" path="api/src/foreign_rpc.rs" line={359} />）。
+
+<Tabs groupId="lang">
+<TabItem value="curl" label="curl">
+
+```bash
+curl -s -H 'Content-Type: application/json' \
+  -d "{\"jsonrpc\":\"2.0\",\"method\":\"receive_tx\",\"params\":[$(cat slate.json),null,null,null],\"id\":1}" \
+  http://127.0.0.1:3415/v2/foreign | jq '.result.Ok'
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python title="examples/python/receive.py" file=<rootDir>/examples/python/receive.py
+```
+
+</TabItem>
+</Tabs>
+
+Foreign API不需要凭据。请在代理处限制对其的访问，并参见[身份验证](/api/authentication)。
+
+## 查找并清除卡住的转账{/* #finding-and-clearing-stuck-transfers */}
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+epic-wallet info          # 可花费余额低于总额意味着有已预留的输出
+epic-wallet txs           # 查找Sent (Created)且Confirmed?为false的记录
+epic-wallet cancel -i 42  # 释放该转账的输入
+epic-wallet scan          # 若数据仍与链不符则重新扫描
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python title="examples/python/clear_stuck.py" file=<rootDir>/examples/python/clear_stuck.py
+```
+
+</TabItem>
+</Tabs>
+
+取消操作需要可访问的节点，且转账尚未确认。决策流程见[卡住的交易](/guides/stuck-transactions)。
+
+## 发票{/* #invoices */}
+
+收款方请求金额，付款方提供资金。密码学机制相同，发起方有所变化。`finalize_invoice_tx`是Foreign API方法，因此收款方在该处最终确认，并从Owner API广播。
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+epic-wallet invoice -d invoice.tx 2         # payee
+epic-wallet pay -c 3 -i invoice.tx          # 付款方，写入invoice.tx.response
+epic-wallet finalize -i invoice.tx.response # payee
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python title="examples/python/invoice.py" file=<rootDir>/examples/python/invoice.py
+```
+
+</TabItem>
+</Tabs>
+
+## 支付证明{/* #payment-proofs */}
+
+发送时请求支付证明；事后无法补加。Epicbox传输slate V2，而支付证明是V3字段，因此需要支付证明时请通过HTTP发送。参见[支付证明](/concepts/payment-proofs#choose-the-transport-accordingly)。
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+epic-wallet send --request_payment_proof \
+  --proof_address <recipient proof address> \
+  -m http -d http://receiver.example:3415 -c 3 1
+
+epic-wallet export_proof -i 42 proof.json
+epic-wallet verify_proof proof.json
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python title="examples/python/payment_proof.py" file=<rootDir>/examples/python/payment_proof.py
+```
+
+</TabItem>
+</Tabs>
+
+`verify_payment_proof`返回两个布尔值，详见[支付证明](/concepts/payment-proofs#verification)。
+
+## 下一步{/* #next */}
+
+<CardGrid>
+  <Card title="Owner API参考" to="/api/wallet-owner">
+    所有<Ver k="ownerApiMethods" />方法，以及`InitTxArgs`的逐字段说明。
+  </Card>
+  <Card title="交易所集成" to="/guides/exchange-integration">
+    将这些调用转化为充值和提现系统。
+  </Card>
+</CardGrid>

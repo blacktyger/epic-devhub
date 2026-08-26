@@ -1,0 +1,152 @@
+---
+title: Справочник CLI
+description: Команды узла и кошелька, их флаги, порты по умолчанию, сети и структура каталога данных.
+---
+
+# CLI reference
+
+Файлы конфигурации описаны на отдельных страницах: [epic-server.toml](/reference/node-config) и [epic-wallet.toml](/reference/wallet-config).
+
+## Команды кошелька {/* #wallet-commands */}
+
+| Команда | Назначение |
+| --- | --- |
+| `init` | Создать кошелёк |
+| `info` | Сводка баланса |
+| `txs` | Журнал транзакций |
+| `outputs` | Список сырых выходов (outputs) |
+| `address` | Вывести адреса epicbox, доказательства платежа и Tor |
+| `send` | Начать исходящий перевод |
+| `receive` | Обработать входящий слейт (slate) |
+| `finalize` | Завершить и опубликовать перевод |
+| `invoice` | Выпустить инвойс-слейт |
+| `pay` | Оплатить инвойс-слейт |
+| `cancel` | Отменить перевод и освободить зарезервированные выходы |
+| `post` | Опубликовать финализированный файл слейта |
+| `repost` | Повторно опубликовать или вывести сохранённую транзакцию |
+| `listen` | Запустить слушатель входящих соединений |
+| `owner_api` | Запустить Owner API |
+| `scan` | Пересканировать цепочку и восстановить состояние выходов |
+| `recover` | Вывести существующую фразу восстановления |
+| `account` | Список аккаунтов или создание нового с `-c <name>` |
+| `export_tx` / `import_tx` | Перенести записи журнала транзакций между кошельками |
+| `export_proof` / `verify_proof` | Доказательства платежа |
+| `change_password` | Повторно зашифровать файл сида |
+
+## Флаги команд кошелька {/* #wallet-command-flags */}
+
+Объявлено в <Src repo="wallet" path="src/cmd/wallet_args.rs" line={66} />. Значения по умолчанию указаны в скобках.
+
+| Команда | Позиционные аргументы и флаги |
+| --- | --- |
+| `init` | `-w`/`--cwd` создать в текущем каталоге, `-s`/`--short_wordlist` сгенерировать фразу восстановления из 12 слов вместо 24, `-r`/`--recover` инициализировать из существующей фразы |
+| `info` | `-c`/`--min_conf <n>` (10) |
+| `txs` | `-i`/`--id <id>`, `-t`/`--txid <uuid>`, `-l`/`--limit <n>`, `-o`/`--offset <n>`, `-s`/`--sort_order <asc or desc>` (desc) |
+| `outputs` | `-f`/`--show_full_history`, `-l`/`--limit <n>`, `-o`/`--offset <n>`, `-s`/`--sort_order <asc or desc>` (desc) |
+| `send` | `<amount>` позиционный, `-d`/`--dest <destination>`, `-m`/`--method <transport>` (http), `-c`/`--min_conf <n>` (10), `-s`/`--selection <all or smallest>` (smallest), `-e`/`--estimate-selection`, `-o`/`--change_outputs <n>` (1), `-y`/`--request_payment_proof`, `-z`/`--proof_address <address>`, `-g`/`--message <text>`, `-t`/`--stored_tx <id>`, `-b`/`--ttl_blocks <n>`, `-v`/`--slate_version <n>`, `-f`/`--fluff` |
+| `receive` | `-i`/`--input <file or emoji string>`, `-m`/`--method <file or emoji>` (file), `-g`/`--message <text>` |
+| `finalize` | `-i`/`--input <file>`, `-m`/`--method <file or emoji>` (file), `-d`/`--dest <file>` для сохранения финализированного слейта, `-n`/`--nopost` для финализации без публикации, `-f`/`--fluff` |
+| `invoice` | `<amount>` позиционный, `-d`/`--dest <file>`, `-g`/`--message <text>`, `-v`/`--slate_version <n>` |
+| `pay` | `-i`/`--input <file>`, `-m`/`--method <file, http or self>` (file), `-d`/`--dest <destination>`, `-c`/`--min_conf <n>` (10), `-s`/`--selection <all or smallest>` (all), `-e`/`--estimate-selection`, `-g`/`--message <text>`, `-b`/`--ttl_blocks <n>` |
+| `cancel` | `-i`/`--id <id>` или `-t`/`--txid <uuid>` |
+| `post` | `-i`/`--input <file>`, `-f`/`--fluff` |
+| `repost` | `-i`/`--id <id>`, обязательный, `-m`/`--dumpfile <file>` для записи транзакции вместо публикации, `-f`/`--fluff` |
+| `listen` | `-m`/`--method <http, keybase or epicbox>` (http), `-l`/`--port <n>`, `-n`/`--no_tor` |
+| `owner_api` | `-l`/`--port <n>`, `--run_foreign` для обслуживания Foreign API на том же порту |
+| `scan` | `-s`/`--start_height <n>` (1), `-d`/`--delete_unconfirmed` |
+| `export_tx` | `-o`/`--output <file>`, обязательный, `-i`/`--id <id>` или `--all`, `--format <csv or json>` (json) |
+| `import_tx` | `-i`/`--input <file>`, обязательный, `--format <csv or json>` (json) |
+| `export_proof` | `<file>` позиционный, `-i`/`--id <id>` или `-t`/`--txid <uuid>` |
+| `verify_proof` | `<file>` позиционный |
+| `change_password` | `<old password>` и `<new password>` позиционные, каждый запрашивается при отсутствии, и `--remove-backup` |
+
+`-f`/`--fluff` транслирует в сеть немедленно, минуя релей Dandelion. `-e`/`--estimate-selection` выводит комиссию для
+каждой стратегии выбора без сборки транзакции.
+
+Транспорты отправки для `-m`: `http`, `file`, `self`, `keybase`, `emoji`, `epicbox`, значение по умолчанию —
+`http`. `receive` и `finalize` принимают `file` и `emoji`, значение по умолчанию — `file`. `pay` принимает `file`,
+`http` и `self`. См. [транспорты](/concepts/transports).
+
+`change_password` копирует файл сида, повторно шифрует его с новым паролем и удаляет копию после того, как новый
+сид проходит проверку по старой мнемонике. `--remove-backup` сохраняет копию (<Src repo="wallet" path="src/cmd/wallet_args.rs" line={452} />).
+
+Глобальные флаги, которые указываются перед подкомандой: `-p <password>`, `-a <account>` (по умолчанию `default`), `-r <node url>`,
+`-t <dir>`/`--top_level_dir`, `-c <dir>`/`--current_dir`, `-e`/`--external`, `-s`/`--show_spent`, `--offline_mode`, а также селекторы сети `--floonet` и `--usernet`.
+
+`-w`/`--cwd` — флаг только для `init`, не принимает значения, поэтому `epic-wallet -w . init` недопустимо. Чтобы
+работать с кошельком вне `~/.epic/<network>`, выполните команду из этого каталога или передайте `--current_dir <path>`.
+
+## Команды узла {/* #node-commands */}
+
+| Команда | Назначение |
+| --- | --- |
+| `epic` | Запустить узел |
+| `epic server config` | Записать новый `epic-server.toml` в текущий каталог |
+| `epic server run` | Запустить узел в этой консоли |
+| `epic client status` | Статус узла |
+| `epic client listconnectedpeers` | Подключённые пиры |
+| `epic client ban -p <ip:port>` | Заблокировать пира |
+| `epic client unban -p <ip:port>` | Снять блокировку |
+| `epic taxes -w <wallet listener> -g <count>` | Сгенерировать foundation coinbases. `-p <dir>` задаёт каталог выходов, `-s <height>` — начальную высоту блока |
+
+`epic server` также принимает `-c`/`--config_file <path>`, `-s`/`--seed <ip:port>` для переопределения сид-узла и `-w`/`--wallet_url <url>` для
+задания слушателя coinbase Stratum. Флаги верхнего уровня: `--floonet` и `--usernet`. Объявлено в <Src repo="node" path="src/bin/cmd/epic_args.rs" line={18} />.
+
+Политика блоков и адрес прослушивания API настраиваются в файле, а не в командной строке. См.
+[`epic-server.toml`](/reference/node-config) и [политику блоков](/mining/proof-of-work#the-block-policy).
+
+## Порты {/* #ports */}
+
+| Порт | Сервис | Смещения по сети |
+| --- | --- | --- |
+| <Ver k="ports.nodeApi" /> | Node API | Да. 13413 floonet, 23413 usernet |
+| <Ver k="ports.nodeP2p" /> | Node P2P | Да. 13414 floonet, 23414 usernet |
+| <Ver k="ports.walletForeign" /> | Wallet Foreign API | Да. 13415 floonet, 23415 usernet |
+| <Ver k="ports.stratum" /> | Node Stratum server | Да. 13416 floonet, 23416 usernet |
+| <Ver k="ports.walletOwner" /> | Wallet Owner API | Нет, одинаковый во всех сетях |
+| <Ver k="ports.epicbox" /> | Epicbox relay | Не применимо |
+
+## Сети {/* #networks */}
+
+| Сеть | Флаг | Каталог |
+| --- | --- | --- |
+| Mainnet | none | `~/.epic/main` |
+| Floonet | `--floonet` | `~/.epic/floo` |
+| Usernet | `--usernet` | `~/.epic/user` |
+| Автоматизированное тестирование | none, выбирается тестовыми наборами, а не командной строкой | `~/.epic/auto` |
+
+Зрелость coinbase различается в зависимости от сети. См. [тайминг](/mining/emission#timing).
+
+У floonet нет живого DNS-сида, поэтому он работает между узлами, указывающими друг на друга через
+`epic server -s`. Цепочка usernet производит блоки с `epic-miner` через Stratum плюс `peer_min_preferred_outbound_count = 0` и [`only_randomx = true`](/mining/proof-of-work#the-block-policy). См.
+[запустить локальную сеть](/guides/local-network).
+
+Адреса Epicbox содержат двухбайтовый префикс версии base58check: `[1, 0]` в mainnet и usernet и `[1, 136]` в
+floonet. Кошелёк, разбирающий адрес из другой сети, возвращает `InvalidBase58Version` (<Src repo="wallet" path="libwallet/src/epicbox_address.rs" line={23} />).
+
+## Каталоги данных {/* #data-directories */}
+
+**Узел.** `chain_data`, `epic-server.toml`, `epic-server.log` и `.api_secret`. Ключей не хранит. Удаление `chain_data` потребует повторной
+синхронизации.
+
+**Кошелёк.** `wallet_data/`, содержащий файл сида и базу данных, плюс `epic-wallet.toml`, `epic-wallet.log`, `.owner_api_secret`, `.api_secret` и `wallet_tor/`.
+База данных — SQLite, расположена по пути `wallet_data/db/sqlite/epic.db`, хранит историю транзакций, метки аккаунтов и записи
+доказательств платежа. `epic-wallet scan` восстанавливает выходы и балансы из цепочки, а не из истории. О том,
+что копировать и как восстанавливать, см. [резервное копирование и восстановление](/guides/backup-and-restore).
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="epic-server.toml" to="/reference/node-config">
+    Все ключи конфигурации узла.
+  </Card>
+  <Card title="epic-wallet.toml" to="/reference/wallet-config">
+    Все ключи конфигурации кошелька.
+  </Card>
+  <Card title="Собрать бинарники" to="/guides/build">
+    Тулчейн, команды сборки и тестирования.
+  </Card>
+  <Card title="Аутентификация и TLS" to="/api/authentication">
+    Какие поверхности защищены и как это изменить.
+  </Card>
+</CardGrid>

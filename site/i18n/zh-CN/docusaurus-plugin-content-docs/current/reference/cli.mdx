@@ -1,0 +1,137 @@
+---
+title: CLI 参考
+description: 节点和钱包命令、其参数、默认端口、网络及数据目录结构。
+---
+
+# CLI 参考
+
+配置文件有各自的专属页面：[epic-server.toml](/reference/node-config) 和 [epic-wallet.toml](/reference/wallet-config)。
+
+## 钱包命令 {/* #wallet-commands */}
+
+| 命令 | 用途 |
+| --- | --- |
+| `init` | 创建钱包 |
+| `info` | 余额摘要 |
+| `txs` | 交易日志 |
+| `outputs` | 原始输出（output）列表 |
+| `address` | 打印epicbox、支付证明及Tor地址 |
+| `send` | 发起出站转账 |
+| `receive` | 处理入站slate |
+| `finalize` | 完成并广播转账 |
+| `invoice` | 发起发票slate |
+| `pay` | 支付发票slate |
+| `cancel` | 放弃转账并释放其已预留输出 |
+| `post` | 广播已最终确认的slate文件 |
+| `repost` | 重新广播或导出已存储的交易 |
+| `listen` | 运行接收监听器 |
+| `owner_api` | 运行Owner API |
+| `scan` | 重新扫描链并重建输出状态 |
+| `recover` | 打印现有恢复助记词 |
+| `account` | 列出账户，或使用`-c <name>`创建账户 |
+| `export_tx` / `import_tx` | 在钱包之间移动交易日志条目 |
+| `export_proof` / `verify_proof` | 支付证明 |
+| `change_password` | 重新加密种子文件 |
+
+## 钱包命令参数 {/* #wallet-command-flags */}
+
+声明于<Src repo="wallet" path="src/cmd/wallet_args.rs" line={66} />。默认值在括号中。
+
+| 命令 | 位置参数与参数 |
+| --- | --- |
+| `init` | `-w`/`--cwd`在当前目录创建，`-s`/`--short_wordlist`生成12个词的恢复助记词而非24个，`-r`/`--recover`从现有助记词初始化 |
+| `info` | `-c`/`--min_conf <n>` (10) |
+| `txs` | `-i`/`--id <id>`，`-t`/`--txid <uuid>`，`-l`/`--limit <n>`，`-o`/`--offset <n>`，`-s`/`--sort_order <asc or desc>`（desc） |
+| `outputs` | `-f`/`--show_full_history`，`-l`/`--limit <n>`，`-o`/`--offset <n>`，`-s`/`--sort_order <asc or desc>`（desc） |
+| `send` | `<amount>`位置参数，`-d`/`--dest <destination>`，`-m`/`--method <transport>`（http），`-c`/`--min_conf <n>`（10），`-s`/`--selection <all or smallest>`（最小），`-e`/`--estimate-selection`，`-o`/`--change_outputs <n>`（1），`-y`/`--request_payment_proof`，`-z`/`--proof_address <address>`，`-g`/`--message <text>`，`-t`/`--stored_tx <id>`，`-b`/`--ttl_blocks <n>`，`-v`/`--slate_version <n>`，`-f`/`--fluff` |
+| `receive` | `-i`/`--input <file or emoji string>`，`-m`/`--method <file or emoji>`（file），`-g`/`--message <text>` |
+| `finalize` | `-i`/`--input <file>`，`-m`/`--method <file or emoji>`（file），`-d`/`--dest <file>`保存已最终确认的slate，`-n`/`--nopost`最终确认但不广播，`-f`/`--fluff` |
+| `invoice` | `<amount>`位置参数，`-d`/`--dest <file>`，`-g`/`--message <text>`，`-v`/`--slate_version <n>` |
+| `pay` | `-i`/`--input <file>`，`-m`/`--method <file, http or self>`（file），`-d`/`--dest <destination>`，`-c`/`--min_conf <n>`（10），`-s`/`--selection <all or smallest>`（all），`-e`/`--estimate-selection`，`-g`/`--message <text>`，`-b`/`--ttl_blocks <n>` |
+| `cancel` | `-i`/`--id <id>`或`-t`/`--txid <uuid>` |
+| `post` | `-i`/`--input <file>`, `-f`/`--fluff` |
+| `repost` | `-i`/`--id <id>`，必填，`-m`/`--dumpfile <file>`写入交易而不广播，`-f`/`--fluff` |
+| `listen` | `-m`/`--method <http, keybase or epicbox>`（http），`-l`/`--port <n>`，`-n`/`--no_tor` |
+| `owner_api` | `-l`/`--port <n>`，`--run_foreign`在同一端口提供Foreign API服务 |
+| `scan` | `-s`/`--start_height <n>` (1), `-d`/`--delete_unconfirmed` |
+| `export_tx` | `-o`/`--output <file>`，必填，`-i`/`--id <id>`或`--all`，`--format <csv or json>`（json） |
+| `import_tx` | `-i`/`--input <file>`，必填，`--format <csv or json>`（json） |
+| `export_proof` | `<file>`位置参数，`-i`/`--id <id>`或`-t`/`--txid <uuid>` |
+| `verify_proof` | `<file>` 位置参数 |
+| `change_password` | `<old password>` 和 `<new password>` 位置参数，省略时逐一提示输入，以及 `--remove-backup` |
+
+`-f`/`--fluff` 直接广播，而不通过Dandelion中继。`-e`/`--estimate-selection` 在不构建交易的情况下打印每种选择策略的手续费。
+
+`-m` 的发送传输方式：`http`、`file`、`self`、`keybase`、`emoji`、`epicbox`，默认为`http`。`receive` 和 `finalize` 接受`file` 和 `emoji`，默认为`file`。`pay` 接受`file`、`http` 和 `self`。参见[传输方式](/concepts/transports)。
+
+`change_password` 复制种子文件，用新密码重新加密，并在新种子与旧助记词验证通过后删除副本。`--remove-backup` 保留副本（<Src repo="wallet" path="src/cmd/wallet_args.rs" line={452} />）。
+
+全局参数，置于子命令之前：`-p <password>`、`-a <account>`（默认为`default`）、`-r <node url>`、`-t <dir>`/`--top_level_dir`、`-c <dir>`/`--current_dir`、`-e`/`--external`、`-s`/`--show_spent`、`--offline_mode`，以及网络选择参数`--floonet` 和 `--usernet`。
+
+`-w`/`--cwd` 是仅用于`init` 的参数，不接受值，因此`epic-wallet -w . init` 无效。若要操作`~/.epic/<network>` 之外的钱包，请从该目录运行命令或传入`--current_dir <path>`。
+
+## 节点命令 {/* #node-commands */}
+
+| 命令 | 用途 |
+| --- | --- |
+| `epic` | 运行节点 |
+| `epic server config` | 将新的 `epic-server.toml` 写入当前目录 |
+| `epic server run` | 在当前控制台运行节点 |
+| `epic client status` | 节点状态 |
+| `epic client listconnectedpeers` | 已连接的对等节点 |
+| `epic client ban -p <ip:port>` | 封禁对等节点 |
+| `epic client unban -p <ip:port>` | 解除封禁 |
+| `epic taxes -w <wallet listener> -g <count>` | 生成基金会 coinbase。`-p <dir>` 设置输出目录，`-s <height>` 设置起始区块高度 |
+
+`epic server` 还接受`-c`/`--config_file <path>`、`-s`/`--seed <ip:port>`（用于覆盖种子节点），以及`-w`/`--wallet_url <url>`（用于设置Stratum coinbase监听器）。顶级参数为`--floonet` 和 `--usernet`。声明于<Src repo="node" path="src/bin/cmd/epic_args.rs" line={18} />。
+
+区块策略和API监听地址在配置文件中设置，而非通过命令行。参见[`epic-server.toml`](/reference/node-config) 和 [区块策略](/mining/proof-of-work#the-block-policy)。
+
+## 端口 {/* #ports */}
+
+| 端口 | 服务 | 各网络端口偏移 |
+| --- | --- | --- |
+| <Ver k="ports.nodeApi" /> | Node API | 是。floonet 13413，usernet 23413 |
+| <Ver k="ports.nodeP2p" /> | Node P2P | 是。floonet 13414，usernet 23414 |
+| <Ver k="ports.walletForeign" /> | Wallet Foreign API | 是。floonet 13415，usernet 23415 |
+| <Ver k="ports.stratum" /> | Node Stratum 服务器 | 是。floonet 13416，usernet 23416 |
+| <Ver k="ports.walletOwner" /> | Wallet Owner API | 否，所有网络相同 |
+| <Ver k="ports.epicbox" /> | Epicbox 中继 | 不适用 |
+
+## 网络 {/* #networks */}
+
+| 网络 | 参数 | 目录 |
+| --- | --- | --- |
+| Mainnet | 无 | `~/.epic/main` |
+| Floonet | `--floonet` | `~/.epic/floo` |
+| Usernet | `--usernet` | `~/.epic/user` |
+| 自动化测试 | 无，由测试套件选择，而非命令行 | `~/.epic/auto` |
+
+Coinbase成熟度因网络而异。参见[时序](/mining/emission#timing)。
+
+Floonet没有在线DNS种子，因此需通过`epic server -s` 将节点互相指向对方来运行。usernet链通过Stratum使用`epic-miner` 产生区块，另加`peer_min_preferred_outbound_count = 0` 和 [`only_randomx = true`](/mining/proof-of-work#the-block-policy)。参见[运行本地网络](/guides/local-network)。
+
+Epicbox地址携带两字节base58check版本前缀，mainnet和usernet上为`[1, 0]`，floonet上为`[1, 136]`。钱包解析来自其他网络的地址时返回`InvalidBase58Version`（<Src repo="wallet" path="libwallet/src/epicbox_address.rs" line={23} />）。
+
+## 数据目录 {/* #data-directories */}
+
+**节点。** `chain_data`、`epic-server.toml`、`epic-server.log` 和 `.api_secret`。不持有任何密钥。删除`chain_data` 需要重新同步。
+
+**钱包。** `wallet_data/` 包含种子文件和数据库，另有`epic-wallet.toml`、`epic-wallet.log`、`.owner_api_secret`、`.api_secret` 和 `wallet_tor/`。数据库为SQLite，位于`wallet_data/db/sqlite/epic.db`，存储交易历史、账户标签和支付证明记录。`epic-wallet scan` 从链重建输出（output）和余额，而非从历史记录重建。关于备份内容及恢复方法，参见[备份与恢复](/guides/backup-and-restore)。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="epic-server.toml" to="/reference/node-config">
+    所有节点配置键。
+  </Card>
+  <Card title="epic-wallet.toml" to="/reference/wallet-config">
+    所有钱包配置键。
+  </Card>
+  <Card title="构建二进制文件" to="/guides/build">
+    工具链、构建产物及测试命令。
+  </Card>
+  <Card title="身份验证与TLS" to="/api/authentication">
+    哪些接口受到保护以及如何更改。
+  </Card>
+</CardGrid>
