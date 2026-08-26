@@ -230,7 +230,17 @@ const config = {
         // Was a hardcoded "node 4.0.3 and wallet 4.0.0", a second copy of values that
         // src/data/versions.js declares itself the only place to edit. The inline style it
         // used to carry measured 1.67:1 in light mode; styling now lives in custom.css.
-        copyright: `<span class="epicFooterBy">created by btlabs</span>`,
+        //
+        // A status readout rather than a byline alone: which release these pages describe, and when
+        // the claims were last checked against source. Built from versions.js, so it cannot drift.
+        copyright:
+          `<span class="epicFooterMeta">` +
+          `<span>node <b>${versions.node}</b></span>` +
+          `<span>wallet <b>${versions.wallet}</b></span>` +
+          `<span>epicbox <b>${versions.epicboxProtocol}</b></span>` +
+          `<span>checked <b>${versions.verifiedAgainst}</b></span>` +
+          `</span>` +
+          `<span class="epicFooterBy">created by btlabs</span>`,
       },
       prism: {
         // Not prismThemes.github / prismThemes.vsDark directly: both fail WCAG AA on several

@@ -404,49 +404,58 @@ div[class^='announcementBar'] a:hover {
   color: #fbe5a6;
 }
 
+/* Top-lit slab rather than a diagonal wash that only shows in one corner. The old
+   --epic-gradient-surface ran to #313133 at the far right, which on a near-black page meant the
+   footer read as the same surface as everything above it. */
 [data-theme='dark'] .footer {
-  background: var(--epic-gradient-surface);
+  background: linear-gradient(to bottom, var(--epic-s2) 0%, var(--ifm-background-color) 62%);
 }
 
 /* ---------------------------------------------------------------- footer
 
    Charcoal in both themes, so the page is framed top and bottom by the same chrome. The three
-   columns were browser-default: bold sans headings, default link colour, default row spacing. They
-   now carry the system's own devices. Gold appears three times and each time it means something:
-   the leading stretch of the top rule, the short mark above a column heading, and hover or focus on
-   a link. Nothing here is an enclosure, because a column of links does not earn one. */
+   columns were browser-default: bold sans headings, default link colour, default row spacing.
+
+   The first pass at this was too quiet to register on a near-black surface: a hairline that faded to
+   nothing and two 20px marks in gold-deep. On charcoal that is invisible. The accent now has a size
+   worth seeing, the surface is top-lit so the footer is a slab rather than more page, and the closing
+   row carries the release the documentation describes instead of a byline alone. */
 
 .footer {
   position: relative;
-  padding-block: var(--epic-space-48) var(--epic-space-24);
-  border-top: 0;
+  padding-block: var(--epic-space-40) var(--epic-space-24);
+  border-top: 1px solid var(--epic-line-strong);
 }
 
-/* The top rule carries the accent for part of its length and then fades out, rather than running
-   the full width as an institutional divider. Same treatment as the navbar hairline. */
+/* A gold tab across the leading stretch of the top edge, sitting on the hairline rather than
+   replacing it. This is the signal-trace device at rest: one accent, one place, no repetition. */
 .footer::before {
   content: '';
   position: absolute;
-  inset-inline: 0;
-  top: 0;
-  height: 1px;
+  top: -1px;
+  left: 0;
+  width: clamp(7rem, 22vw, 16rem);
+  height: 2px;
   background-image: linear-gradient(
     to right,
-    var(--epic-gold-deep) 0%,
-    var(--epic-line-strong) 20%,
-    var(--epic-line) 54%,
-    transparent 92%
+    var(--epic-gold-light) 0%,
+    var(--epic-gold-deep) 55%,
+    transparent 100%
   );
+}
+
+.footer .footer__col {
+  position: relative;
 }
 
 .footer .footer__title {
   position: relative;
   margin-bottom: var(--epic-space-16);
-  padding-top: var(--epic-space-12);
+  padding-top: var(--epic-space-16);
   font-family: var(--ifm-heading-font-family);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.012em;
 }
 
 /* A short gold rule above sentence-case text, which is the approved eyebrow device. The uppercase
@@ -456,28 +465,38 @@ div[class^='announcementBar'] a:hover {
   position: absolute;
   top: 0;
   left: 0;
-  width: var(--epic-space-20);
+  width: var(--epic-space-32);
   height: 2px;
-  background: var(--epic-gold-deep);
+  background-image: linear-gradient(to right, var(--epic-gold-light), var(--epic-gold-deep));
+}
+
+.footer .footer__items {
+  border-left: 1px solid var(--epic-line);
 }
 
 .footer .footer__item {
   padding: 0;
 }
 
+/* One rail per column with the hovered link lighting its own segment of it. Same idiom as the doc
+   sidebar's active row, so the two navigation surfaces read as the same system. The inset bar is
+   reserved at rest, so nothing reflows on hover. */
 .footer .footer__link-item {
   display: inline-flex;
   align-items: center;
   gap: var(--epic-space-6);
   min-height: var(--epic-control-sm);
+  padding-inline-start: var(--epic-space-12);
+  box-shadow: inset 2px 0 0 transparent;
   font-size: 0.875rem;
   line-height: 1.45;
   text-decoration: none;
-  transition: color 120ms ease;
+  transition: color 120ms ease, box-shadow 120ms ease;
 }
 
 .footer .footer__link-item:hover,
 .footer .footer__link-item:focus-visible {
+  box-shadow: inset 2px 0 0 var(--epic-gold-light);
   color: var(--epic-gold-light);
   text-decoration: none;
 }
@@ -493,8 +512,10 @@ div[class^='announcementBar'] a:hover {
   opacity: 0.9;
 }
 
-/* The byline sits under a rule that fades from the centre outwards, so the row reads as a close
-   rather than as a fourth section. */
+/* The closing row is a status readout: which release the pages describe, and when the claims were
+   last checked against source. Hairline-separated monospace, which is the device the visual language
+   reserves for machine-readable context. Values come from versions.js through the footer config, so
+   they cannot drift from the rest of the site. */
 .footer .footer__bottom {
   position: relative;
   margin-top: var(--epic-space-32);
@@ -517,6 +538,34 @@ div[class^='announcementBar'] a:hover {
     var(--epic-line) 70%,
     transparent 100%
   );
+}
+
+/* The readout itself. Hairline separators between items rather than punctuation, so it reads as
+   instrument metadata and not a sentence. */
+.epicFooterMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--epic-space-8) 0;
+  margin-bottom: var(--epic-space-8);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: var(--epic-t-micro);
+  color: var(--ifm-color-content-secondary);
+}
+
+.epicFooterMeta > span {
+  padding-inline: var(--epic-space-12);
+  border-left: 1px solid var(--epic-line-strong);
+}
+
+.epicFooterMeta > span:first-child {
+  border-left: 0;
+}
+
+.epicFooterMeta b {
+  color: var(--epic-gold-light);
+  font-weight: 400;
 }
 
 /* The gold gradient is reserved for small accents. It is never used on text that has
@@ -781,6 +830,7 @@ div[class^='announcementBar'] a:hover {
    mode on 42 pages. Small, quiet and still readable is the goal, so the opacity is gone and the
    colour is per theme. */
 .epicFooterBy {
+  display: block;
   font-family: var(--ifm-font-family-monospace);
   font-size: 0.62rem;
   letter-spacing: 0.06em;
