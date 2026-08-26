@@ -8,7 +8,7 @@ description: Node and wallet commands, their flags, default ports, networks and 
 Configuration files have their own pages: [epic-server.toml](/reference/node-config) and
 [epic-wallet.toml](/reference/wallet-config).
 
-## Wallet commands
+## Wallet commands {/* #wallet-commands */}
 
 | Command | Purpose |
 | --- | --- |
@@ -34,7 +34,7 @@ Configuration files have their own pages: [epic-server.toml](/reference/node-con
 | `export_proof` / `verify_proof` | Payment proofs |
 | `change_password` | Re-encrypt the seed file |
 
-## Wallet command flags
+## Wallet command flags {/* #wallet-command-flags */}
 
 Declared in <Src repo="wallet" path="src/cmd/wallet_args.rs" line={66} />. Defaults are in
 parentheses.
@@ -81,7 +81,7 @@ Global flags, which go before the subcommand: `-p <password>`, `-a <account>` (d
 `-w`/`--cwd` is a flag on `init` alone and takes no value, so `epic-wallet -w . init` is not valid. To act
 on a wallet outside `~/.epic/<network>`, run the command from that directory or pass `--current_dir <path>`.
 
-## Node commands
+## Node commands {/* #node-commands */}
 
 | Command | Purpose |
 | --- | --- |
@@ -103,7 +103,7 @@ The block policy and the API listen address are configured in the file rather th
 line. See [`epic-server.toml`](/reference/node-config) and
 [the block policy](/mining/proof-of-work#the-block-policy).
 
-## Ports
+## Ports {/* #ports */}
 
 | Port | Service | Shifts per network |
 | --- | --- | --- |
@@ -114,7 +114,7 @@ line. See [`epic-server.toml`](/reference/node-config) and
 | <Ver k="ports.walletOwner" /> | Wallet Owner API | No, the same on every network |
 | <Ver k="ports.epicbox" /> | Epicbox relay | Not applicable |
 
-## Networks
+## Networks {/* #networks */}
 
 | Network | Flag | Directory |
 | --- | --- | --- |
@@ -135,7 +135,7 @@ Epicbox addresses carry a two-byte base58check version prefix, `[1, 0]` on mainn
 `[1, 136]` on floonet. A wallet parsing an address from the other network returns
 `InvalidBase58Version` (<Src repo="wallet" path="libwallet/src/epicbox_address.rs" line={23} />).
 
-## Data directories
+## Data directories {/* #data-directories */}
 
 **Node.** `chain_data`, `epic-server.toml`, `epic-server.log` and `.api_secret`. Holds no keys.
 Deleting `chain_data` costs a resync.
@@ -146,7 +146,7 @@ Deleting `chain_data` costs a resync.
 records. `epic-wallet scan` rebuilds outputs and balances from the chain, not history. For what to
 copy and how to restore it, see [back up and restore](/guides/backup-and-restore).
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="epic-server.toml" to="/reference/node-config">

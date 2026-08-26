@@ -15,7 +15,7 @@ The node includes a Stratum server for miners. It listens on `127.0.0.1` port
 The transport is raw TCP carrying newline-delimited JSON. Each JSON-RPC message is one line
 terminated by a newline, with no HTTP headers, paths or status codes.
 
-## Methods and error codes
+## Methods and error codes {/* #methods-and-error-codes */}
 
 Five methods are dispatched. Anything else returns `-32601`.
 
@@ -39,7 +39,7 @@ Error codes, as the server sends them:
 | `-32601` | Method not found |
 | `32603` | Internal error |
 
-## Requesting work
+## Requesting work {/* #requesting-work */}
 
 `getjobtemplate` requires an `algorithm` parameter naming which of the three proof-of-work algorithms
 you intend to mine. Epic runs all three concurrently, so a job is algorithm-specific.
@@ -67,7 +67,7 @@ Job template fields (<Src repo="node" path="servers/src/mining/stratumserver.rs"
 
 Both difficulty lists cover Cuckatoo, RandomX and ProgPow, in that order.
 
-## Submitting shares
+## Submitting shares {/* #submitting-shares */}
 
 `submit` takes `height`, `job_id`, `nonce` as a number, and `pow`. `pow` is an externally tagged enum,
 so it is a single-key object whose value is a tuple
@@ -82,12 +82,12 @@ so it is a single-key object whose value is a tuple
 A share whose difficulty clears `block_difficulty` is processed as a block and the result reads
 `blockfound - <block hash>`. A share that clears only `difficulty` is counted and the result is `"ok"`.
 
-## Message reference
+## Message reference {/* #message-reference */}
 
 Serialisation is defined by the structs in
 <Src repo="node" path="servers/src/mining/stratumserver.rs" />.
 
-### Requests
+### Requests {/* #requests */}
 
 `id` is an integer or a string, `jsonrpc` is `"2.0"`, and `params` is the method's parameter object or
 null (<Src repo="node" path="servers/src/mining/stratumserver.rs" line={64} />).
@@ -115,7 +115,7 @@ null (<Src repo="node" path="servers/src/mining/stratumserver.rs" line={64} />).
 }}
 ```
 
-### Replies
+### Replies {/* #replies */}
 
 Every reply carries the same four keys, and echoes the method that produced it
 (<Src repo="node" path="servers/src/mining/stratumserver.rs" line={73} />). `result` and `error` are
@@ -129,7 +129,7 @@ both present, one of them null.
 `result` is `"ok"` for `login` and `keepalive`, the string `"blockfound - <hash>"` or `"ok"` for
 `submit`, the job template object for `getjobtemplate`, and the worker status object for `status`.
 
-### Watch a live session
+### Watch a live session {/* #watch-a-live-session */}
 
 One request, one reply, with `nc`:
 
@@ -144,7 +144,7 @@ One job per algorithm, with the replies pretty-printed:
 ```python title="examples/python/stratum_probe.py" file=<rootDir>/examples/python/stratum_probe.py
 ```
 
-## Next
+## Next {/* #next */}
 
 `EpicCash/epic-miner` is the reference miner. The node's foreign JSON-RPC surface offers the same work
 over HTTP through `get_block_template`, `finalize_block_template` and `submit_block`.

@@ -14,7 +14,7 @@ The record is two fields, a label and a parent derivation path
 (<Src repo="wallet" path="impls/src/backends/lmdb.rs" line={823} />), so it is fixed once created.
 Everything the wallet stores about coins is keyed on the path.
 
-## What belongs to an account
+## What belongs to an account {/* #what-belongs-to-an-account */}
 
 | Scoped to one account | Shared by the whole wallet |
 | --- | --- |
@@ -33,7 +33,7 @@ id is only unique within the account that holds it.
 (<Src repo="wallet" path="controller/src/command.rs" line={1360} />). See
 [addresses](/concepts/addresses).
 
-## Derivation
+## Derivation {/* #derivation */}
 
 `default` is a depth-2 identifier with every child index at zero. Account *n* takes the highest
 existing first index and adds one (<Src repo="wallet" path="libwallet/src/internal/keys.rs" line={81} />),
@@ -61,7 +61,7 @@ Two branches hang below each account path. Output keys are `m/<n>/0/<index>`, an
 derive both for any account without the wallet database. The label is the one thing the database
 alone carries.
 
-## From the command line
+## From the command line {/* #from-the-command-line */}
 
 ```bash
 epic-wallet account                 # list every label with its derivation path
@@ -74,7 +74,7 @@ effect when the wallet opens, so it selects the account for that one invocation.
 two columns, the name and the parent BIP-32 derivation path
 (<Src repo="wallet" path="controller/src/display.rs" line={431} />).
 
-## Which account a transfer uses
+## Which account a transfer uses {/* #which-account-a-transfer-uses */}
 
 **Sending** spends from the account `-a` selected. On the Owner API, `src_acct_name` in `InitTxArgs`
 names it for a single call, and a label that is not in `accounts` resolves to the active account
@@ -97,7 +97,7 @@ epic-wallet -a savings send -m self -d default 1.5
 
 See [transports](/concepts/transports#self).
 
-## Refreshing and scanning
+## Refreshing and scanning {/* #refreshing-and-scanning */}
 
 `refresh_from_node` updates the active account
 (<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={245} />). `scan` walks every
@@ -106,7 +106,7 @@ account, because it recovers outputs by the derivation path each one carries
 wallet-wide while last confirmed height is per account, so after a scan each account's height is set
 from its own outputs.
 
-## After a recovery
+## After a recovery {/* #after-a-recovery */}
 
 A wallet restored from its phrase recovers derivation paths, not labels. `default` keeps its name and
 every other path discovered is labelled `account_1`, `account_2` and so on in discovery order
@@ -115,7 +115,7 @@ they were derived under.
 
 See [what recovery does not bring back](/guides/backup-and-restore#what-recovery-does-not-bring-back).
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Wallet operations" to="/guides/wallet-operations#accounts">

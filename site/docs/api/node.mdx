@@ -19,7 +19,7 @@ Credentials, and which of these expects one, are covered once in
 The same listener also serves a REST surface under `/v1`. See
 [the v1 REST surface](#the-v1-rest-surface).
 
-## Which JSON-RPC method lives where
+## Which JSON-RPC method lives where {/* #which-json-rpc-method-lives-where */}
 
 `/v2/owner` is node administration only:
 
@@ -43,7 +43,7 @@ curl -s -d '{"jsonrpc":"2.0","method":"get_tip","params":[],"id":1}' \
 Checking sync state is an owner-surface call, and needs
 [the node credential](/api/authentication#the-node-credential).
 
-## Response shapes
+## Response shapes {/* #response-shapes */}
 
 `total_difficulty` is an object keyed by proof-of-work algorithm, not an integer:
 
@@ -69,13 +69,13 @@ Kernels appear in two shapes depending on the method. `get_block` returns a flat
 `get_kernel` and `get_last_n_kernels` return the raw type with an externally tagged `features` field.
 Handle both.
 
-## Mining over HTTP
+## Mining over HTTP {/* #mining-over-http */}
 
 The foreign surface offers a three-step block submission flow as an alternative to Stratum:
 `get_block_template`, `finalize_block_template`, `submit_block`. It is JSON-RPC over HTTP. See
 [Stratum](/mining/stratum).
 
-## The v1 REST surface
+## The v1 REST surface {/* #the-v1-rest-surface */}
 
 The node serves REST under `/v1` and JSON-RPC under `/v2`, from the same process on the same port.
 The numbers name two interface styles, not two generations: `/v1` is registered at
@@ -101,7 +101,7 @@ both.
 `GET /`, `GET /v1/` and `GET /v2/` return a list of v1 routes, from
 <Src repo="node" path="api/src/handlers.rs" line={446} />.
 
-### Routes
+### Routes {/* #routes */}
 
 Verbs are as the node's route index reports them. The right-hand column is the JSON-RPC method that
 returns the same thing, and its surface.
@@ -169,7 +169,7 @@ curl -s -u epic:$(cat ~/.epic/main/.api_secret) http://127.0.0.1:3413/v1/status
 
 Captured on a local usernet chain at height 1439 on 2026-08-24.
 
-## Full method reference
+## Full method reference {/* #full-method-reference */}
 
 <CardGrid>
   <Card title="Chain reads" to="/api/node/chain-reads">
@@ -186,14 +186,14 @@ Captured on a local usernet chain at height 1439 on 2026-08-24.
   </Card>
 </CardGrid>
 
-## Source
+## Source {/* #source */}
 
 - <Src repo="node" path="api/src/owner_rpc.rs" line={29} /> defines the eight owner methods
 - <Src repo="node" path="api/src/foreign_rpc.rs" line={37} /> defines the foreign methods
 - <Src repo="node" path="api/src/types.rs" /> defines every response shape
 - <Src repo="node" path="api/src/auth.rs" /> is the Basic auth middleware
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Node and wallet setup" to="/guides/mainnet-setup">

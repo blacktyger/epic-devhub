@@ -13,7 +13,7 @@ and permanently associated with your keys. On Epic there is no public history to
 holds blinded commitments with no sender, recipient or readable amount, so a rescan can identify which
 outputs are yours and nothing else about how they got there.
 
-## What to back up
+## What to back up {/* #what-to-back-up */}
 
 | Item | Contains | Priority |
 | --- | --- | --- |
@@ -34,7 +34,7 @@ presents **to the node**, so deleting it breaks node calls until the node's valu
 
 :::
 
-## Backing up
+## Backing up {/* #backing-up */}
 
 The phrase is the only thing you strictly need, and it is printed once by `init`. To display it again:
 
@@ -91,7 +91,7 @@ restores to a corrupt database. Stop `listen` and `owner_api` first.
 
 :::
 
-## Restoring from a phrase
+## Restoring from a phrase {/* #restoring-from-a-phrase */}
 
 <Tabs groupId="os">
 <TabItem value="linux" label="Linux and macOS">
@@ -152,7 +152,7 @@ With no `-s` the scan starts at 0, which is always correct and always the slowes
 
 :::
 
-## What recovery does not bring back
+## What recovery does not bring back {/* #what-recovery-does-not-bring-back */}
 
 | Recovered by `init -r` plus `scan` | Not recovered |
 | --- | --- |
@@ -183,7 +183,7 @@ epic-wallet -a account_1 send -m self -d savings <amount>
 
 See [accounts](/concepts/accounts).
 
-### In-flight transfers cannot be recovered
+### In-flight transfers cannot be recovered {/* #in-flight-transfers-cannot-be-recovered */}
 
 If a transfer was partly built when the wallet was lost, it is gone. The counterparty may still hold a
 slate referencing outputs you now own, but your side has no record of the exchange and the reserved-output
@@ -194,7 +194,7 @@ finalised transaction built from them, whichever transaction confirms first wins
 invalid. Agree with the counterparty which attempt is live before resending. See
 [interactive transactions](/concepts/interactive-transactions).
 
-## Restoring a full directory backup
+## Restoring a full directory backup {/* #restoring-a-full-directory-backup */}
 
 If you kept the whole `wallet_data` directory, restore that instead of recovering from the phrase. It
 brings back history, labels and proof records as well as funds. Substitute the archive you actually made
@@ -227,7 +227,7 @@ epic-wallet info
 If the figures disagree with the chain afterwards, run `epic-wallet scan` to rebuild output state. That
 leaves your history intact.
 
-## Recovering into a directory that already has a wallet
+## Recovering into a directory that already has a wallet {/* #recovering-into-a-directory-that-already-has-a-wallet */}
 
 The CLI will not do it. `init -r` still goes through wallet creation, which refuses when a seed file is
 present (<Src repo="wallet" path="impls/src/lifecycle/default.rs" line={188} />), and there is no override
@@ -262,7 +262,7 @@ only from the phrase.
 
 :::
 
-## Changing your password
+## Changing your password {/* #changing-your-password */}
 
 ```bash
 epic-wallet change_password
@@ -276,7 +276,7 @@ confirmed. Passing `--remove-backup` keeps the file instead
 (<Src repo="wallet" path="src/cmd/wallet_args.rs" line={452} />). Delete a kept backup once you have
 confirmed the new password works.
 
-## `scan --delete_unconfirmed` is destructive
+## `scan --delete_unconfirmed` is destructive {/* #scan---delete_unconfirmed-is-destructive */}
 
 Plain `scan` rebuilds. Adding `-d` deletes unconfirmed outputs, unlocks locked outputs, and deletes the
 transaction log entries associated with them.
@@ -284,7 +284,7 @@ transaction log entries associated with them.
 The case for it is a wallet holding reserved outputs whose transfers are dead and which `cancel` cannot
 clear. It removes history. Try [cancelling individual transfers](/guides/stuck-transactions) first.
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Wallet operations" to="/guides/wallet-operations">

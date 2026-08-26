@@ -9,7 +9,7 @@ Starting a send reserves the inputs it selected, and nothing releases them autom
 transfer does not complete, those funds stay unavailable until you cancel the transaction. There is no
 timeout and no background process that cleans up.
 
-## Output states
+## Output states {/* #output-states */}
 
 Every output the wallet owns carries a status. `Unspent` is confirmed and available. `Unconfirmed` is
 seen but not yet buried under enough blocks, which includes the change from a send that has not
@@ -20,7 +20,7 @@ spendable.
 Coinbase outputs carry an extra rule. A mined reward appears in the wallet before it can be spent, and
 the maturity window differs per network. See [emission](/mining/emission#timing).
 
-## What reserves outputs
+## What reserves outputs {/* #what-reserves-outputs */}
 
 One operation reserves them, `tx_lock_outputs`. It marks the selected inputs `Locked` and writes the
 change output as `Unconfirmed`. On the command line it runs inside the same `send`, once the slate has
@@ -33,7 +33,7 @@ During an in-flight send, both the amount you sent and your change are unavailab
 a single 100 EPIC output leaves you with nothing spendable until the transfer resolves, not 99 EPIC. The
 change output does not exist on the chain yet.
 
-## What releases them
+## What releases them {/* #what-releases-them */}
 
 **The transfer confirms.** Inputs become `Spent`, change becomes `Unspent`. Nothing to do.
 
@@ -42,7 +42,7 @@ change output does not exist on the chain yet.
 There is no third route. Restarting the wallet does not release outputs, because the state is on disk,
 and neither does setting an expiry height.
 
-## Cancelling has preconditions
+## Cancelling has preconditions {/* #cancelling-has-preconditions */}
 
 `cancel_tx` contacts the node before it does anything, so a node that is down or unsynced blocks it
 (<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={758} />). It then needs exactly one
@@ -55,7 +55,7 @@ entry becomes `TxSentMempool`, and from that point you are waiting on the chain 
 abandon it. The wallet polls for that observation for up to four minutes after posting; see
 [the send appears to hang](/guides/stuck-transactions#case-3-the-send-appears-to-hang).
 
-## Transaction states
+## Transaction states {/* #transaction-states */}
 
 The wallet's record of what it has done is a transaction log entry carrying a type. `ConfirmedCoinbase`
 is a mined reward. `TxReceived` and `TxSent` are a completed inbound and outbound transfer.
@@ -71,7 +71,7 @@ The CLI prints display names for these, so the `Sent (Created)` row in `epic-wal
 `TxSentCreated` in `tx_type` through the Owner API. Field types are in the
 [Wallet Owner API reference](/api/wallet-owner).
 
-## Reading the balance summary
+## Reading the balance summary {/* #reading-the-balance-summary */}
 
 `epic-wallet info` divides the wallet's value across the rows that account for a shortfall:
 
@@ -101,7 +101,7 @@ Finding which transfer holds the inputs, releasing it and rescanning is
 [stuck transactions](/guides/stuck-transactions). The programmatic version is
 [send and receive](/examples/send-receive).
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Diagnose a stuck transaction" to="/guides/stuck-transactions">

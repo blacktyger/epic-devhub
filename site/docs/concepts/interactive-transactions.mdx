@@ -12,7 +12,7 @@ This follows from the commitment scheme described in [the MimbleWimble model](/c
 The receiver's output commits to a blinding factor only the receiver knows, and the transaction's excess
 signature is an aggregate both parties must contribute to. The sender cannot finish alone.
 
-## The sequence
+## The sequence {/* #the-sequence */}
 
 The sender builds a partial slate and reserves its inputs locally. The slate travels to the receiver over
 whichever transport is in use. The receiver adds an output and a partial signature and returns it the
@@ -28,7 +28,7 @@ The **invoice flow** reverses the roles. The payee calls `issue_invoice_tx` to r
 payer calls `process_invoice_tx` to fund it, and the payee calls `finalize_invoice_tx`. The cryptography
 is the same; only the initiator changes.
 
-## How transfers fail
+## How transfers fail {/* #how-transfers-fail */}
 
 Failures are almost always in delivery rather than on the chain:
 
@@ -46,7 +46,7 @@ Retrying the same send does not fix any of them, because the sender's inputs are
 first attempt. Cancel, then start again. See
 [what releases them](/concepts/outputs-and-locking#what-releases-them).
 
-## What a slate contains
+## What a slate contains {/* #what-a-slate-contains */}
 
 The slate is JSON. `id` is the UUID both parties use for the transfer, and it is your handle on an
 in-flight send, so persist it. `num_participants` is 2 for an ordinary transfer, and `participant_data`
@@ -64,7 +64,7 @@ version and the version the sender wants in return.
 
 Field types and defaults are in the [Wallet Owner API reference](/api/wallet-owner).
 
-## Slate versions
+## Slate versions {/* #slate-versions */}
 
 Two formats are in use, V2 and V3. V3 carries two fields that V2 has no place for,
 `ttl_cutoff_height` and `payment_proof`, and converting a V3 slate to V2 discards both. Which transports
@@ -73,7 +73,7 @@ convert, and which therefore carry a payment proof, is in
 
 `target_slate_version` requests a format. Pass 2 or 3.
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Outputs and locking" to="/concepts/outputs-and-locking">

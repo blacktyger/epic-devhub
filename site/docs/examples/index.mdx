@@ -20,7 +20,7 @@ Runnable examples for the workflows most integrations need, as a command line an
   </Card>
 </CardGrid>
 
-## Which surface to target
+## Which surface to target {/* #which-surface-to-target */}
 
 | Task | Surface | Credential |
 | --- | --- | --- |
@@ -34,7 +34,7 @@ The node's JSON-RPC methods are split across two paths: `/v2/owner` is administr
 chain read is on `/v2/foreign`. See
 [the node API](/api/node#which-json-rpc-method-lives-where).
 
-## Prerequisites
+## Prerequisites {/* #prerequisites */}
 
 <Tabs groupId="lang">
 <TabItem value="cli" label="CLI">
@@ -64,7 +64,7 @@ Node queries need `requests` alone.
 </TabItem>
 </Tabs>
 
-## Conventions in these examples
+## Conventions in these examples {/* #conventions-in-these-examples */}
 
 - Run commands from the `examples` directory of the repository, which is where the Python modules
   import each other from.
@@ -75,7 +75,7 @@ Node queries need `requests` alone.
 - Amounts are integers, counted in <Ver k="smallestUnit" />. 1 EPIC is <Ver k="epicBase" />.
 - Secrets are read from their files, and the wallet password from `EPIC_WALLET_PASSWORD`.
 
-## The response envelope
+## The response envelope {/* #the-response-envelope */}
 
 Every Epic JSON-RPC method returns HTTP 200 with a JSON-RPC `result`, and inside that result is a
 second envelope. A successful operation carries `Ok`:
@@ -97,7 +97,7 @@ call in that client goes through it.
 Field by field, the envelope is documented in
 [the API overview](/api#the-response-envelope).
 
-## Where the reference clients live
+## Where the reference clients live {/* #where-the-reference-clients-live */}
 
 The wallet repository ships a Python client that performs the same handshake:
 <Src repo="wallet" path="doc/samples/python/secure_api_example.py" />.

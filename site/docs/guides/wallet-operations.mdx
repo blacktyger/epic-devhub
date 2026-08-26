@@ -12,7 +12,7 @@ no network flag, and every command that moves value is real.
 Set up first: [node and wallet setup](/guides/mainnet-setup). The transfer mechanics are the ones you
 already ran on the local chain in [your first transfer](/guides/first-transfer).
 
-## Read what the wallet knows
+## Read what the wallet knows {/* #read-what-the-wallet-knows */}
 
 ```bash
 epic-wallet info
@@ -56,7 +56,7 @@ Per-transaction detail. `Sent (Created)` with `Confirmed?` false is an incomplet
 reserved inputs. The `From/To Address` column is populated only for epicbox transfers; file and HTTP
 leave it empty, so the log alone cannot tell you who paid you.
 
-### Confirmation depth of a transaction
+### Confirmation depth of a transaction {/* #confirmation-depth-of-a-transaction */}
 
 A transaction's depth is the current chain height minus the height at which the wallet saw it confirm.
 The wallet records that height in the transaction log as `confirmation_height`
@@ -67,7 +67,7 @@ until `confirmed` is true. The chain height comes from the node's `get_status`, 
 Both fields are on the Owner API's `retrieve_txs` result. `epic-wallet txs` prints the height in its
 output rather than the depth, so an integration computes the subtraction itself.
 
-## Automating these commands
+## Automating these commands {/* #automating-these-commands */}
 
 `epic-wallet` prompts for the wallet password when a command needs one. Two ways to supply it without a
 prompt:
@@ -89,7 +89,7 @@ wallet = EpicWallet()
 wallet.open_wallet(password=os.environ["EPIC_WALLET_PASSWORD"])
 ```
 
-## Receive
+## Receive {/* #receive */}
 
 Someone paying you needs your wallet to take part, because an Epic transfer is built by both sides. That
 means a listener, or a slate file you process by hand.
@@ -120,7 +120,7 @@ epic-wallet receive -m file -i slate.tx
 # writes slate.tx.response, which goes back to the sender
 ```
 
-## Send
+## Send {/* #send */}
 
 ```bash
 epic-wallet send -m epicbox -d <recipient-address> <amount>
@@ -146,7 +146,7 @@ and your own listener finalises it.
 Epicbox uses slate V2 and cannot carry
 a payment proof. See [transports](/concepts/transports#comparison).
 
-## Repost a completed transfer that never confirmed
+## Repost a completed transfer that never confirmed {/* #repost-a-completed-transfer-that-never-confirmed */}
 
 A finalised transaction is written to `wallet_data/saved_txs/` before it is posted, so it can be posted
 again without rebuilding it. That is the case when the transfer completed both rounds but the post did
@@ -167,7 +167,7 @@ Declared at <Src repo="wallet" path="src/cmd/wallet_args.rs" line={335} />. `rep
 transaction object, so it works only for transfers whose `saved_txs/` entry is still present. A wallet
 recovered from a phrase alone has none.
 
-## Cancel a transfer that cannot complete
+## Cancel a transfer that cannot complete {/* #cancel-a-transfer-that-cannot-complete */}
 
 <Risk level="destructive" /> Cancelling releases the reserved inputs and abandons the transfer.
 
@@ -180,7 +180,7 @@ See
 [cancelling has preconditions](/concepts/outputs-and-locking#cancelling-has-preconditions), and
 [diagnose a stuck transaction](/guides/stuck-transactions) for what to do when `cancel` refuses.
 
-## Repair a wallet that disagrees with the chain
+## Repair a wallet that disagrees with the chain {/* #repair-a-wallet-that-disagrees-with-the-chain */}
 
 ```bash
 epic-wallet scan
@@ -198,7 +198,7 @@ rebuilding them. Reach for plain `scan` first.
 
 :::
 
-## Accounts
+## Accounts {/* #accounts */}
 
 An account is a label bound to one derivation path inside the wallet's single seed. Every wallet has
 one named `default`.
@@ -216,7 +216,7 @@ listener credits.
 Accounts share the recovery phrase, the password and the backup, so they back up together. See
 [accounts](/concepts/accounts) for the derivation scheme and what each account holds separately.
 
-## Change the password
+## Change the password {/* #change-the-password */}
 
 ```bash
 epic-wallet change_password
@@ -226,7 +226,7 @@ The seed is re-encrypted with the new password and the phrase does not change. `
 written and then deleted; pass `--remove-backup` to keep it. See
 [changing your password](/guides/backup-and-restore#changing-your-password).
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Back up and restore" to="/guides/backup-and-restore">

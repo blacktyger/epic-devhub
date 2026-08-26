@@ -9,7 +9,7 @@ Epic runs **three proof-of-work algorithms on one chain at the same time**, in a
 consensus. Every block declares which algorithm produced it. All three are always valid, in defined
 proportions, rather than one replacing another at a fork.
 
-## The three algorithms
+## The three algorithms {/* #the-three-algorithms */}
 
 | Algorithm | Bottleneck | Minimum difficulty |
 | --- | --- | --- |
@@ -39,7 +39,7 @@ tagged value whose shape depends on that algorithm:
 Cuckatoo and Cuckaroo blocks both report `Cuckoo` in `proof` and are distinguished by edge bits. The
 types are in <Src repo="node" path="api/src/types.rs" line={574} />.
 
-## The block policy
+## The block policy {/* #the-block-policy */}
 
 Which algorithm the next block must use is decided by a deterministic policy. The implementation
 holds a counter per algorithm and selects whichever is furthest behind its allotted share of the
@@ -78,7 +78,7 @@ and <Fn repo="node" path="core/src/core/block/feijoada.rs" line={335} name="get_
 returns the zeroed counters each window starts from. The constants are in
 <Src repo="node" path="core/src/consensus.rs" />.
 
-## Difficulty
+## Difficulty {/* #difficulty */}
 
 Each algorithm has its own difficulty track, retargeted independently by
 <Fn repo="node" path="core/src/consensus.rs" line={664} name="next_difficulty" />. The adjustment window
@@ -89,7 +89,7 @@ same algorithm only, so each track sees its own history.
 
 All three tracks share the same clamp factor of 2 and damp factor of 3.
 
-## Consensus changes by height
+## Consensus changes by height {/* #consensus-changes-by-height */}
 
 Two consensus changes are keyed to mainnet block heights rather than to a version fork:
 
@@ -102,7 +102,7 @@ An implementation that honours only declared fork versions diverges at both. The
 fork height is 9,000,000, which at <Ver k="blockTimeSeconds" />-second blocks is more than a decade
 away, so later header versions are reachable only on test networks.
 
-## Next
+## Next {/* #next */}
 
 A miner connects over Stratum on port <Ver k="ports.stratum" />, raw TCP with newline-delimited JSON,
 or over the node's foreign JSON-RPC surface with `get_block_template`, `finalize_block_template` and

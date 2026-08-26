@@ -22,12 +22,12 @@ spending command needs `--min_conf 3`. See
 
 <SlateLifecycle />
 
-## The file transport, one stage at a time
+## The file transport, one stage at a time {/* #the-file-transport-one-stage-at-a-time */}
 
 File has no network dependency and no third party. The slate is a file you carry between the two
 wallets yourself, which makes every stage inspectable and every failure local. That is why it is first.
 
-### 1. Alice builds the first round
+### 1. Alice builds the first round {/* #1-alice-builds-the-first-round */}
 
 ```bash
 cd wallet_alice
@@ -49,7 +49,7 @@ Open `../slate.tx` in an editor. It is JSON. Find `amount`, `fee`, `id` and `par
 one entry in `participant_data`, Alice's, which is how you can tell the slate is outbound and
 incomplete.
 
-### 2. Bob receives
+### 2. Bob receives {/* #2-bob-receives */}
 
 ```bash
 cd ../wallet_bob
@@ -68,7 +68,7 @@ INFO Response file ../slate.tx.response generated, and can be sent back to the
 
 Open it. `participant_data` now has two entries, so the slate can be finalised.
 
-### 3. Alice finalises and posts
+### 3. Alice finalises and posts {/* #3-alice-finalises-and-posts */}
 
 ```bash
 cd ../wallet_alice
@@ -84,7 +84,7 @@ INFO Transaction with slate_id 91b35693-... found in mempool and marked as TxSen
 The command can appear to hang here. It is polling the node's mempool to confirm the transaction
 arrived; see [the send appears to hang](/guides/stuck-transactions#case-3-the-send-appears-to-hang).
 
-### 4. Confirm
+### 4. Confirm {/* #4-confirm */}
 
 Once a block includes it:
 
@@ -98,7 +98,7 @@ Alice's transaction moves off `Sent (Created)` and her reserved inputs are now s
 of this flow with 5 EPIC, Alice went from 204.10880000 to 199.10080000, so the fee was 0.00800000. Fees
 follow the input and output counts rather than being a flat rate.
 
-## The same transfer over HTTP
+## The same transfer over HTTP {/* #the-same-transfer-over-http */}
 
 One command, because the sender drives both rounds synchronously against Bob's [Foreign API](/api/wallet-foreign) listener.
 
@@ -114,7 +114,7 @@ Create, exchange, finalise and post all happen inside that one `send`. If Bob is
 moment you send, there is no queue and nothing to retry against, so the send fails and Alice's inputs stay
 reserved until she cancels.
 
-## The same transfer over epicbox
+## The same transfer over epicbox {/* #the-same-transfer-over-epicbox */}
 
 Also one command, but **both** wallets need a subscription. The signed slate comes back through the
 relay asynchronously rather than as a reply, so it is the sender's own listener that finalises.
@@ -176,7 +176,7 @@ wallet cannot post, and their outputs stay reserved until they cancel.
 
 :::
 
-## What differs between the three
+## What differs between the three {/* #what-differs-between-the-three */}
 
 | Transport | Commands | Who listens | Records the counterparty | Payment proofs |
 | --- | --- | --- | --- | --- |
@@ -189,7 +189,7 @@ transaction log tells you who paid you. Epicbox uses slate V2, which cannot carr
 [transports](/concepts/transports#comparison) and
 [payment proofs](/concepts/payment-proofs#choose-the-transport-accordingly).
 
-## If something goes wrong
+## If something goes wrong {/* #if-something-goes-wrong */}
 
 **Alice's balance is short and no transfer completed.** Her inputs are still reserved:
 
@@ -213,7 +213,7 @@ meant. Run it from that wallet's directory, or pass `--current_dir <path>`.
 
 Anything else, and [diagnose a stuck transaction](/guides/stuck-transactions) is the decision procedure.
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Interactive transactions" to="/concepts/interactive-transactions">

@@ -16,7 +16,7 @@ they need glibc 2.39 or newer, which means Ubuntu 24.04 or later.
 
 To build from source instead, see [build the binaries](/guides/build).
 
-## Node <Ver k="node" />
+## Node <Ver k="node" /> {/* #node-ver-knode- */}
 
 Release <a href={releases.node.url}>tag v<Ver k="node" /></a>, or the{' '}
 <a href={releases.node.latest}>latest release</a> and <a href={releases.node.all}>all releases</a>.
@@ -29,7 +29,7 @@ Release <a href={releases.node.url}>tag v<Ver k="node" /></a>, or the{' '}
 
 macOS Intel and Linux ARM need a source build.
 
-## Wallet <Ver k="wallet" />
+## Wallet <Ver k="wallet" /> {/* #wallet-ver-kwallet- */}
 
 Release <a href={releases.wallet.url}>tag v<Ver k="wallet" /></a>, or the{' '}
 <a href={releases.wallet.latest}>latest release</a> and <a href={releases.wallet.all}>all releases</a>.
@@ -42,7 +42,7 @@ Release <a href={releases.wallet.url}>tag v<Ver k="wallet" /></a>, or the{' '}
 The archive is named for the 4.0 line rather than the full <Ver k="wallet" /> tag, and holds a Linux
 x86-64 ELF binary.
 
-## Download and verify
+## Download and verify {/* #download-and-verify */}
 
 Each asset publishes a checksum file beside it, named for the asset with its extension replaced by
 `-sha256sum.txt`: <code>{sumFile(nodeAsset('linux').file)}</code> for the Linux node tarball,
@@ -101,7 +101,7 @@ Release binaries are built without `--features with-tor`, so they ship no Tor su
 the feature.
 :::
 
-## Other software
+## Other software {/* #other-software */}
 
 | Software | Repository |
 | --- | --- |
@@ -114,7 +114,7 @@ the feature.
 Mobile wallets are third party. Stack Wallet supports Epic and operates one of the public epicbox
 relays.
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Run a local network" to="/guides/local-network">

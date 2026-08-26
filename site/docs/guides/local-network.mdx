@@ -10,7 +10,7 @@ mainnet.
 
 Build the three binaries first: [build the binaries](/guides/build).
 
-## Why usernet
+## Why usernet {/* #why-usernet */}
 
 | Network | Flag | P2P port | API port | Use for |
 | --- | --- | --- | --- | --- |
@@ -26,7 +26,7 @@ height 0 unless you configure peers manually.
 
 Neither test network produces blocks on its own. That is what the miner is for.
 
-## Lay it out first
+## Lay it out first {/* #lay-it-out-first */}
 
 Where files sit matters more than usual, because both binaries resolve their config from the **current
 working directory** before falling back to `~/.epic/<network>`. The directory you launch from is
@@ -45,7 +45,7 @@ epic-local/
 The node and miner share a directory safely, because their config filenames differ. Keep one wallet per
 directory, and run the shared `epic-wallet` binary from inside whichever wallet you mean to act as.
 
-## 1. Configure and start the node
+## 1. Configure and start the node {/* #1-configure-and-start-the-node */}
 
 Generate a config from inside the chain directory, so the paths land there:
 
@@ -98,7 +98,7 @@ epic --usernet server run
 `No peers available, can not sync` in the log is the state you want, not an error. It means the node
 stopped waiting for peers, which is what allows it to serve mining work.
 
-## 2. Create the two wallets
+## 2. Create the two wallets {/* #2-create-the-two-wallets */}
 
 Each in its own directory, using `-w` so the wallet is created there rather than in `~/.epic/user`:
 
@@ -157,7 +157,7 @@ Both keys are optional, so an absent key means no secret, and no credential path
 
 :::
 
-## 3. Mine coins into Alice
+## 3. Mine coins into Alice {/* #3-mine-coins-into-alice */}
 
 The Stratum server asks a wallet listener to build each coinbase, so Alice must be listening before
 blocks are worth anything.
@@ -209,7 +209,7 @@ against mainnet's <Ver k="coinbaseMaturity" />. See [emission timing](/mining/em
 wallet's own confirmation floor is separate, so pass `--min_conf 3` on `send` and `info` here; see
 [read what the wallet knows](/guides/wallet-operations#read-what-the-wallet-knows).
 
-## 4. Decouple mining from the wallets
+## 4. Decouple mining from the wallets {/* #4-decouple-mining-from-the-wallets */}
 
 Once Alice has coins, stop the miner and set:
 
@@ -224,7 +224,7 @@ to a wallet being up. Alice keeps what she already mined.
 
 You can now stop Alice's listener. Blocks keep coming, so transactions keep confirming.
 
-## 5. Confirm the rig
+## 5. Confirm the rig {/* #5-confirm-the-rig */}
 
 ```bash
 epic --usernet client status                        # height climbing
@@ -234,7 +234,7 @@ epic-wallet --usernet info                          # from each wallet directory
 Alice should show a spendable balance and Bob zero. That is the starting state for
 [your first transfer](/guides/first-transfer).
 
-## If something goes wrong
+## If something goes wrong {/* #if-something-goes-wrong */}
 
 | Symptom | Cause |
 | --- | --- |
@@ -248,13 +248,13 @@ Alice should show a spendable balance and Bob zero. That is the starting state f
 | Blocks rejected with `InvalidSortAlgo`, or `Block rejected` with `Expected RandomX got Cuckoo15` | `run_test_miner` is enabled somewhere. It produces Cuckoo proofs only, which the RandomX policy rejects |
 | A wallet command acts on the wrong wallet | Run it from that wallet's directory, or pass `--current_dir <path>` |
 
-## Reset
+## Reset {/* #reset */}
 
 Delete `chain_data` for a fresh chain. The wallet databases will then disagree with it, so delete each
 `wallet_data` and re-init, or accept wrong balances. Deleting the whole tree and rebuilding from this
 page takes a couple of minutes.
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Your first transfer" to="/guides/first-transfer">

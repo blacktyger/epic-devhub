@@ -27,7 +27,7 @@ Both clients honour `NODE_URL` and `EPIC_NETWORK`, so the local chain from
 NODE_URL=http://127.0.0.1:23413 EPIC_NETWORK=user python python/epic_node.py
 ```
 
-## A complete client
+## A complete client {/* #a-complete-client */}
 
 <Tabs groupId="lang">
 <TabItem value="cli" label="CLI">
@@ -48,7 +48,7 @@ Needs `requests`.
 </TabItem>
 </Tabs>
 
-## Chain status
+## Chain status {/* #chain-status */}
 
 `get_status` on the owner surface returns height, total difficulty, connected peers and sync state.
 
@@ -94,7 +94,7 @@ Epic runs several proof-of-work algorithms, so difficulty is tracked per algorit
 
 :::
 
-## Fetch a block
+## Fetch a block {/* #fetch-a-block */}
 
 `get_block` is on the **foreign** surface and takes positional params, `[height, hash, commit]`.
 Pass one and leave the others null.
@@ -125,7 +125,7 @@ Kernels appear in two shapes depending on the method. `get_block` returns a flat
 `get_kernel` and `get_last_n_kernels` return the raw type with an externally tagged `features`
 field.
 
-## Watch for new blocks
+## Watch for new blocks {/* #watch-for-new-blocks */}
 
 The node API has no subscription mechanism, so polling is the approach. At a
 <Ver k="blockTimeSeconds" />-second target block time, every 10 to 15 seconds is ample. Poll
@@ -154,7 +154,7 @@ for block in watch_blocks():
 For push rather than poll, see `[server.webhook_config]` in
 [epic-server.toml](/reference/node-config), which can POST on transaction, header and block events.
 
-## Mempool and peers
+## Mempool and peers {/* #mempool-and-peers */}
 
 Mempool size and version are foreign-surface calls. Peer lists are owner-surface calls.
 
@@ -184,7 +184,7 @@ print("peers:", len(node_rpc("get_connected_peers", [], surface="owner")))
 </TabItem>
 </Tabs>
 
-### Every other method
+### Every other method {/* #every-other-method */}
 
 <details>
 <summary>Full JSON-RPC method list, by surface</summary>
@@ -212,7 +212,7 @@ Response types are defined in <Src repo="node" path="api/src/types.rs" />.
 
 </details>
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Wallet: connect and read" to="/examples/wallet-connect">

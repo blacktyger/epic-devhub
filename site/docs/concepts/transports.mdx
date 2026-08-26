@@ -13,7 +13,7 @@ survives the trip.
 Send methods: `http`, `file`, `self`, `keybase`, `emoji`, `epicbox`. Listening accepts `http`, `keybase`
 or `epicbox`.
 
-## Comparison
+## Comparison {/* #comparison */}
 
 | Transport | Receiver reachable at send | Needs reachable address | Works behind NAT | Slate version | Payment proofs |
 | --- | --- | --- | --- | --- | --- |
@@ -62,7 +62,7 @@ addressee reconnects. Start both subscriptions before sending. An observed round
 empty, so attribution comes from elsewhere in your own system. See
 [exchange integration](/guides/exchange-integration).
 
-## epicbox
+## epicbox {/* #epicbox */}
 
 A store-and-forward relay. Your wallet holds a WebSocket connection to the relay, and the relay holds
 slates addressed to you until you reconnect and acknowledge them. It is the only option when neither
@@ -84,7 +84,7 @@ can look unresponsive; see
 
 The wire protocol is documented in [the epicbox reference](/api/epicbox).
 
-## http
+## http {/* #http */}
 
 The sender posts the slate directly to the receiver's listener. Lowest latency, and it carries every
 slate V3 field, including payment proofs.
@@ -99,7 +99,7 @@ epic-wallet send -m http -d http://receiver.example:3415 1.5
 
 The receiver must be reachable, which means a public host or a port forward.
 
-## file
+## file {/* #file */}
 
 Write the slate to a file, move it by any means, and have the other side process it. It has no network
 dependency.
@@ -113,7 +113,7 @@ epic-wallet finalize -m file -i slate.tx.response    # sender
 Use this for debugging, for moving value between machines you control, and for inspecting exactly what a
 slate contains.
 
-## emoji
+## emoji {/* #emoji */}
 
 The slate encoded as a sequence of emoji, for pasting through a chat application.
 
@@ -124,11 +124,11 @@ roughly 0.8 glyphs per byte of slate JSON, which is about 3.2 times the byte cou
 Decoding requires the exact glyphs from the table, so a chat client that substitutes or normalises emoji
 breaks it, and decoding is quadratic in length, so large slates are slow.
 
-## keybase
+## keybase {/* #keybase */}
 
 Requires the Keybase client and remains available for compatibility.
 
-## self
+## self {/* #self */}
 
 Both sides of the transfer are the same wallet. Useful for moving value between accounts in one wallet
 and for exercising the transaction machinery without a counterparty. `--dest` names the destination
@@ -138,7 +138,7 @@ account.
 epic-wallet send -m self -d <destination_account> 1.5
 ```
 
-## Choosing
+## Choosing {/* #choosing */}
 
 | Situation | Use |
 | --- | --- |
@@ -148,7 +148,7 @@ epic-wallet send -m self -d <destination_account> 1.5
 | Payment proofs required | Anything except `epicbox` |
 | Chat-based transfer | `emoji` |
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Epicbox protocol" to="/api/epicbox">

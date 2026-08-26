@@ -27,7 +27,7 @@ whether you need chain data or key operations.
   </Card>
 </CardGrid>
 
-## At a glance
+## At a glance {/* #at-a-glance */}
 
 | Surface | Where | Protocol | Default port | Can spend |
 | --- | --- | --- | --- | --- |
@@ -48,7 +48,7 @@ that page maps every v1 route onto its JSON-RPC method.
 The wallet serves its two owner surfaces from one listener too, and the unencrypted
 [`/v2/owner`](/api/wallet-owner#version-2) is the older of the pair.
 
-## Choosing a surface
+## Choosing a surface {/* #choosing-a-surface */}
 
 **Reading chain data.** JSON-RPC on the node: `/v2/foreign` for blocks, kernels and outputs,
 `/v2/owner` for node status and peers. No keys involved. Start at
@@ -63,7 +63,7 @@ or HTTP. To process a slate programmatically, the Foreign API method is `receive
 
 **Operating relay infrastructure.** The [epicbox protocol](/api/epicbox).
 
-## The response envelope
+## The response envelope {/* #the-response-envelope */}
 
 Every Epic JSON-RPC method returns HTTP 200 with a JSON-RPC `result`, and inside that result is a second
 `Ok` or `Err` envelope. A request can succeed at both the HTTP and JSON-RPC layers and still have failed:
@@ -77,7 +77,7 @@ One function unwraps both layers. `_unwrap` in
 [`examples/python/epic_wallet.py`](https://github.com/blacktyger/epic-devhub/blob/main/examples/python/epic_wallet.py)
 raises on `Err` and returns the value on `Ok`, and every call in that client goes through it.
 
-## Amounts
+## Amounts {/* #amounts */}
 
 Every amount is an integer count of **<Ver k="smallestUnit" />s**, and 1 EPIC is
 <Ver k="epicBase" /> of them. The wallet Owner API serialises its `u64` fields as JSON strings, so
@@ -85,7 +85,7 @@ Every amount is an integer count of **<Ver k="smallestUnit" />s**, and 1 EPIC is
 returns `height` as one. Parse before doing arithmetic. The node's JSON-RPC returns bare integers,
 including `supply` and `max_supply` on `get_status`.
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Code examples" to="/examples/">

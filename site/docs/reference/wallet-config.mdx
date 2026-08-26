@@ -8,7 +8,7 @@ description: Complete configuration reference for the Epic wallet, every section
 Complete reference for the wallet's configuration file. Defaults shown are what a fresh mainnet wallet
 writes.
 
-## Where the file lives
+## Where the file lives {/* #where-the-file-lives */}
 
 1. `./epic-wallet.toml` in the current working directory, if present.
 2. Otherwise `~/.epic/<network>/epic-wallet.toml`.
@@ -22,7 +22,7 @@ both `epic-wallet.toml` and `wallet_data/` already exist in the target directory
 On first run the wallet also creates two credential files in the wallet directory,
 `.owner_api_secret` and `.api_secret`, each a 20-character random string.
 
-## A worked example
+## A worked example {/* #a-worked-example */}
 
 The generated file contains every key. A minimal configuration for a second wallet on the same machine:
 
@@ -59,7 +59,7 @@ file_log_level = "Debug"
 log_file_path = "/home/you/wallets/bob/epic-wallet.log"
 ```
 
-## `[wallet]`
+## `[wallet]` {/* #wallet */}
 
 | Key | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -88,7 +88,7 @@ log_file_path = "/home/you/wallets/bob/epic-wallet.log"
 
 :::
 
-## `[tor]`
+## `[tor]` {/* #tor */}
 
 The generated file marks this section experimental. See
 [what this version does not cover](/start#what-this-version-does-not-cover).
@@ -106,7 +106,7 @@ The default of `true` needs a `tor` binary sitting next to the wallet executable
 [the release archives do not ship](/downloads). Either supply the binary, or set
 `use_tor_listener = false` and pass `-n` on `listen`.
 
-## `[epicbox]`
+## `[epicbox]` {/* #epicbox */}
 
 | Key | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -120,7 +120,7 @@ explicitly or leave the whole `[epicbox]` section out and take the defaults from
 
 See [the epicbox protocol](/api/epicbox) for what the relay does.
 
-## `[logging]`
+## `[logging]` {/* #logging */}
 
 | Key | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -137,7 +137,7 @@ See [the epicbox protocol](/api/epicbox) for what the relay does.
 A fresh wallet writes no log file, because `log_to_file` is `false` while `log_file_path` is populated.
 Set `log_to_file = true` for a log on disk.
 
-## Per-network defaults
+## Per-network defaults {/* #per-network-defaults */}
 
 | Network | `api_listen_port` | `check_node_api_http_addr` | Wallet directory |
 | --- | --- | --- | --- |
@@ -146,7 +146,7 @@ Set `log_to_file = true` for a log on disk.
 | UserTesting | 23415 | `http://127.0.0.1:23413` | `~/.epic/user` |
 | AutomatedTesting | <Ver k="ports.walletForeign" /> | <code>http://127.0.0.1:<Ver k="ports.nodeApi" /></code> | `~/.epic/auto` |
 
-## Paths set on first run
+## Paths set on first run {/* #paths-set-on-first-run */}
 
 Relative defaults in the code are rewritten to absolute paths when the file is created:
 
@@ -160,14 +160,14 @@ Relative defaults in the code are rewritten to absolute paths when the file is c
 
 `<wallet dir>` is `~/.epic/<network>` unless you supplied one with `--current_dir` or `init --cwd`.
 
-## Source
+## Source {/* #source */}
 
 - <Src repo="wallet" path="config/src/types.rs" /> for the structs and their defaults
 - <Src repo="wallet" path="config/src/types.rs" line={223} /> for `[logging]`, which is the logging config the node shares
 - <Src repo="wallet" path="config/src/comments.rs" /> for the annotated template written to disk
 - <Src repo="wallet" path="config/src/config.rs" /> for file discovery, per-network overrides and path rewriting
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="API authentication and TLS" to="/api/authentication">

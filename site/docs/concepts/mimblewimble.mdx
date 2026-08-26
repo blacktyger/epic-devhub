@@ -10,7 +10,7 @@ amounts. It is a set of blinded commitments plus a compact signature proving tha
 balance. Because each output commits to a blinding factor only its owner knows, the sender cannot build
 a complete transaction alone.
 
-## What the chain stores
+## What the chain stores {/* #what-the-chain-stores */}
 
 A transparent chain records, for each payment, a sender, a recipient and an amount. Epic records none
 of those.
@@ -37,7 +37,7 @@ The practical consequence is that **there is no transaction history to query**. 
 chain what a given party received. Your own records are the only account of who paid you. Crediting
 deposits from this position is covered in [exchange integration](/guides/exchange-integration).
 
-## There are no addresses
+## There are no addresses {/* #there-are-no-addresses */}
 
 Epic has identifiers that look like addresses. An epicbox address such as
 `esYQ…@epicbox.epiccash.com` is real and usable. It is not an address in the sense used on other
@@ -60,12 +60,12 @@ listening, the transfer completes and the funds are theirs. If nothing is listen
 never completes and your inputs stay reserved until you cancel it. See
 [what releases them](/concepts/outputs-and-locking#what-releases-them).
 
-## Units
+## Units {/* #units */}
 
 One EPIC is 100,000,000 base units. The smallest unit is called a **freeman**. Every API accepts and
 returns amounts as an integer number of freemen, so 0.1 EPIC is `10000000`.
 
-## Relationship to Grin
+## Relationship to Grin {/* #relationship-to-grin */}
 
 Epic began as a Grin fork and shares the MimbleWimble fundamentals. It differs in several areas, so
 material written for Grin is a poor guide to these:
@@ -78,7 +78,7 @@ material written for Grin is a poor guide to these:
 | Default transport | Epicbox, a store-and-forward relay. See [the protocol](/api/epicbox) |
 | Tor | The wallet and the node can both bundle a Tor expert bundle at build time |
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Interactive transactions" to="/concepts/interactive-transactions">

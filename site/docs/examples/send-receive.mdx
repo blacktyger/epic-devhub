@@ -12,7 +12,7 @@ A transfer is built jointly by both parties, so sending is a sequence rather tha
 These examples build on the client from [connect and read](/examples/wallet-connect), and run from
 the `examples` directory.
 
-## `InitTxArgs` carries every field
+## `InitTxArgs` carries every field {/* #inittxargs-carries-every-field */}
 
 `init_send_tx` and `process_invoice_tx` both take an `InitTxArgs` object, and all twelve of its keys
 are required when the wallet deserializes it
@@ -26,7 +26,7 @@ rejected. `init_tx_args` in the Python client returns a complete one on every ca
 `message` and `target_slate_version`. Field meanings are in
 [the Owner API reference](/api/wallet-owner#inittxargs).
 
-## Let the wallet drive the exchange
+## Let the wallet drive the exchange {/* #let-the-wallet-drive-the-exchange */}
 
 Supply `send_args` and `init_send_tx` performs the exchange for you.
 
@@ -62,7 +62,7 @@ On the CLI, `--min_conf` defaults to 10 and `--selection` to `smallest`
 (<Src repo="wallet" path="src/cmd/wallet_args.rs" line={143} />), which is
 `selection_strategy_is_use_all: false`. Pass `-c 3` for the confirmation floor these examples use.
 
-## Quote a fee without committing
+## Quote a fee without committing {/* #quote-a-fee-without-committing */}
 
 `estimate_only` computes the fee and selects inputs without reserving anything.
 
@@ -83,7 +83,7 @@ fee = max(4 × outputs + kernels − inputs, 1) × 0.001 EPIC
 There is no fee market, so the estimate is exact rather than a bid. See
 [emission and fees](/mining/emission).
 
-## Driving the steps yourself
+## Driving the steps yourself {/* #driving-the-steps-yourself */}
 
 Use this when the slate travels over your own transport. This is also the sequence the CLI runs.
 
@@ -115,7 +115,7 @@ calls `cancel_tx`. See [what releases them](/concepts/outputs-and-locking#what-r
 </TabItem>
 </Tabs>
 
-## Receiving
+## Receiving {/* #receiving */}
 
 A listener handles the receiving side:
 
@@ -150,7 +150,7 @@ curl -s -H 'Content-Type: application/json' \
 The Foreign API takes no credential. Restrict access to it at the proxy, and see
 [authentication](/api/authentication).
 
-## Finding and clearing stuck transfers
+## Finding and clearing stuck transfers {/* #finding-and-clearing-stuck-transfers */}
 
 <Tabs groupId="lang">
 <TabItem value="cli" label="CLI">
@@ -174,7 +174,7 @@ epic-wallet scan          # rescan if the figures still disagree with the chain
 Cancelling needs a reachable node and a transfer that is not yet confirmed. The decision procedure
 is in [stuck transactions](/guides/stuck-transactions).
 
-## Invoices
+## Invoices {/* #invoices */}
 
 The payee requests an amount and the payer funds it. The cryptography is the same; the initiator
 changes. `finalize_invoice_tx` is a Foreign API method, so the payee finalizes there and posts from
@@ -198,7 +198,7 @@ epic-wallet finalize -i invoice.tx.response # payee
 </TabItem>
 </Tabs>
 
-## Payment proofs
+## Payment proofs {/* #payment-proofs */}
 
 Request the proof when you send; it cannot be added afterwards. Epicbox carries slate V2 and a
 payment proof is a V3 field, so send over HTTP when you need one. See
@@ -228,7 +228,7 @@ epic-wallet verify_proof proof.json
 `verify_payment_proof` returns two booleans, covered in
 [payment proofs](/concepts/payment-proofs#verification).
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Owner API reference" to="/api/wallet-owner">

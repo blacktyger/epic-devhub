@@ -15,7 +15,7 @@ Start the API:
 epic-wallet owner_api
 ```
 
-## The handshake
+## The handshake {/* #the-handshake */}
 
 The client generates a secp256k1 keypair, exchanges public keys through `init_secure_api`, and
 wraps every later request in `encrypted_request_v3`. The first wrapped call is `open_wallet`, which
@@ -24,7 +24,7 @@ returns the token every subsequent call carries. Message by message, it is docum
 
 <HandshakeTrace />
 
-## A complete client
+## A complete client {/* #a-complete-client */}
 
 Needs `requests`, `coincurve` and `pycryptodome`. Run it from the `examples` directory.
 
@@ -45,7 +45,7 @@ Using it:
 EPIC_WALLET_PASSWORD=... python python/balance.py
 ```
 
-## Reading a balance
+## Reading a balance {/* #reading-a-balance */}
 
 `retrieve_summary_info` returns a two-element array: whether the figures were validated against the
 node, and the summary itself.
@@ -70,7 +70,7 @@ integers, and divide by <Ver k="epicBase" /> for EPIC.
 
 :::
 
-## Listing outputs and transactions
+## Listing outputs and transactions {/* #listing-outputs-and-transactions */}
 
 `retrieve_outputs` and `retrieve_txs` each return an object carrying a `pager` alongside the
 records, not a bare array. Supply `limit`, `offset` and `sort_order`: without a limit a large wallet
@@ -100,7 +100,7 @@ returns every record in one response.
 <Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={174} kind="struct" name="RetrieveOutputsResult" />
 and <Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={196} kind="struct" name="Pager" />.
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Wallet: send and receive" to="/examples/send-receive">

@@ -16,9 +16,9 @@ verify proofs. For most integrations it is the primary surface.
 Send the `token` inside the envelope on every method that declares one. Keep the port on loopback. See
 [owner access on the wallet](/api/authentication#owner-access-on-the-wallet).
 
-## Methods by what they can do
+## Methods by what they can do {/* #methods-by-what-they-can-do */}
 
-### Can spend funds
+### Can spend funds {/* #can-spend-funds */}
 
 <Risk level="spend" /> These seven build, complete or abandon transfers.
 
@@ -32,7 +32,7 @@ Send the `token` inside the envelope on every method that declares one. Keep the
 | <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={805} name="process_invoice_tx" /> | Fund someone else's payment request |
 | <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1177} name="cancel_tx" /> | Abandon a transfer and release its reserved outputs |
 
-### Destructive
+### Destructive {/* #destructive */}
 
 <Risk level="destructive" /> Deletes local wallet data.
 
@@ -40,16 +40,16 @@ Send the `token` inside the envelope on every method that declares one. Keep the
 | --- | --- |
 | <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1860} name="delete_wallet" /> | Deletes the wallet |
 
-### Exposes a secret
+### Exposes a secret {/* #exposes-a-secret */}
 
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1787} name="get_mnemonic" /> returns the recovery phrase.
 
-### Changes wallet state
+### Changes wallet state {/* #changes-wallet-state */}
 
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1822} name="change_password" /> re-encrypts the seed.
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1400} name="scan" /> rebuilds output state.
 
-### Read only
+### Read only {/* #read-only */}
 
 <Risk level="read" /> Safe for anything you would allow to read your balance.
 
@@ -63,7 +63,7 @@ Send the `token` inside the envelope on every method that declares one. Keep the
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2033} name="get_public_proof_address" />,
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1957} name="get_updater_messages" />.
 
-### Wallet lifecycle
+### Wallet lifecycle {/* #wallet-lifecycle */}
 
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1637} name="create_config" />,
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1680} name="create_wallet" />,
@@ -76,7 +76,7 @@ Send the `token` inside the envelope on every method that declares one. Keep the
 
 `open_wallet` returns the token that every other call requires.
 
-### Proofs
+### Proofs {/* #proofs */}
 
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2110} name="retrieve_payment_proof" />,
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2157} name="verify_payment_proof" />,
@@ -84,18 +84,18 @@ Send the `token` inside the envelope on every method that declares one. Keep the
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1366} name="verify_slate_messages" />. See
 [payment proofs](/concepts/payment-proofs).
 
-### Configuration and background updates
+### Configuration and background updates {/* #configuration-and-background-updates */}
 
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2197} name="set_tor_config" />,
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2234} name="set_epicbox_config" />,
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1894} name="start_updater" />,
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1924} name="stop_updater" />.
 
-### Transport
+### Transport {/* #transport */}
 
 <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1495} name="init_secure_api" />.
 
-## The encrypted handshake
+## The encrypted handshake {/* #the-encrypted-handshake */}
 
 Every call after `init_secure_api` travels inside an encrypted envelope. The parameters are fixed and
 declared at <Src repo="wallet" path="api/src/owner_rpc_s.rs" line={1453} />: AES-256 in GCM mode, a
@@ -125,11 +125,11 @@ declared at <Src repo="wallet" path="api/src/owner_rpc_s.rs" line={1453} />: AES
 implements the sequence, including the second unwrap of the decrypted body. The client is listed in
 full on [connect and read](/examples/wallet-connect).
 
-## Reading outputs and transactions
+## Reading outputs and transactions {/* #reading-outputs-and-transactions */}
 
 `retrieve_outputs` and `retrieve_txs` take `limit`, `offset` and `sort_order`.
 
-## `InitTxArgs`
+## `InitTxArgs` {/* #inittxargs */}
 
 Controls input selection and transaction shape.
 
@@ -175,7 +175,7 @@ posted to the relay and the inputs are locked
 `http` and `keybase` paths. On the epicbox path the wallet's own subscription finalises and posts when
 the counterparty's reply arrives, which is also where the mempool wait happens.
 
-## Fees
+## Fees {/* #fees */}
 
 The fee is a function of transaction shape, not of network demand:
 
@@ -186,12 +186,12 @@ fee = max(4 × outputs + kernels − inputs, 1) × 0.001 EPIC
 A typical two-input, two-output, one-kernel transfer costs 700,000 freemen, which is 0.007 EPIC. Because
 no base fee is supplied by the wallet, there is no fee market to bid into.
 
-## Version 2
+## Version 2 {/* #version-2 */}
 
 An earlier, unencrypted Owner API with 17 methods is served from the same listener, at `/v2/owner`.
 Its methods take no token. New work should target v3, and the listener belongs on loopback.
 
-## Full method reference
+## Full method reference {/* #full-method-reference */}
 
 <CardGrid>
   <Card title="Session and accounts" to="/api/wallet/session">
@@ -214,7 +214,7 @@ Its methods take no token. New work should target v3, and the listener belongs o
   </Card>
 </CardGrid>
 
-## Source
+## Source {/* #source */}
 
 - <Src repo="wallet" path="api/src/owner_rpc_s.rs" /> defines every v3 method, most with a worked JSON
   request and response in its documentation comment
@@ -224,7 +224,7 @@ Its methods take no token. New work should target v3, and the listener belongs o
 - <Src repo="wallet" path="controller/src/controller.rs" line={123} /> for how the listener and its
   middleware are wired
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Interactive transactions" to="/concepts/interactive-transactions">

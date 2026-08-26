@@ -11,7 +11,7 @@ Owner API v3 uses a token obtained with the wallet password. The foreign surface
 because an interactive transfer needs the receiving side reachable by a stranger. TLS termination is
 left to the operator.
 
-## The surfaces
+## The surfaces {/* #the-surfaces */}
 
 | Surface | Default port | Credential | Who is meant to call it |
 | --- | --- | --- | --- |
@@ -31,7 +31,7 @@ The node's `/v1` credential covers the whole prefix, including the chain reads t
 `api_secret_path` names a different file in each binary's configuration. Both node surfaces read the
 node's, which is `.api_secret`.
 
-## Owner access on the wallet
+## Owner access on the wallet {/* #owner-access-on-the-wallet */}
 
 `/v3/owner` is gated on a token, not on an HTTP credential. Every method in the v3 trait takes one
 (<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={78} />), and getting one means completing the
@@ -54,7 +54,7 @@ for remote access, tunnel to loopback. The listener is
 The full method list, the encrypted envelope, and which calls move value are on the
 [wallet Owner API page](/api/wallet-owner).
 
-## The node credential
+## The node credential {/* #the-node-credential */}
 
 The node's `/v1` prefix and `/v2/owner` use HTTP Basic with the username literally `epic` and a secret
 file's contents as the password:
@@ -88,7 +88,7 @@ Secret files hold one 20-character random alphanumeric string with no trailing n
   (<Src repo="node" path="config/src/config.rs" line={96} />).
 - `OPTIONS` is passed through before the credential check, which is what makes CORS preflight work.
 
-## Optional credential on the node's foreign surface
+## Optional credential on the node's foreign surface {/* #optional-credential-on-the-nodes-foreign-surface */}
 
 `foreign_api_secret_path` makes the node's `/v2/foreign` require a credential too. Create the secret
 yourself and give it an absolute path:
@@ -109,14 +109,14 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:3413/v2/foreig
 # 401 once the secret is in place
 ```
 
-## The credential the wallet presents to the node
+## The credential the wallet presents to the node {/* #the-credential-the-wallet-presents-to-the-node */}
 
 `node_api_secret_path` points the other way: it is what the wallet sends when calling the node, and it
 defaults to `<wallet dir>/.api_secret`. Left at defaults, node and wallet share `~/.epic/<network>/`
 and resolve to the same file, so they agree with no configuration. Change the node's secret, move
 either directory, or point the wallet at another node, and this is the key to update.
 
-## TLS
+## TLS {/* #tls */}
 
 Both binaries take the same pair, both commented out by default:
 
@@ -133,7 +133,7 @@ than falling back to HTTP, so a bad pair fails loudly at startup.
 The bundled `epic client` subcommands address the node over `http://`
 (<Src repo="node" path="src/bin/cmd/client.rs" line={160} />). Use `curl` against a TLS listener.
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="epic-server.toml" to="/reference/node-config">

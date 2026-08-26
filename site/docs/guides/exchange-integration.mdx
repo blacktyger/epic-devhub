@@ -10,7 +10,7 @@ unlisted: true
 Epic requires a different deposit architecture from address-based chains. The per-user deposit-address
 model used by most exchange backends does not exist.
 
-## Per-user deposit addresses do not exist
+## Per-user deposit addresses do not exist {/* #per-user-deposit-addresses-do-not-exist */}
 
 The usual pattern is to derive an address per user, watch the chain for credits to it, and attribute each
 credit to that user. None of those steps is available:
@@ -23,7 +23,7 @@ credit to that user. None of those steps is available:
 
 Attribution therefore cannot come from the chain. It has to come from the transport.
 
-## What replaces it
+## What replaces it {/* #what-replaces-it */}
 
 Carry the account identifier in the deposit endpoint. Expose a per-user URL, have the user's wallet send to
 that URL, and record who paid from the path. The transport carries identity; the chain carries none.
@@ -31,7 +31,7 @@ that URL, and record who paid from the path. The transport carries identity; the
 Deploy wallet listeners behind a reverse proxy that maps each per-user path onto a wallet's Foreign API,
 and write attribution when the slate arrives.
 
-### Map a per-user path onto a listener
+### Map a per-user path onto a listener {/* #map-a-per-user-path-onto-a-listener */}
 
 The Epic-specific part is one `location` block inside your existing TLS server. It captures the account
 identifier from the path, passes it to your attribution service as a header, and refuses every other
@@ -53,7 +53,7 @@ location / { return 404; }
 `proxy_pass` target directly. The attribution service is, so the account is recorded before anything is
 signed.
 
-### Record the account before you co-sign
+### Record the account before you co-sign {/* #record-the-account-before-you-co-sign */}
 
 Your service at `127.0.0.1:8080` records `X-Epic-Account` against the incoming slate id, then calls
 `receive_tx` on the wallet's Foreign API. The
@@ -78,7 +78,7 @@ reconstructed from it. Back it up as primary financial data.
 
 :::
 
-## Architecture
+## Architecture {/* #architecture */}
 
 1. **Your own fully validating node.** See [node and wallet setup](/guides/mainnet-setup).
 2. **Hot wallets** running the Foreign API to receive and the Owner API for your backend to drive.
@@ -91,7 +91,7 @@ reconstructed from it. Back it up as primary financial data.
 5. **Your attribution database**, written synchronously as slates arrive.
 6. **Withdrawal processing** through the Owner API, with retry and cancellation logic.
 
-## Withdrawals need a state machine
+## Withdrawals need a state machine {/* #withdrawals-need-a-state-machine */}
 
 A withdrawal is an exchange with the user's wallet that may not complete.
 
@@ -106,7 +106,7 @@ A withdrawal is an exchange with the user's wallet that may not complete.
 Model a withdrawal as: created, awaiting counterparty, finalised, posted, confirmed, or cancelled. Set
 your own deadline, since the protocol does not provide one, and cancel on expiry to release the outputs.
 
-## Confirmation depth
+## Confirmation depth {/* #confirmation-depth */}
 
 The protocol prescribes no deposit confirmation depth. What it fixes is the cost of one block of depth,
 <Ver k="blockTimeSeconds" /> seconds at the target block time. <Ver k="coinbaseMaturity" /> blocks is the
@@ -119,7 +119,7 @@ Read the depth of a specific deposit as the chain tip height minus the transacti
 Both values come from calls your backend already makes, `get_status` on the node and `retrieve_txs` on the
 wallet.
 
-## Cold storage
+## Cold storage {/* #cold-storage */}
 
 Receiving requires interactive participation, so the keys that receive have to sign at the moment of
 receipt. That rules out receiving to an offline key the way a transparent chain allows.
@@ -133,7 +133,7 @@ The transports and what each requires to be online are in
 Sweeping to cold storage after the fact is a normal send from a hot wallet to a wallet you control, and it
 carries the same reservation and cancellation behaviour as any other send.
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Wallet Owner API" to="/api/wallet-owner">

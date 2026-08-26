@@ -16,7 +16,7 @@ Three separate repositories produce the node, wallet and miner binaries.
 
 If you would rather not build, [downloads](/downloads) lists the release archives.
 
-## One prerequisite
+## One prerequisite {/* #one-prerequisite */}
 
 Install [rustup](https://rustup.rs). Both Rust repositories pin their toolchain version in the
 repository, so rustup selects the right one on its own. Do not pass a `+toolchain` or install a
@@ -25,7 +25,7 @@ specific version yourself.
 That is the whole list on Linux and macOS. Both projects build on stock `ubuntu-latest` and
 `macos-latest` CI runners with no additional system packages.
 
-## Windows needs two more things
+## Windows needs two more things {/* #windows-needs-two-more-things */}
 
 **LLVM, for `libclang.dll`.** The `randomx` and `progpow` crates run `bindgen`, which loads
 `libclang` at build time. The LLVM component in the Visual Studio "Desktop development with C++"
@@ -61,7 +61,7 @@ the UCRT `<stdalign.h>` that arrived in that SDK. With only an older SDK present
 The node and wallet need neither `openssl` nor `strawberryperl` on Windows. TLS goes through SChannel
 there, so `openssl-sys` is never compiled. The miner needs both.
 
-## Node
+## Node {/* #node */}
 
 ```bash
 git clone https://github.com/EpicCash/epic.git
@@ -84,7 +84,7 @@ Publishing <Ver k="ports.nodeApi" /> to loopback only matches the binding the no
 `docker compose up -d` also works. `docker-compose.yml` maps chain data under `./target/`, so a later
 `cargo clean` deletes a synced chain.
 
-## Wallet
+## Wallet {/* #wallet */}
 
 ```bash
 git clone https://github.com/EpicCash/epic-wallet.git
@@ -94,7 +94,7 @@ cargo build --release
 
 The binary lands at `target/release/epic-wallet`, or `target\release\epic-wallet.exe` on Windows.
 
-## Miner
+## Miner {/* #miner */}
 
 On Linux and macOS, build the miner the same way as the others:
 
@@ -133,7 +133,7 @@ and ProgPow needs the `opencl` or `cuda` feature.
 
 :::
 
-## Confirm you have three binaries
+## Confirm you have three binaries {/* #confirm-you-have-three-binaries */}
 
 Put all three binaries somewhere on your `PATH`, or note where they are. Both the node and the wallet
 resolve configuration from the **current working directory** before falling back to
@@ -148,7 +148,7 @@ epic-wallet --version
 epic-miner --version
 ```
 
-## Build and test everything in a repository
+## Build and test everything in a repository {/* #build-and-test-everything-in-a-repository */}
 
 Either repository builds and tests as a workspace:
 
@@ -164,7 +164,7 @@ tests are behind a feature flag:
 cargo test --features cucumber-tests
 ```
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Run a local network" to="/guides/local-network">

@@ -11,7 +11,7 @@ writes.
 Every key requires a restart to take effect. The file is read once at startup and there is no reload
 signal.
 
-## Where the file lives
+## Where the file lives {/* #where-the-file-lives */}
 
 The node looks for configuration in this order:
 
@@ -24,7 +24,7 @@ The node looks for configuration in this order:
 `epic server config` writes a fresh `epic-server.toml` into the current directory with its paths
 pointed at that directory. It refuses to overwrite an existing file.
 
-## A hardened starting point
+## A hardened starting point {/* #a-hardened-starting-point */}
 
 The generated file contains every key with defaults. A minimal hardened configuration differs from those
 defaults in these keys:
@@ -57,7 +57,7 @@ file_log_level = "Info"
 See [authentication and TLS](/api/authentication) for the foreign secret, and
 [node and wallet setup](/guides/mainnet-setup) to get started.
 
-## `[server]`
+## `[server]` {/* #server */}
 
 | Key | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -85,7 +85,7 @@ Both sync validation keys default to `true` and speed up initial sync. Within
 <Ver k="powVerificationThreshold" /> blocks of the chain tip, proof of work is fully verified whatever
 they are set to. See [node and wallet setup](/guides/mainnet-setup) for what each one skips.
 
-## `[server.p2p_config]`
+## `[server.p2p_config]` {/* #serverp2p_config */}
 
 | Key | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -125,7 +125,7 @@ Capability bits:
 
 The default of 31 is every bit except `ONIONSTEM`.
 
-## `[server.pool_config]`
+## `[server.pool_config]` {/* #serverpool_config */}
 
 | Key | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -134,7 +134,7 @@ The default of 31 is every bit except `ONIONSTEM`.
 | `max_stempool_size` | usize | `50000` | Maximum transactions in the stempool |
 | `mineable_max_weight` | usize | `40000`, 150 on usernet and automated testing | Maximum total weight a miner packs into a block |
 
-## `[server.dandelion_config]`
+## `[server.dandelion_config]` {/* #serverdandelion_config */}
 
 | Key | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -144,7 +144,7 @@ The default of 31 is every bit except `ONIONSTEM`.
 | `stem_probability` | u8 percent | `90` | Probability of stem mode for an epoch |
 | `always_stem_our_txs` | bool | `true` | Always stem transactions submitted through our own API |
 
-## `[server.stratum_mining_config]`
+## `[server.stratum_mining_config]` {/* #serverstratum_mining_config */}
 
 | Key | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -160,7 +160,7 @@ The default of 31 is every bit except `ONIONSTEM`.
 Keep the `[server.stratum_mining_config]` section present and set `enable_stratum_server = false` to
 disable mining. See [Stratum](/mining/stratum) for the protocol.
 
-## `[server.webhook_config]`
+## `[server.webhook_config]` {/* #serverwebhook_config */}
 
 | Key | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -171,7 +171,7 @@ disable mining. See [Stratum](/mining/stratum) for the protocol.
 | `nthreads` | u16 | `4` | Worker threads for webhook delivery |
 | `timeout` | seconds | `10` | HTTP request timeout |
 
-## `[server.tor]`
+## `[server.tor]` {/* #servertor */}
 
 | Key | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -181,7 +181,7 @@ disable mining. See [Stratum](/mining/stratum) for the protocol.
 Onion stem routing also needs `capabilities` to include the `ONIONSTEM` bit, value 32, which the
 default of 31 excludes.
 
-## `[logging]`
+## `[logging]` {/* #logging */}
 
 | Key | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -198,7 +198,7 @@ default of 31 excludes.
 A fresh node writes no log file, because `log_to_file` is `false` while `log_file_path` is populated.
 Set `log_to_file = true` for a log on disk.
 
-## Source
+## Source {/* #source */}
 
 These values come from the configuration structs and their defaults:
 
@@ -209,7 +209,7 @@ These values come from the configuration structs and their defaults:
 - <Src repo="node" path="config/src/comments.rs" /> for the annotated template written to disk
 - <Src repo="node" path="config/src/config.rs" /> for file discovery and path rewriting
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="API authentication and TLS" to="/api/authentication">

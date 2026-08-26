@@ -12,7 +12,7 @@ amount. Proof of payment therefore has to be constructed deliberately, at the ti
 A payment proof is that construct. It binds an amount, a sender and a recipient into evidence the sender
 can present later.
 
-## What it establishes
+## What it establishes {/* #what-it-establishes */}
 
 A payment proof shows that the holder of a particular recipient key acknowledged receiving a particular
 amount from a particular sender, as part of a specific transaction.
@@ -21,7 +21,7 @@ It does not show that goods were delivered, that the transaction confirmed, or t
 they claim to be outside the protocol. It is a cryptographic receipt, and the only copy is the one you
 keep, since nothing in the chain lets you reconstruct it.
 
-## Request it when you send
+## Request it when you send {/* #request-it-when-you-send */}
 
 A proof cannot be produced after the fact. The recipient signs the proof message as part of their round
 of the exchange, so it has to be requested when the transfer starts.
@@ -36,14 +36,14 @@ automatically; otherwise the recipient provides it from `epic-wallet address`.
 Through the Owner API, set the payment proof fields on `InitTxArgs` when calling `init_send_tx`.
 Retrieval and verification are `retrieve_payment_proof` and `verify_payment_proof`.
 
-## Choose the transport accordingly
+## Choose the transport accordingly {/* #choose-the-transport-accordingly */}
 
 A payment proof is a V3 slate field, and epicbox converts every slate to V2, so a proof request does not
 survive an epicbox send
 (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={251} />). Route a transfer that needs a
 proof over any other transport; [the comparison](/concepts/transports#comparison) has the matrix.
 
-## Verification
+## Verification {/* #verification */}
 
 `verify_payment_proof` fails with an error if the transaction kernel named by the proof is not on the
 chain, or if either the recipient signature or the sender signature does not verify against the proof
@@ -55,7 +55,7 @@ What it returns is a pair of booleans saying which side of the proof the calling
 returned at <Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={1143} />). The JSON-RPC
 signature is at <Src repo="wallet" path="api/src/owner_rpc_s.rs" line={2161} />.
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Transports" to="/concepts/transports">

@@ -13,7 +13,7 @@ the mechanics are identical and the consequences are not.
 Two processes. A node that validates and relays the chain, and a wallet that holds keys and asks the
 node about the state of the world. You need a node. You do not need to mine.
 
-## 1. Start the node
+## 1. Start the node {/* #1-start-the-node */}
 
 Mainnet is the default network, so there is no flag:
 
@@ -54,7 +54,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:3413/v2/owner' -Method Post `
 
 The first sync downloads and validates the whole chain. Expect it to take a while and to use real disk.
 
-### Ports
+### Ports {/* #ports */}
 
 | Port | Purpose | Default binding |
 | --- | --- | --- |
@@ -66,7 +66,7 @@ Only the P2P port needs to be reachable from outside. Leave the API on loopback 
 [authentication and TLS](/api/authentication) before changing that. Every port and network offset is in
 [the CLI reference](/reference/cli#ports).
 
-### Sync validation settings
+### Sync validation settings {/* #sync-validation-settings */}
 
 `skip_pow_validation` and `disable_checkpoints` both default to `true`. That is a sync speed
 optimisation rather than a weakened default.
@@ -86,13 +86,13 @@ is <Fn repo="node" path="servers/src/common/adapters.rs" line={45} kind="const" 
 Set both to `false` to verify all historical proof of work yourself. That costs a much longer initial
 sync.
 
-### What the node stores
+### What the node stores {/* #what-the-node-stores */}
 
 `chain_data`, the config file, log files and the API secret. `chain_data` is the large item and it is
 disposable, so deleting it costs a resync and nothing else. A node holds no keys, so nothing in its data
 directory needs backing up.
 
-## 2. Create the wallet
+## 2. Create the wallet {/* #2-create-the-wallet */}
 
 ```bash
 epic-wallet init
@@ -117,7 +117,7 @@ by `epic-wallet recover`, which needs the password.
 a wallet means moving that wallet aside first. See
 [back up and restore](/guides/backup-and-restore).
 
-### Turn off the Tor listener
+### Turn off the Tor listener {/* #turn-off-the-tor-listener */}
 
 The wallet defaults `use_tor_listener` to `true` and expects a Tor binary that the release archives do
 not ship, so `epic-wallet listen` starts a background thread that fails. Two ways to switch it off, and
@@ -136,14 +136,14 @@ epic-wallet listen -n
 has to be repeated on every `listen`. The config key applies to every command in that wallet directory
 and is the setting to prefer. Neither affects Tor use by the node.
 
-### What the wallet stores
+### What the wallet stores {/* #what-the-wallet-stores */}
 
 [Back up and restore](/guides/backup-and-restore#what-to-back-up) lists every file in a wallet
 directory, what it holds, and whether it needs backing up. The recovery phrase reconstructs your funds
 but not your history. Transaction records, account labels and payment proof records live only in the
 database and nothing on the chain can rebuild them.
 
-### Ports the wallet opens
+### Ports the wallet opens {/* #ports-the-wallet-opens */}
 
 `epic-wallet listen` opens the Foreign API on <Ver k="ports.walletForeign" /> and
 `epic-wallet owner_api` opens the Owner API on <Ver k="ports.walletOwner" />. The Foreign port is derived
@@ -151,7 +151,7 @@ from the network; the Owner port is <Ver k="ports.walletOwner" /> on every netwo
 the same machine collides there whatever chain it runs. Override `owner_api_listen_port`. Full list in
 [the CLI reference](/reference/cli#ports).
 
-## 3. Point the wallet at the node
+## 3. Point the wallet at the node {/* #3-point-the-wallet-at-the-node */}
 
 The wallet defaults to a node on loopback at port <Ver k="ports.nodeApi" />, and in the default layout it
 resolves the node's API secret to the same file the node created. Nothing to configure.
@@ -170,7 +170,7 @@ two disagree about the secret.
 A wallet pointed at a public node works. That node sees which outputs the wallet asks about, and the
 wallet does not validate the chain state it is given.
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Wallet operations" to="/guides/wallet-operations">

@@ -8,9 +8,9 @@ description: What changed in Epic node 4.x and wallet 4.x, and what an integrati
 Current releases are node **<Ver k="node" />**, wallet **<Ver k="wallet" />** and epicbox protocol
 **<Ver k="epicboxProtocol" />**.
 
-## API changes
+## API changes {/* #api-changes */}
 
-### `total_difficulty` is an object
+### `total_difficulty` is an object {/* #total_difficulty-is-an-object */}
 
 Difficulty is tracked separately for each proof-of-work algorithm:
 
@@ -25,27 +25,27 @@ Difficulty is tracked separately for each proof-of-work algorithm:
 }
 ```
 
-### Block headers describe proofs with two fields
+### Block headers describe proofs with two fields {/* #block-headers-describe-proofs-with-two-fields */}
 
 `proof` names the algorithm and `solution` is a tagged union whose shape depends on it. In 3.x a
 single scalar field carried the solution.
 
-### Wallet output and transaction reads take pagination
+### Wallet output and transaction reads take pagination {/* #wallet-output-and-transaction-reads-take-pagination */}
 
 `retrieve_outputs` and `retrieve_txs` take `limit`, `offset` and `sort_order`. Supply them explicitly.
 
-### `Status` gains supply fields
+### `Status` gains supply fields {/* #status-gains-supply-fields */}
 
 `supply` and `max_supply` are amounts in freemen. `blocks_to_next_halving` is a count of blocks, at
 <Src repo="node" path="api/src/types.rs" line={96} />. Reward steps are not all halvings; see
 [emission](/mining/emission).
 
-### Kernels appear in two shapes
+### Kernels appear in two shapes {/* #kernels-appear-in-two-shapes */}
 
 `get_block` returns a flattened kernel. `get_kernel` and `get_last_n_kernels` return the raw type with an
 externally tagged `features` field.
 
-## Command line changes
+## Command line changes {/* #command-line-changes */}
 
 Flags moved. `init -h` for the current directory is now `-w`, `scan -h <height>` is now
 `-s <height>`, and the node's `taxes` argument is `start_height`. New wallet commands are `export_tx`,
@@ -55,33 +55,33 @@ flag is in [configuration and CLI](/reference/cli).
 The algorithm mix on the test networks is selected by config key, not by a command-line flag. See
 [the block policy](/mining/proof-of-work#the-block-policy).
 
-## Toolchain and build
+## Toolchain and build {/* #toolchain-and-build */}
 
 Each repository pins its Rust version, so installing rustup is sufficient and you should not pin a
 version yourself. Building also needs system packages beyond a Rust toolchain, listed per platform in
 [building from source](/guides/build).
 
-## Storage changes
+## Storage changes {/* #storage-changes */}
 
 The wallet stores data in SQLite at `db/sqlite/epic.db`, in WAL mode, and its Tor directory is
 `wallet_tor`. Anything that read the 3.x wallet database directly needs rewriting. Paths and keys are
 in [wallet configuration](/reference/wallet-config).
 
-## New behaviour
+## New behaviour {/* #new-behaviour */}
 
-### Bundled Tor
+### Bundled Tor {/* #bundled-tor */}
 
 Building with `--features with-tor` downloads a Tor expert bundle and verifies it against a committed
 digest. Release builds do not enable the feature. See
 [what this version does not cover](/start#what-this-version-does-not-cover).
 
-### Epicbox acknowledges delivery
+### Epicbox acknowledges delivery {/* #epicbox-acknowledges-delivery */}
 
 Protocol <Ver k="epicboxProtocol" /> adds a `Made` acknowledgement carrying a per-message id, so a
 slate is marked delivered only once the recipient confirms it processed it. Compatibility with
 pre-3.5.2 clients is preserved. See [the protocol](/api/epicbox).
 
-### Mempool confirmation after posting
+### Mempool confirmation after posting {/* #mempool-confirmation-after-posting */}
 
 The wallet watches the node's mempool after posting a transaction and records a distinct state when it
 appears. That wait is why a send can look unresponsive, covered in
@@ -89,12 +89,12 @@ appears. That wait is why a send can look unresponsive, covered in
 posted transfer out of the set `cancel_tx` accepts, covered in
 [cancelling has preconditions](/concepts/outputs-and-locking#cancelling-has-preconditions).
 
-### The epicbox relay implementation changed
+### The epicbox relay implementation changed {/* #the-epicbox-relay-implementation-changed */}
 
 The relay is `EpicCash/epic-epicbox-docker`, Node.js with a Rust verification helper. Its deployment
 topology and storage are in [the epicbox reference](/api/epicbox).
 
-## Behaviour to check in your integration
+## Behaviour to check in your integration {/* #behaviour-to-check-in-your-integration */}
 
 - **`tx_lock_outputs` is required** in a manual send sequence. See
   [what reserves outputs](/concepts/outputs-and-locking#what-reserves-outputs).
@@ -106,7 +106,7 @@ topology and storage are in [the epicbox reference](/api/epicbox).
   <Ver k="powVerificationThreshold" /> blocks. See
   [node and wallet setup](/guides/mainnet-setup).
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="The MimbleWimble model" to="/concepts/mimblewimble">

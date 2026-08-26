@@ -10,7 +10,7 @@ directly, which is what makes a transfer work between two wallets behind NAT.
 
 Protocol version: **<Ver k="epicboxProtocol" />**.
 
-## What a relay does
+## What a relay does {/* #what-a-relay-does */}
 
 It accepts signed slate blobs addressed to a public key, stores them, and delivers them when the
 recipient connects and proves ownership of that key.
@@ -20,7 +20,7 @@ It never receives key material, and its only cryptographic operation is verifyin
 A relay sees the public keys it routes between, when they communicate, and the IP addresses they connect
 from. Amounts are inside the slate's commitments and are not visible to it.
 
-## Transport and addressing
+## Transport and addressing {/* #transport-and-addressing */}
 
 WebSocket over TLS, port <Ver k="ports.epicbox" /> by default. Messages are JSON objects with a `type`
 field.
@@ -35,7 +35,7 @@ listener subscribes with the address of the account it opened
 
 The wallet's default relay domain is <Ver k="epicboxDomain" />.
 
-## Authentication
+## Authentication {/* #authentication */}
 
 Ownership of an address is proved by signing a challenge. The private key never leaves the wallet.
 
@@ -52,9 +52,9 @@ challenge.
 Clients that announce protocol version `2.0.0`, or announce none, are issued a fixed challenge string
 instead of a random one, for compatibility with wallets older than 3.5.2.
 
-## Message types
+## Message types {/* #message-types */}
 
-### Client to relay
+### Client to relay {/* #client-to-relay */}
 
 | Type | Fields | Purpose |
 | --- | --- | --- |
@@ -71,7 +71,7 @@ instead of a random one, for compatibility with wallets older than 3.5.2.
 A client announcing `wallet_mode` of `listener` is registered for immediate delivery, so slates arriving
 while it is connected are pushed straight through.
 
-### Relay to client
+### Relay to client {/* #relay-to-client */}
 
 | Type | Fields | Purpose |
 | --- | --- | --- |
@@ -83,7 +83,7 @@ while it is connected are pushed straight through.
 Error kinds: `UnknownError`, `InvalidRequest`, `InvalidSignature`, `InvalidChallenge`,
 `TooManySubscriptions`.
 
-## Posting a slate
+## Posting a slate {/* #posting-a-slate */}
 
 `PostSlate` is validated twice before storage: the address format of both `from` and `to`, and the
 signature over the payload against the key in the `from` address.
@@ -92,7 +92,7 @@ A slate whose destination domain and port match the relay's own configuration is
 destination is forwarded to that relay over a new outbound WebSocket connection, which is how cross-relay
 delivery works.
 
-## Delivery and its limits
+## Delivery and its limits {/* #delivery-and-its-limits */}
 
 Delivery is acknowledged rather than fire-and-forget, which is the main change from protocol 2.0.0.
 
@@ -132,7 +132,7 @@ a client to one instance by IP.
 **Forwarded slates are not stored locally.** A slate bound for another relay is forwarded over a new
 outbound connection without being persisted by the relay that accepted it.
 
-## Client behaviour
+## Client behaviour {/* #client-behaviour */}
 
 The wallet's relay client:
 
@@ -142,7 +142,7 @@ The wallet's relay client:
 - Uses slate V2, so neither a payment proof nor `ttl_cutoff_height` is carried. See
   [choose the transport accordingly](/concepts/payment-proofs#choose-the-transport-accordingly).
 
-## Run a relay
+## Run a relay {/* #run-a-relay */}
 
 The reference deployment runs two relay instances behind nginx, with MongoDB for storage and a Rust helper
 binary for signature and address verification.
@@ -180,7 +180,7 @@ restart, so scrape them if you want history.
 The reference compose file publishes the two relay instances on host ports 8888 and 8889 and nginx on
 8443. Map those to <Ver k="ports.epicbox" /> in your own deployment, or edit the compose file.
 
-## Source
+## Source {/* #source */}
 
 - <Src repo="epicbox" path="app_mongo.js" /> is the entire relay: protocol, storage and forwarding
 - <Src repo="epicbox" path="default_config.json" /> for the configuration keys and defaults
@@ -189,7 +189,7 @@ The reference compose file publishes the two relay instances on host ports 8888 
 - <Src repo="wallet" path="impls/src/adapters/epicbox.rs" /> is the wallet's relay client
 - <Src repo="wallet" path="libwallet/src/epicbox_address.rs" line={22} /> is the address format
 
-## Next
+## Next {/* #next */}
 
 <CardGrid>
   <Card title="Transports" to="/concepts/transports">
