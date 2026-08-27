@@ -747,6 +747,75 @@ const out = {};
     }
   }
 
+  // The slate-exchange step list must not change height when the scenario changes. The five
+  // scenarios carry 3, 4, 5, 5 and 7 steps and autoplay advances between them on a timer, so an
+  // unreserved list moved the section rule and the journey heading below it by up to 197px while a
+  // reader was on the paragraph beside it. Measured 2026-08-27. Also asserts the theme toggle is in
+  // the navbar at phone width rather than only in the drawer.
+  {
+    for (const width of [1440, 375]) {
+      const ctx = await browser.newContext({viewport: {width, height: 900}, colorScheme: 'dark'});
+      const page = await ctx.newPage();
+      await page.goto(`${server.origin}/`, {waitUntil: 'networkidle'});
+      const diagram = await page.evaluate(async () => {
+        const stack = document.querySelector('.seListStack');
+        const dots = [...document.querySelectorAll('.seDot, .seScenarios button')];
+        if (!stack || dots.length === 0) return null;
+        const heights = [];
+        for (const dot of dots) {
+          dot.click();
+          await new Promise((r) => setTimeout(r, 120));
+          heights.push(Math.round(stack.getBoundingClientRect().height));
+        }
+        const toggle = document.querySelector('.navbar__items--right .epicThemeToggle');
+        const button = toggle?.querySelector('button');
+        return {
+          scenarios: dots.length,
+          heights,
+          visibleLists: document.querySelectorAll('.seListStack .seList:not(.seListGhost)').length,
+          themeToggleInNavbar: toggle ? getComputedStyle(toggle).display !== 'none' : false,
+          themeToggleBox: button
+            ? {
+                w: Math.round(button.getBoundingClientRect().width),
+                h: Math.round(button.getBoundingClientRect().height),
+              }
+            : null,
+        };
+      });
+      out.diagram ??= {};
+      out.diagram[width] = diagram;
+      if (!diagram) {
+        stickyProblems.push(`slate ${width}: could not measure the step list`);
+      } else {
+        const spread = Math.max(...diagram.heights) - Math.min(...diagram.heights);
+        if (spread > 1) {
+          stickyProblems.push(
+            `slate ${width}: the step list changes height by ${spread}px across ${diagram.scenarios} scenarios, so the section below moves`,
+          );
+        }
+        if (diagram.visibleLists !== 1) {
+          stickyProblems.push(
+            `slate ${width}: ${diagram.visibleLists} step lists are visible, expected exactly 1`,
+          );
+        }
+        if (!diagram.themeToggleInNavbar) {
+          stickyProblems.push(
+            `slate ${width}: the theme toggle is not in the navbar, so it is drawer-only`,
+          );
+        }
+        if (
+          diagram.themeToggleBox &&
+          (diagram.themeToggleBox.w < 24 || diagram.themeToggleBox.h < 24)
+        ) {
+          stickyProblems.push(
+            `slate ${width}: the theme toggle is ${diagram.themeToggleBox.w}x${diagram.themeToggleBox.h}, under the 24px target floor`,
+          );
+        }
+      }
+      await ctx.close();
+    }
+  }
+
   // 834px is an iPad in portrait, and it was the worst reading measure on the site: the model band
   // collapsed to one column and nothing capped the list, so it ran 84 characters, past this
   // project's 68 and past the 80 in WCAG 1.4.8. Measured on 2026-08-27. The width is checked on its

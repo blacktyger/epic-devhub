@@ -304,26 +304,55 @@ export function SlateExchange() {
         </svg>
       </div>
 
-      <ol className="seList">
-        {scenario.steps.map((item, i) => (
-          <li
-            key={i}
-            className={`seListItem${i === stepIndex ? ' isCurrent' : ''}${
-              i < stepIndex ? ' isPast' : ''
-            }`}>
-            <button
-              type="button"
-              className="seListBtn"
-              onClick={() => {
-                setStepIndex(i);
-                setPaused(true);
-              }}>
-              <span className="seListMark" aria-hidden="true" />
-              <span>{item.text}</span>
-            </button>
-          </li>
-        ))}
-      </ol>
+      <div className="seListStack">
+        {/* Every scenario's list is rendered, stacked in one grid cell, and only the active one is
+            visible. The cell sizes to the tallest, so the block's height cannot change when the
+            scenario does.
+
+            The alternative was a measured `min-height`, and it was rejected: the tallest list is
+            13.8em at desktop and 21.6em on a phone in English, and those numbers are English. A
+            Russian or Chinese page wraps differently and would either overflow the reservation or
+            waste it, with nothing on screen to say which. This reserves by construction instead, so
+            it holds at any width, any type scale and any locale.
+
+            What it was fixing: the step count runs 3, 4, 5, 5, 7 across the five scenarios, and
+            autoplay advances to the next scenario on a timer. The block therefore grew and shrank on
+            its own by up to 197px at 375px and 152px at 2560px, which moved the section rule and the
+            journey heading below it while a reader was still on the paragraph beside it. Measured
+            2026-08-27. It also moved the Pause button out from under the pointer on the way. */}
+        {SCENARIOS.map((entry) => {
+          const isActive = entry.id === scenario.id;
+          return (
+            <ol
+              key={entry.id}
+              className={`seList${isActive ? '' : ' seListGhost'}`}
+              aria-hidden={isActive ? undefined : true}>
+              {entry.steps.map((item, i) => (
+                <li
+                  key={i}
+                  className={`seListItem${isActive && i === stepIndex ? ' isCurrent' : ''}${
+                    isActive && i < stepIndex ? ' isPast' : ''
+                  }`}>
+                  <button
+                    type="button"
+                    className="seListBtn"
+                    // A ghost list is `visibility: hidden`, which already takes its buttons out of
+                    // the tab order and the accessibility tree. tabIndex is set anyway so the tab
+                    // sequence does not depend on a stylesheet.
+                    tabIndex={isActive ? undefined : -1}
+                    onClick={() => {
+                      setStepIndex(i);
+                      setPaused(true);
+                    }}>
+                    <span className="seListMark" aria-hidden="true" />
+                    <span>{item.text}</span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          );
+        })}
+      </div>
 
       <p className="epicSrOnly" aria-live="polite">
         {liveStep}

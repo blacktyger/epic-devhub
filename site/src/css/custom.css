@@ -1449,10 +1449,28 @@ div[class^='announcementBar'] a:hover {
 
 /* Every step listed and dimmed, the current one lit. The marker is the only gold, so the eye lands
    on where the sequence is without the text jumping around. */
+/* One grid cell holding every scenario's step list, so the cell is as tall as the tallest and the
+   block's height does not change when the scenario does. See the comment in SlateExchange.js for
+   what this replaced and why the reservation is structural rather than a measured min-height.
+
+   `visibility: hidden` rather than `display: none`: a hidden item must still occupy its space, or the
+   cell collapses to the active list and nothing is reserved. It also keeps the ghost lists out of the
+   accessibility tree and out of the tab order, which is the behaviour we want anyway. */
+.seListStack {
+  display: grid;
+}
+.seListStack > .seList {
+  grid-area: 1 / 1;
+}
+.seListGhost {
+  visibility: hidden;
+}
 .seList {
   list-style: none;
   margin: 1rem 0 0;
   padding: 0;
+  /* The lists share a cell, so each one has to start at the top of it rather than stretch. */
+  align-self: start;
 }
 /* A row, not a control chip. Its height follows its text, because a step wraps to two lines at a
    narrow width, so it takes grid padding and no min-height. audit/controls.mjs holds it to the 24px
@@ -3780,18 +3798,27 @@ html[class*='docs-doc-id-examples/'],
    So there are three tiers now rather than two. This one drops only the seven navigation labels,
    which are the wide part and the part the drawer duplicates, and keeps the three controls the drawer
    handles worst: language, theme, and a search field wide enough to read its own placeholder. Under
-   601px they go too and the row is burger, logo and the icon-only ask control, which is the tier that
-   already existed. 600 is the breakpoint the rest of this project uses for "phone".
+   601px the labels and the language picker go too and the row is burger, logo, theme and the
+   icon-only ask control.
+
+   The theme toggle is outside the query on purpose, so it is in the navbar at every width down to
+   375px. It was previously reachable under 601px only by opening the drawer, and a reader on a phone
+   in the wrong colour mode should not have to find a menu to fix it. The language picker stays in the
+   query because it is a dropdown with a text label, not a 32px icon, and it is the one control here
+   already failing the 24px target floor.
 
    `.epicThemeToggle` is our own class on the theme's wrapper, so the hashed `colorModeToggle_*` name
    is never referenced. Both controls also render inside the drawer, which is where they came from and
-   where they stay; a reader on this tier simply reaches them without opening it. */
+   where they stay; a reader simply reaches them without opening it. */
+@media (max-width: 996px) {
+  .navbar__items--right .epicThemeToggle {
+    display: flex;
+  }
+}
+
 @media (min-width: 601px) and (max-width: 996px) {
   .navbar__items--right > .navbar__item.dropdown {
     display: inline-flex;
-  }
-  .navbar__items--right .epicThemeToggle {
-    display: flex;
   }
 }
 
