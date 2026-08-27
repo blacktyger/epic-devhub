@@ -36,7 +36,12 @@ const HERE = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = resolve(HERE, 'build');
 
 /* 3001 is docs-dev in ports.json at the workspace root, and 7771 is assistant-dev. */
-const PORT = Number(process.env.PORT ?? 3001);
+// 7786, not 3001. 3001 belongs to `npm start`, the hot-reloading dev server, which is what the site is
+// developed against now that English is the working locale: an agent edits a file and it is on screen,
+// with no build in between. This server is the other case, a built site with every locale served
+// together so the language picker can be exercised, and it cannot share a port with the thing it
+// replaces. Assigned as `docs-preview` in the workspace ports.json. Override with PORT.
+const PORT = Number(process.env.PORT ?? 7786);
 const HOST = process.env.HOST ?? '127.0.0.1';
 const TARGET = new URL(process.env.EPIC_AI_TARGET ?? 'http://127.0.0.1:7771');
 

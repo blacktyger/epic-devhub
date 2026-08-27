@@ -295,9 +295,9 @@ if (MODE === 'gate') {
     lines.push('');
     lines.push('If these are cosmetic and the user has not asked for verification, do not build.');
     lines.push('Say what is unverified and rerun with EPIC_SKIP_FRONTEND_GATE=1. He watches the dev');
-    lines.push('server on http://localhost:3001 and has already seen the change. Two servers can answer');
-    lines.push('there and only `npm start` reloads: a 404 from /ru/ is the dev server, a 200 is a static');
-    lines.push('preview. Finding a preview means ask him to restart it, not rebuild it.');
+    lines.push('server on http://localhost:3001, which is `npm start` and hot-reloads, so he has already');
+    lines.push('seen the change. The built all-locale preview is on 7786, not 3001. If 3001 is not the');
+    lines.push('dev server, say so and ask for a restart rather than building.');
     lines.push('');
     lines.push('To look at a route without building, from epic-devhub/audit:');
     lines.push('  npm run page:live -- /the/route');

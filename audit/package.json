@@ -17,6 +17,7 @@
     "budget:update": "node budget.mjs --update",
     "chunk-cost": "node chunk-cost.mjs",
     "landing": "node landing.mjs",
+    "locales": "node locales.mjs",
     "vitals": "node vitals.mjs",
     "vitals:mobile": "node vitals.mjs --mobile",
     "fast": "node budget.mjs",

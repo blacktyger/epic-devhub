@@ -77,6 +77,16 @@ jobs:
         run: npm run keyboard
         working-directory: audit
 
+      # Localisation structure. Docusaurus falls back to English for anything a locale is missing, so a
+      # half-wired locale renders perfectly and looks finished: this gates the faults that silence
+      # produces. A missing catalogue, a missing flag, or a copyright key back in a footer catalogue,
+      # which `docusaurus write-translations` re-adds on every run and which freezes the version
+      # numbers the footer builds from. Page coverage is reported, never gated: fallback is what makes a
+      # partial locale shippable. Needs no build.
+      - name: Localisation
+        run: npm run locales
+        working-directory: audit
+
       # Landing-page stability, in every locale the build contains. Gates two things no other check
       # sees: the quick-start panel must not change height when its controls change, since it sets
       # the masthead's height and drags every section below it, and no locale's landing route may
