@@ -1,4 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState, lazy, Suspense} from 'react';
+import {loadPanel} from './warm';
 import BrowserOnly from '@docusaurus/BrowserOnly';
 import {isOpen, subscribe, toggleAssistant, closeAssistant} from './store';
 import {assistantMessage as msg} from './messages';
@@ -25,7 +26,7 @@ import './assistant.css';
  * clicks Ask. The name lets the budget hold it to a separate, deliberately higher ceiling instead of
  * either failing honestly-placed weight or loosening the ceiling that protects real pages.
  */
-const Panel = lazy(() => import(/* webpackChunkName: "epic-assistant" */ './Panel'));
+const Panel = lazy(() => loadPanel());
 
 /**
  * Panel width, in device-independent pixels, persisted so a reader sets it once.

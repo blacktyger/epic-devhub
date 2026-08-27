@@ -1,7 +1,8 @@
-import React, {lazy, Suspense, useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useLocation} from '@docusaurus/router';
 import {translate} from '@docusaurus/Translate';
 import AiMark from '@site/src/components/Assistant/AiMark';
+import {loadAskModal, warmOnIntent, warmWhenIdle} from '@site/src/components/Assistant/warm';
 
 /**
  * Shadows the search theme's own SearchBar with one control that both searches and asks.
@@ -22,9 +23,25 @@ import AiMark from '@site/src/components/Assistant/AiMark';
  * there.
  */
 
-const AskModal = lazy(() =>
-  import(/* webpackChunkName: "epic-ask-modal" */ '@site/src/components/Assistant/AskModal'),
-);
+/**
+ * The modal is held in state, not in `React.lazy`, and that is the whole fix for the click delay.
+ *
+ * Measured on a production build, 2026-08-27: clicking this control took 372ms to put a usable input
+ * on screen, and none of it was work. The click handler ran in 4ms, no long task blocked the main
+ * thread, and the only request the click caused arrived 2ms *after* the dialog. Every open after the
+ * first took 9ms. Prefetching the chunk changed nothing, and neither did hovering the control for
+ * three seconds first.
+ *
+ * It was React's Suspense fallback throttle. `lazy` reports its own status as pending on the first
+ * render even when the underlying promise has already resolved, so the boundary suspended for one
+ * microtask, showed its `null` fallback, and React then held the reveal for its throttle interval,
+ * which is 300ms. That is deliberate anti-flicker behaviour and it cannot be tuned; the only way out
+ * is not to suspend.
+ *
+ * So the component is resolved into state instead. When the warm-up has run, and it has by the time
+ * anyone reaches the navbar, the component is already in state and the click is a plain render. When
+ * it has not, the promise resolves first and the open costs the real fetch rather than the throttle.
+ */
 
 /** True when the reader is typing somewhere, so a bare `/` must stay a slash. */
 function isTyping(target) {
@@ -36,6 +53,12 @@ function isTyping(target) {
 
 export default function SearchBar() {
   const [open, setOpen] = useState(false);
+  /**
+   * The resolved modal component, or null until it is. Held as a one-element object rather than
+   * bare, because `setState` treats a function argument as an updater and a React component is a
+   * function.
+   */
+  const [modal, setModal] = useState(null);
   const [modifier, setModifier] = useState('Ctrl');
   const buttonRef = useRef(null);
   const {pathname} = useLocation();
@@ -81,12 +104,39 @@ export default function SearchBar() {
     buttonRef.current?.focus();
   }, []);
 
+  /**
+   * Loads the modal and puts it in state, and returns the same promise however often it is called.
+   * Every path that could lead to the modal being shown goes through this: the idle warm-up, the
+   * pointer and focus handlers on the control, the two keyboard shortcuts, and the click itself.
+   */
+  const ensureModal = useCallback(
+    () =>
+      loadAskModal()
+        .then((mod) => {
+          setModal({Component: mod.default});
+          return mod;
+        })
+        .catch(() => {}),
+    [],
+  );
+
+  /**
+   * Warm the modal after the page has loaded and the main thread is next free. It never runs before
+   * the `load` event and never on a save-data or 2g connection; the two gates and the reasoning are in
+   * components/Assistant/warm.js.
+   *
+   * This runs once for the document, not once per page: SearchBar is mounted by the navbar and
+   * survives client-side navigation, so the empty dependency array is the navbar's whole lifetime.
+   */
+  useEffect(() => warmWhenIdle(ensureModal), [ensureModal]);
+
   useEffect(() => {
     const onKey = (event) => {
       const mod = event.metaKey || event.ctrlKey;
 
       if (mod && event.key.toLowerCase() === 'k') {
         event.preventDefault();
+        ensureModal();
         setOpen(true);
         return;
       }
@@ -95,13 +145,14 @@ export default function SearchBar() {
       // button rather than a field that could swallow the keystroke.
       if (event.key === '/' && !mod && !event.altKey && !isTyping(event.target)) {
         event.preventDefault();
+        ensureModal();
         setOpen(true);
       }
     };
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [ensureModal]);
 
   return (
     <div className="navbar__search">
@@ -112,7 +163,14 @@ export default function SearchBar() {
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label={buttonAriaLabel}
-        onClick={() => setOpen(true)}>
+        /* A pointer arriving, a focus landing, or a finger touching are all better predictions than
+           the idle timer above, and they cost nothing until they happen. This is what covers a reader
+           who clicks in the first second, or who is on a connection the idle warm skips. */
+        {...warmOnIntent(ensureModal)}
+        onClick={() => {
+          ensureModal();
+          setOpen(true);
+        }}>
         <AiMark className="epicAsk-controlMark" />
         <span className="epicAsk-controlLabel">{buttonLabel}</span>
         {/* Plain dim monospace, no border and no box. A bordered chip inside a bordered control is
@@ -122,11 +180,10 @@ export default function SearchBar() {
         </span>
       </button>
 
-      {open && (
-        <Suspense fallback={null}>
-          <AskModal onClose={close} />
-        </Suspense>
-      )}
+      {/* No Suspense, deliberately. The boundary was what cost 300ms; see the note on `modal` above.
+          Until the module resolves this renders nothing, which is exactly what the `null` fallback
+          rendered anyway, and after the idle warm-up it is never null by the time anyone clicks. */}
+      {open && modal ? <modal.Component onClose={close} /> : null}
     </div>
   );
 }
