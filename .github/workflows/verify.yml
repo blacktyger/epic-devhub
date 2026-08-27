@@ -77,6 +77,14 @@ jobs:
         run: npm run keyboard
         working-directory: audit
 
+      # Landing-page stability, in every locale the build contains. Gates two things no other check
+      # sees: the quick-start panel must not change height when its controls change, since it sets
+      # the masthead's height and drags every section below it, and no locale's landing route may
+      # navigate on its own. Both regressed on 2026-08-27 and both were found by hand.
+      - name: Landing page stability
+        run: npm run landing
+        working-directory: audit
+
       # Source citations can only be checked against the upstream clones, which do not exist here,
       # so this reports a skip in CI and is a local gate. Run it before changing rpcSpec.js.
       - name: Source citations

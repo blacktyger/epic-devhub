@@ -25,6 +25,7 @@
  * Escape hatch: set EPIC_SKIP_FRONTEND_GATE=1. Documented on purpose. A gate with no way out
  * gets deleted the first time it is wrong, and a deleted gate protects nothing.
  */
+import {execFileSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -43,6 +44,8 @@ const ROOT = path.resolve(AUDIT, '..');
  */
 const WORKSPACE = path.resolve(ROOT, '..');
 const SITE = path.join(ROOT, 'site');
+// This repository's root, which is where the CI workflow that verifies a push lives.
+const REPO = ROOT;
 const RESULTS = path.join(AUDIT, 'results');
 const STATE = path.join(AUDIT, '.gate');
 const MARKERS = path.join(STATE, 'touched.json');
@@ -93,7 +96,7 @@ const mtime = (p) => {
 function newestHarnessRun() {
   let newest = 0;
   let which = null;
-  for (const name of ['axe.json', 'runtime.json', 'aria.json', 'keyboard.json', 'budget.json']) {
+  for (const name of ['axe.json', 'runtime.json', 'aria.json', 'keyboard.json', 'budget.json', 'landing.json']) {
     const t = mtime(path.join(RESULTS, name));
     if (t > newest) {
       newest = t;
@@ -104,6 +107,25 @@ function newestHarnessRun() {
 }
 
 const newestBuild = () => mtime(path.join(SITE, 'build', 'sitemap.xml'));
+
+/**
+ * Commit time of this repository's HEAD, in milliseconds.
+ *
+ * Committed work is verified work, because .github/workflows/verify.yml runs the whole suite on push.
+ * Returns 0 when git is unavailable or this is not a repository, which fails closed: the gate then
+ * behaves exactly as it did before, demanding local evidence.
+ */
+function newestCommit() {
+  try {
+    const out = execFileSync('git', ['-C', REPO, 'log', '-1', '--format=%ct'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return Number(out.trim()) * 1000 || 0;
+  } catch {
+    return 0;
+  }
+}
 
 function readMarkers() {
   try {
@@ -243,35 +265,47 @@ if (MODE === 'mark') {
 if (MODE === 'gate') {
   const harness = newestHarnessRun();
   const build = newestBuild();
+  const commit = newestCommit();
   const markers = readMarkers();
 
-  const unverified = markers.filter((m) =>
-    m.kind === 'presentation' ? m.at > harness.at : m.at > build,
-  );
+  // Three things release a marker, not two. A commit counts because
+  // .github/workflows/verify.yml runs build, budget, aria, keyboard, sources, landing and check on
+  // every push, so committed work is verified by a machine nobody is waiting in front of. Demanding
+  // a local run as well is how this gate came to cost three minutes of the user's wall clock on
+  // 2026-08-27 for a fix he could already see. His position: he runs `npm start`, he watches it, and
+  // CI is the gate.
+  const unverified = markers.filter((m) => {
+    if (m.at < commit) return false;
+    return m.kind === 'presentation' ? m.at > harness.at : m.at > build;
+  });
   if (unverified.length === 0) process.exit(0);
 
   const presentation = unverified.filter((m) => m.kind === 'presentation');
   const content = unverified.filter((m) => m.kind === 'content');
 
-  const lines = ['Frontend changes in this session have not been verified against a real browser.', ''];
+  const lines = ['Frontend changes in this session are neither committed nor verified in a browser.', ''];
   if (presentation.length) {
     lines.push('Presentation files changed since the last harness run:');
     for (const m of presentation.slice(0, 8)) lines.push(`  ${m.path}`);
     if (presentation.length > 8) lines.push(`  and ${presentation.length - 8} more`);
     lines.push('');
+    lines.push('Cheapest release, and usually the right one: commit. CI runs the whole suite on push');
+    lines.push('(.github/workflows/verify.yml), so a commit is verification by a machine nobody is');
+    lines.push('waiting in front of.');
+    lines.push('');
     lines.push('If these are cosmetic and the user has not asked for verification, do not build.');
     lines.push('Say what is unverified and rerun with EPIC_SKIP_FRONTEND_GATE=1. He watches the dev');
-    lines.push('server on http://localhost:3001 and has already seen the change.');
+    lines.push('server on http://localhost:3001 and has already seen the change. Two servers can answer');
+    lines.push('there and only `npm start` reloads: a 404 from /ru/ is the dev server, a 200 is a static');
+    lines.push('preview. Finding a preview means ask him to restart it, not rebuild it.');
     lines.push('');
     lines.push('To look at a route without building, from epic-devhub/audit:');
     lines.push('  npm run page:live -- /the/route');
     lines.push('');
-    lines.push('When the batch is closed, or before a commit, from epic-devhub/site:');
-    lines.push('                                npm run build');
-    lines.push('then from epic-devhub/audit:  npm run budget');
-    lines.push('                                npm run aria');
-    lines.push('                                npm run keyboard');
-    lines.push('                                npm run check      (several minutes, every route)');
+    lines.push('A local suite run is for stating a rendered number, for testing a check you changed, or');
+    lines.push('because he asked. From epic-devhub/site then epic-devhub/audit:');
+    lines.push('  npm run build');
+    lines.push('  npm run budget / aria / keyboard / landing / check   (check is several minutes)');
     lines.push('');
     lines.push(
       'Or delegate the whole review to the docs-design-reviewer agent, which runs these and reports findings by severity.',
