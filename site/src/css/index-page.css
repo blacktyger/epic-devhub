@@ -556,6 +556,12 @@
 .ixModelList {
   margin: 0;
   padding-left: 1.9rem;
+  /* The measure is capped here rather than left to the grid. Without this the line length was
+     whatever 1.05fr of the container happened to be, which drifted with the window and jumped
+     when the grid collapsed: 68ch at 1600px, 57ch at 1280px, 44ch at 1024px, then 84ch at 834px
+     and 77ch at 768px, measured in a browser on 2026-08-27. 84 is past this project's own cap and
+     past the 80-character ceiling in WCAG 1.4.8, and it happened on an iPad in portrait. */
+  max-width: var(--epic-measure);
   /* Zero-padded gold numbers, matching documentation pages. This list previously
      used the browser default `1.` in secondary grey, so the landing page and every
      doc page numbered their steps differently. */
@@ -577,14 +583,22 @@
 
 /* No border around the diagram. A rule above it and a caption below is enough, and it stops
    the figure looking like a widget bolted onto the page. */
-/* The figure spans the row rather than sharing it with the list. A 760-unit diagram in a 369px
-   column renders at half scale, which is why adding detail to it made it harder to read, not
-   easier. The list keeps the measure it wants; the diagram gets the width it needs. */
+/* The figure is the grid's second column, which is what makes this band a two-column band rather
+   than a 68ch list with a hole beside it.
+
+   It used to span the row with `grid-column: 1 / -1`, on the reasoning that a 760-unit diagram in a
+   369px column renders at half scale. That was true of a 369px column. It also left column two
+   empty at every width from 1024px up: 666 x 331px of nothing beside the best content on the page,
+   and then a 720px diagram sitting in a 1320px band with 600px empty to its right. Both measured on
+   2026-08-27. In the centred body the column is about 640px and the SVG scales into it, so the list
+   keeps its 68ch and the diagram gets a column that suits a diagram. Absorbing the figure into the
+   row also takes about 430px off the page, which lifts everything below it by most of a screen.
+
+   The border-top belongs to the collapsed layout, where the figure sits under the list and needs a
+   rule to separate them. Beside the list it would be a hairline aligned to nothing. */
 .ixFigure {
-  grid-column: 1 / -1;
   margin: 0;
   padding-top: 0.4rem;
-  border-top: 1px solid var(--ifm-toc-border-color);
 }
 .ixFigure .slateExchange {
   margin: 0.75rem 0 0;
@@ -598,10 +612,24 @@
 
 /* ---- Link index ---- */
 
+/* Three tracks, not `auto-fit`. There are six groups, and `auto-fit minmax(13.5rem, 1fr)` landed on
+   five columns in a 1320px band, which left "Mining and consensus" alone on a second row beside four
+   empty cells. Six divides by three and by two, so an explicit track count cannot orphan a group.
+   The collapse steps are below. */
 .ixIndex {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2rem 2.5rem;
+}
+@container page (max-width: 820px) {
+  .ixIndex {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container page (max-width: 520px) {
+  .ixIndex {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .ixGroupLabel {
   font-family: var(--ifm-font-family-monospace);
@@ -661,9 +689,19 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 1.75rem;
   }
+}
+
+/* The model band collapses at 1200, not 996, because 996 is where the list stops being readable
+   rather than where it stops fitting. Two columns at a 894px container gave column one 435px, which
+   is 44 characters. The two-column form now only exists while column one can still hold about 60,
+   and below that the figure goes under the list and takes the rule that separates them. */
+@container page (max-width: 1200px) {
   .ixModel {
     grid-template-columns: minmax(0, 1fr);
     gap: 1.75rem;
+  }
+  .ixFigure {
+    border-top: 1px solid var(--ifm-toc-border-color);
   }
 }
 
@@ -893,8 +931,15 @@
      the page up and down: Wallet/Windows has two commands where every other variant has three,
      which moved .ixMain by 19px on its own. Lines, not pixels, so the reservation follows the
      font size and the mobile padding override. Raise --ix-snippet-lines if a variant gains a
-     command; verify-runtime.mjs fails if the variants stop agreeing. */
-  --ix-snippet-lines: 3;
+     command; verify-runtime.mjs fails if the variants stop agreeing.
+
+     5, not 3, since the lines wrap. Three commands of 96, 37 and 29 characters are three lines
+     while the block clips and up to five once it does not, and the count now depends on the column
+     as well as on the variant. The longest single command is 123 characters, Wallet/Windows.
+     The mobile override below reserves six, because a phone column wraps the first command three
+     ways. Reserving high is the safe direction: min-height only sets a floor, so a reservation
+     under the true maximum is what lets a tab press move the page. */
+  --ix-snippet-lines: 5;
   --ix-snippet-line: 1.7;
   line-height: var(--ix-snippet-line);
   /* Release URLs are longer than any sensible column, so this block scrolls. Never the
@@ -922,7 +967,17 @@
 }
 .ixSnippetLine {
   display: block;
-  white-space: pre;
+  /* Wrapped, with the continuation hanging under the start of the command. `pre` here clipped the
+     first thing a reader sees on the page: a release-asset URL overflowed the panel by 117px at
+     2401px, 181px at 1600px, 261px at 1280px and 347px at 375px, measured on 2026-08-27. The copy
+     button always wrote the whole command, so the panel worked; it did not look like it worked.
+
+     `pre-wrap`, not `pre-line`, so runs of spaces inside a command survive. The indent is 2ch,
+     which is the prompt glyph and its space, so a continuation line starts under the `curl` rather
+     than under the `$`. */
+  white-space: pre-wrap;
+  padding-left: 2ch;
+  text-indent: -2ch;
 }
 .ixSnippetPrompt {
   color: var(--ifm-color-primary);
@@ -1001,6 +1056,11 @@
   }
   .ixSnippetBody {
     padding: 0.65rem 0.7rem;
+    /* A phone column is about 45 characters after the hanging indent, so the long commands take
+       three lines each. Seven, not six: at 375px Node/Windows reached seven while every other
+       variant reached six, and a reservation under the true maximum is exactly what lets a tab
+       press move the page. Measured across all five variants at ten widths on 2026-08-27. */
+    --ix-snippet-lines: 7;
   }
   .ixSnippetFoot {
     padding: 0.6rem 0.7rem 0.7rem;
@@ -1017,11 +1077,13 @@
    Gold now appears only in the corner ticks and the action: a list of eight equal items has no
    current position to signal, and gold used to organise rather than to signal is what the
    brief warns against. */
+/* One column, not two. This was `minmax(0, 1fr) minmax(0, 20rem)` for a manifest panel in the second
+   column, and that panel no longer renders: nothing in src/ references .ixManifest. The empty track
+   plus its 3rem gap held the journey to 952px inside a 1320px band, so the completeness dial landed
+   368px short of the band's right edge. Same fault as the model band had, second instance. The
+   .ixManifest rules below are now unreachable and want deleting in a pass of their own. */
 .ixJourneyLayout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
-  gap: 3rem;
-  align-items: start;
+  display: block;
 }
 .ixManifest {
   margin-top: 2.25rem;
@@ -1100,9 +1162,6 @@
 }
 
 @container page (max-width: 996px) {
-  .ixJourneyLayout {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .ixManifest {
     max-width: 24rem;
   }
@@ -1247,27 +1306,30 @@
   padding-inline: 0 var(--ifm-spacing-horizontal, 1rem);
 }
 
-/* Above 1450px the page body centres on --epic-page-shell, so a wide window no longer leaves 640px
-   of dead space on the right. The breakpoint and the shell token are in custom.css under "The
-   centred shell above 1450px"; this is the page half, and the only half, because the navbar stays
-   on the window gutters.
+/* Above 1548px the ink centres on --epic-content-max, so a wide window no longer leaves 640px of
+   dead space on the right, and the ink is not off-centre inside its own window either. The
+   breakpoint's derivation is in custom.css under "The centred body above 1548px"; this is the page
+   half, and the only half, because the navbar stays on the window gutters.
 
-   `max-width: none` is needed because these are Infima `.container` elements, and its own cap
-   would otherwise hold them at --epic-content-max and defeat the centring. `padding-inline` ends
-   at 0 rather than a gutter: at these widths the centring already keeps the box off the window
-   edge, and a gutter here would only pull the right edge 16px inside the box that defines it.
+   `max-width: none` is needed because these are Infima `.container` elements, and its own cap would
+   otherwise hold them at --epic-content-max after `width` had already set them there, which is
+   harmless but says the rule twice. `padding-inline: 0`: the centring keeps the box off the window
+   edge, so a gutter here would only pull the right edge inside the box that defines it.
 
-   The version rail is deliberately absent from this block. Its base rule pads it by
-   --epic-page-inset, which is the navbar's first label, and it has to stay there: the rail reads as
-   the bottom line of the chrome rather than the top of the page, so it follows the navbar and not
-   the body. */
-@media (min-width: 1450px) {
+   The version rail is in this block, unlike the previous formulation. It carries
+   --epic-page-inset in its base rule, which is the navbar's first label, and staying there while
+   the body centred is what put three different left edges on one screen: 16px for the navbar,
+   113.8px for the pills, 589px for the ink at 2401px. The rail's band is still full bleed and its
+   border still spans the window, so it still reads as the bottom line of the chrome; only its
+   contents join the document. */
+@media (min-width: 1548px) {
   .ixMastIn,
-  .ixMain {
-    width: var(--epic-page-shell);
+  .ixMain,
+  .ixVersionRail > .container {
+    width: var(--epic-content-max);
     max-width: none;
     margin-inline: auto;
-    padding-inline: var(--epic-page-shell-inset) 0;
+    padding-inline: 0;
   }
 }
 

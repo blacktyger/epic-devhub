@@ -526,14 +526,25 @@ const out = {};
   //
   //   1. The navbar inner reaches both window gutters, on the landing page as on every docs route.
   //   2. The body is centred: equal slack either side of .ixMain.
-  //   3. The version pills sit on the navbar's first label. The rail follows the chrome, not the
-  //      body, so it does not centre. This is the one place where the page deliberately does not
-  //      line up with itself: the pills are the bottom line of the navbar.
+  //   3. The version pills sit on the body's own left ink edge, not on the navbar's first label.
+  //      Until 2026-08-27 this asserted the opposite, on the reasoning that the rail is the bottom
+  //      line of the navbar and so follows the chrome. Measured at 2401px that put three left edges
+  //      on one screen: 16px for the navbar, 113.8px for the pills, 589px for the ink. The pills
+  //      pointed at a nav label 475px away from everything they describe. The band is still full
+  //      bleed and its border still spans the window, so it still reads as chrome; only its contents
+  //      joined the document. Below the breakpoint all three edges coincide anyway, which is what
+  //      the 1440px block above checks.
   //   4. The masthead h1 sits on the body's own left ink edge, and the quick-start panel's right
   //      edge on its right ink edge. The second is what makes the panel grow leftward when it is
   //      widened at 1700px rather than overhang the body.
+  //   5. Neither of the two-column bands below the masthead has an empty track. The model band puts
+  //      the diagram beside the list, and the journey fills its band. Both were grids whose second
+  //      column had nothing in it: 666px beside the model list, 368px beside the journey.
+  //   6. The list keeps its measure, the sitemap's last row is full, and the quick-start block does
+  //      not clip a command.
   {
-    const ctx = await browser.newContext({viewport: {width: 1800, height: 900}, colorScheme: 'dark'});
+    for (const wideWidth of [1800, 2560]) {
+    const ctx = await browser.newContext({viewport: {width: wideWidth, height: 900}, colorScheme: 'dark'});
     const page = await ctx.newPage();
     await page.goto(`${server.origin}/`, {waitUntil: 'networkidle'});
     const wide = await page.evaluate(() => {
@@ -561,6 +572,46 @@ const out = {};
         pillLeft: rect('.ixPill')?.left ?? null,
         mainLeft: main ? main.getBoundingClientRect().left : null,
         mainRight: main ? main.getBoundingClientRect().right : null,
+        // The two bands that used to carry a dead second column. A band with a filled second
+        // column has its figure to the right of its list and reaching the band's right edge.
+        modelRight: rect('.ixModel')?.right ?? null,
+        modelListRight: rect('.ixModelList')?.right ?? null,
+        figureLeft: rect('.ixFigure')?.left ?? null,
+        figureRight: rect('.ixFigure')?.right ?? null,
+        journeyRight: rect('.ixJourneyLayout')?.right ?? null,
+        journeyInviteRight: rect('.jtInvite')?.right ?? null,
+        // Measure of the model list in characters, computed from its own resolved font so a type
+        // change cannot quietly move it.
+        modelListCh: (() => {
+          const li = el('.ixModelList li');
+          if (!li) return null;
+          const probe = document.createElement('span');
+          probe.textContent = '0';
+          probe.style.font = getComputedStyle(li).font;
+          probe.style.position = 'absolute';
+          probe.style.visibility = 'hidden';
+          document.body.append(probe);
+          const chWidth = probe.getBoundingClientRect().width;
+          probe.remove();
+          return chWidth ? li.getBoundingClientRect().width / chWidth : null;
+        })(),
+        // Sitemap rows. Six groups on an explicit track count cannot orphan one; `auto-fit` put
+        // five on the first row and left the sixth alone beside four empty cells.
+        indexRows: (() => {
+          const groups = [...document.querySelectorAll('.ixIndex .ixGroup')];
+          if (!groups.length) return null;
+          const tops = groups.map((g) => Math.round(g.getBoundingClientRect().top));
+          const rows = [...new Set(tops)];
+          return {
+            groups: groups.length,
+            rows: rows.length,
+            perRow: rows.map((t) => tops.filter((x) => x === t).length),
+          };
+        })(),
+        snippetOverflow: (() => {
+          const body = el('.ixSnippetBody');
+          return body ? body.scrollWidth - body.clientWidth : null;
+        })(),
         // The masthead's ink edges, which are the box inset by its own padding. The panel and the
         // h1 are measured against these rather than against the box, because the box keeps a
         // right-hand gutter below the breakpoint and the ink is what a reader sees.
@@ -573,21 +624,22 @@ const out = {};
         panelRight: rect('.ixPanel')?.right ?? null,
       };
     });
-    out.landingWide = wide;
+    out.landingWide ??= {};
+    out.landingWide[wideWidth] = wide;
 
     // 1. The navbar reaches both gutters.
     if (wide.innerLeft === null || wide.innerRight === null) {
-      stickyProblems.push('landing wide: could not measure the navbar inner');
+      stickyProblems.push(`landing ${wideWidth}: could not measure the navbar inner`);
     } else {
       if (Math.abs(wide.innerLeft - wide.gutter) > 1.5) {
         stickyProblems.push(
-          `landing wide: navbar inner starts at ${Math.round(wide.innerLeft)}px, expected the ${wide.gutter}px gutter`,
+          `landing ${wideWidth}: navbar inner starts at ${Math.round(wide.innerLeft)}px, expected the ${wide.gutter}px gutter`,
         );
       }
       const rightGap = wide.viewportWidth - wide.innerRight;
       if (Math.abs(rightGap - wide.gutter) > 1.5) {
         stickyProblems.push(
-          `landing wide: navbar inner ends ${Math.round(rightGap)}px from the window edge, expected the ${wide.gutter}px gutter`,
+          `landing ${wideWidth}: navbar inner ends ${Math.round(rightGap)}px from the window edge, expected the ${wide.gutter}px gutter`,
         );
       }
     }
@@ -595,18 +647,18 @@ const out = {};
     // 2. The body is centred, and has actually moved off the gutter. The second check matters
     //    because a media query that never applied would satisfy the first one trivially.
     if (wide.mainLeft === null || wide.mainRight === null) {
-      stickyProblems.push('landing wide: could not measure the page body');
+      stickyProblems.push(`landing ${wideWidth}: could not measure the page body`);
     } else {
       const slackLeft = wide.mainLeft;
       const slackRight = wide.viewportWidth - wide.mainRight;
       if (Math.abs(slackLeft - slackRight) > 1.5) {
         stickyProblems.push(
-          `landing wide: body is not centred, ${Math.round(slackLeft)}px left of it and ${Math.round(slackRight)}px right`,
+          `landing ${wideWidth}: body is not centred, ${Math.round(slackLeft)}px left of it and ${Math.round(slackRight)}px right`,
         );
       }
       if (slackLeft < 24) {
         stickyProblems.push(
-          `landing wide: body starts at ${Math.round(wide.mainLeft)}px, so the centred shell is not in effect`,
+          `landing ${wideWidth}: body starts at ${Math.round(wide.mainLeft)}px, so the centred shell is not in effect`,
         );
       }
       // 4. The panel's right edge is the masthead's right ink edge.
@@ -616,29 +668,132 @@ const out = {};
         Math.abs(wide.panelRight - wide.mastInkRight) > 1.5
       ) {
         stickyProblems.push(
-          `landing wide: quick-start panel right edge is ${Math.round(wide.panelRight - wide.mastInkRight)}px off the masthead right ink edge`,
+          `landing ${wideWidth}: quick-start panel right edge is ${Math.round(wide.panelRight - wide.mastInkRight)}px off the masthead right ink edge`,
         );
       }
       // And the h1 starts on the masthead's left ink edge. It does not line up with the navbar
       // label any more, by decision: the body centres and only the chrome stays on the gutter.
       if (wide.h1Left !== null && wide.mastInkLeft !== null && Math.abs(wide.h1Left - wide.mastInkLeft) > 1.5) {
         stickyProblems.push(
-          `landing wide: masthead h1 is ${Math.round(wide.h1Left - wide.mastInkLeft)}px off the masthead left ink edge`,
+          `landing ${wideWidth}: masthead h1 is ${Math.round(wide.h1Left - wide.mastInkLeft)}px off the masthead left ink edge`,
         );
       }
     }
 
-    // 3. The version pills stay on the navbar's first label.
-    if (wide.pillLeft === null || wide.navFirstLinkLeft === null) {
-      stickyProblems.push('landing wide: could not measure the version pill');
-    } else if (Math.abs(wide.pillLeft - wide.navFirstLinkLeft) > 1.5) {
+    // 3. The version pills sit on the body's own left ink edge, which above the breakpoint is where
+    //    the h1 sits too. See invariant 3 above for why this is no longer the navbar's label.
+    if (wide.pillLeft === null || wide.mastInkLeft === null) {
+      stickyProblems.push(`landing ${wideWidth}: could not measure the version pill`);
+    } else if (Math.abs(wide.pillLeft - wide.mastInkLeft) > 1.5) {
       stickyProblems.push(
-        `landing wide: version pill is ${Math.round(wide.pillLeft - wide.navFirstLinkLeft)}px off the first navbar button`,
+        `landing ${wideWidth}: version pill is ${Math.round(wide.pillLeft - wide.mastInkLeft)}px off the masthead left ink edge`,
+      );
+    }
+
+    // 5. Neither band below the masthead carries an empty track.
+    if (wide.figureLeft === null || wide.modelListRight === null || wide.modelRight === null) {
+      stickyProblems.push(`landing ${wideWidth}: could not measure the model band`);
+    } else {
+      if (wide.figureLeft <= wide.modelListRight) {
+        stickyProblems.push(
+          `landing ${wideWidth}: the model figure is not beside the list, so the band has an empty column`,
+        );
+      }
+      if (Math.abs(wide.figureRight - wide.modelRight) > 1.5) {
+        stickyProblems.push(
+          `landing ${wideWidth}: the model figure ends ${Math.round(wide.modelRight - wide.figureRight)}px short of the band`,
+        );
+      }
+    }
+    if (wide.journeyRight === null || wide.journeyInviteRight === null) {
+      stickyProblems.push(`landing ${wideWidth}: could not measure the journey band`);
+    } else if (Math.abs(wide.journeyRight - wide.journeyInviteRight) > 1.5) {
+      stickyProblems.push(
+        `landing ${wideWidth}: the journey ends ${Math.round(wide.journeyRight - wide.journeyInviteRight)}px short of its band`,
+      );
+    }
+
+    // 6. Measure, sitemap rows, and the quick-start block.
+    if (wide.modelListCh === null) {
+      stickyProblems.push(`landing ${wideWidth}: could not measure the model list`);
+    } else if (wide.modelListCh > 70) {
+      stickyProblems.push(
+        `landing ${wideWidth}: the model list runs ${Math.round(wide.modelListCh)} characters, expected 68 or fewer`,
+      );
+    }
+    if (!wide.indexRows) {
+      stickyProblems.push(`landing ${wideWidth}: could not measure the sitemap`);
+    } else {
+      const {groups, rows, perRow} = wide.indexRows;
+      if (perRow.length > 1 && perRow[perRow.length - 1] !== perRow[0]) {
+        stickyProblems.push(
+          `landing ${wideWidth}: the sitemap's last row holds ${perRow[perRow.length - 1]} of ${perRow[0]} groups, so a group is orphaned (${groups} groups over ${rows} rows)`,
+        );
+      }
+    }
+    if (wide.snippetOverflow === null) {
+      stickyProblems.push(`landing ${wideWidth}: could not measure the quick-start block`);
+    } else if (wide.snippetOverflow > 1) {
+      stickyProblems.push(
+        `landing ${wideWidth}: the quick-start block hides ${wide.snippetOverflow}px of command to the right`,
       );
     }
     if (wide.scrollWidth - wide.viewportWidth > 1) {
       stickyProblems.push(
-        `landing wide: ${wide.scrollWidth - wide.viewportWidth}px of horizontal overflow`,
+        `landing ${wideWidth}: ${wide.scrollWidth - wide.viewportWidth}px of horizontal overflow`,
+      );
+    }
+    await ctx.close();
+    }
+  }
+
+  // 834px is an iPad in portrait, and it was the worst reading measure on the site: the model band
+  // collapsed to one column and nothing capped the list, so it ran 84 characters, past this
+  // project's 68 and past the 80 in WCAG 1.4.8. Measured on 2026-08-27. The width is checked on its
+  // own because it is between the two the rest of the harness uses, 1440 and 375, and neither one
+  // showed it.
+  {
+    const ctx = await browser.newContext({viewport: {width: 834, height: 900}, colorScheme: 'dark'});
+    const page = await ctx.newPage();
+    await page.goto(`${server.origin}/`, {waitUntil: 'networkidle'});
+    const tablet = await page.evaluate(() => {
+      const li = document.querySelector('.ixModelList li');
+      const body = document.querySelector('.ixSnippetBody');
+      let ch = null;
+      if (li) {
+        const probe = document.createElement('span');
+        probe.textContent = '0';
+        probe.style.font = getComputedStyle(li).font;
+        probe.style.position = 'absolute';
+        probe.style.visibility = 'hidden';
+        document.body.append(probe);
+        const chWidth = probe.getBoundingClientRect().width;
+        probe.remove();
+        ch = chWidth ? li.getBoundingClientRect().width / chWidth : null;
+      }
+      return {
+        modelListCh: ch,
+        snippetOverflow: body ? body.scrollWidth - body.clientWidth : null,
+        scrollWidth: document.documentElement.scrollWidth,
+        viewportWidth: window.innerWidth,
+      };
+    });
+    out.landingTablet = tablet;
+    if (tablet.modelListCh === null) {
+      stickyProblems.push('landing 834: could not measure the model list');
+    } else if (tablet.modelListCh > 70) {
+      stickyProblems.push(
+        `landing 834: the model list runs ${Math.round(tablet.modelListCh)} characters, expected 68 or fewer`,
+      );
+    }
+    if (tablet.snippetOverflow !== null && tablet.snippetOverflow > 1) {
+      stickyProblems.push(
+        `landing 834: the quick-start block hides ${tablet.snippetOverflow}px of command to the right`,
+      );
+    }
+    if (tablet.scrollWidth - tablet.viewportWidth > 1) {
+      stickyProblems.push(
+        `landing 834: ${tablet.scrollWidth - tablet.viewportWidth}px of horizontal overflow`,
       );
     }
     await ctx.close();

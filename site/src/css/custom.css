@@ -284,19 +284,16 @@ html {
     var(--epic-page-gutter) + var(--epic-navbar-brand-slot) + var(--epic-navbar-item-inset)
   );
   --epic-content-max: var(--ifm-container-width, 1140px);
-  /* The centred shell, used above --epic-page-centre-from only. It is the content cap plus the
-     brand slot, so the navbar inner and the landing page can be centred on the same box: centring
-     equal widths inside the navbar's symmetric padding and inside the full page width lands on the
-     same x, which is what keeps the first nav label and the page's left edge together.
+  /* How far into the page the ink starts while the body is left-anchored: the navbar's gutter, the
+     brand slot and the nav item's text inset, which is what puts the first nav label and the page's
+     left edge on the same x.
 
-     Derived from the tokens above rather than restated, so a change to the brand slot or the
-     content cap cannot leave the shell behind. */
-  --epic-page-shell: calc(
-    var(--epic-content-max) + var(--epic-page-inset) - var(--epic-page-gutter)
-  );
-  /* How far into the shell the page's ink starts: the brand slot and the nav item's text inset,
-     which is --epic-page-inset with the navbar's own gutter taken back off. */
-  --epic-page-shell-inset: calc(var(--epic-page-inset) - var(--epic-page-gutter));
+     There used to be two more tokens here, --epic-page-shell and --epic-page-shell-inset, which
+     centred a 1418px box and then pushed its contents 98px in from the left. That kept the ink
+     continuous across the centring breakpoint but left it permanently off-centre inside its own
+     window: at 2401px the ink had 589px of dark to its left and 492px to its right. Centring the
+     ink itself and moving the breakpoint up to where the two positions coincide gets both
+     properties, so the tokens are gone. See "The centred body" below. */
   /* The one gap left under the navbar, and it belongs to the contents panel alone. The sidebar
      and the breadcrumb row start on the navbar's bottom edge instead, so the left panel and the
      navbar read as a single charcoal shape and the breadcrumb is the top ink of the middle
@@ -315,6 +312,48 @@ html {
 @media (min-width: 1440px) {
   :root {
     --epic-content-max: var(--ifm-container-width-xl, 1320px);
+  }
+}
+
+/* ---- Bigger on a bigger screen ----------------------------------------
+   Two things grow together above the centring breakpoint, and they have to be together or each one
+   fails on its own.
+
+   The band grows, so the outer margin stops being half the window. At 2560px a 1320px band leaves
+   1240px of dark, which is 52% of the screen carrying nothing. 1600px is the top of the range the
+   reference sites use: it is Supabase's `large` page tier, and Tailwind's container tops out at
+   1536. Above that a page stops reading as a document.
+
+   The root grows, so a wider band is not the same 16px text in a thinner ribbon. Body copy was a
+   fixed 16px at every width and every display clamp above stops climbing at about a 1150px
+   container, so nothing on this site has ever got bigger on a bigger monitor. Scaling the root
+   scales type, the spacing scale, the control scale and the reading measure at once, because all
+   four are rem or ch. The measure stays 68 characters and simply occupies more pixels, which is the
+   property that makes this safe: widening a band without scaling the type is how prose ends up at
+   100 characters.
+
+   Both are `clamp`, not steps, so dragging a window edge does not jump. Both start at 1548px, which
+   is the centring seam, and both top out at 2560px, a 1440p monitor. The arithmetic: the band runs
+   1320 to 1600 over 1548 to 2560, so 280 / 1012 = 27.67vw with an 891.7px intercept. The root runs
+   16 to 18 over the same span, so 2 / 1012 = 0.198vw with a 0.809rem intercept.
+
+   rem in the intercept, never px. A px root font size overrides the reader's own browser font
+   setting; a rem intercept resolves against it, so a reader who runs 20px still gets 20px at 1548
+   and still grows from there.
+
+   Below 1548 nothing here applies: the min of each clamp is the value that was already in force, so
+   the left-anchored regime and every geometry number the harness asserts at 1440 and 1536 are
+   untouched. verify-runtime.mjs measures the landing page at 1800 and again at 2560 so both ends of
+   the ramp are covered.
+
+   Note for anyone reading the spacing tokens: --epic-space-16 and friends are named for the pixel
+   value they carry at a 16px root, and above 1548 that root is larger, so the names describe the
+   ratio rather than the rendered pixel. That is the intended behaviour of a rem scale and it is why
+   the tokens were rem in the first place. */
+@media (min-width: 1548px) {
+  :root {
+    font-size: clamp(100%, 0.809rem + 0.198vw, 112.5%);
+    --epic-content-max: clamp(1320px, 891.7px + 27.67vw, 1600px);
   }
 }
 
@@ -339,20 +378,28 @@ html {
    The upside is that the landing page and all 34 documentation routes now share one navbar
    geometry, so nothing in the chrome shifts when a reader leaves the homepage. */
 
-/* ---- The centred shell above 1450px -----------------------------------
-   Below this width the landing page stays exactly as it was: left-anchored on the navbar's first
-   label, capped at --epic-content-max. That is deliberate. The left-anchored rules carry the
-   mobile gutters, and a `min()` formulation that centred at every width would drop the right-hand
-   gutter below 996px, where the brand slot collapses to zero.
+/* ---- The centred body above 1548px -----------------------------------
+   Below this width the landing page is left-anchored on the navbar's first label and capped at
+   --epic-content-max. That is deliberate: the left-anchored rules carry the mobile gutters, and a
+   `min()` formulation that centred at every width would drop the right-hand gutter below 996px,
+   where the brand slot collapses to zero.
 
-   Above it, the page body centres on --epic-page-shell while the navbar stays on the gutters.
-   1450 is where the shell first has slack to move into: the shell is 1417.8px once
-   --epic-content-max switches to 1320 at 1440, plus the navbar's two 16px gutters. Starting the
-   query any lower would centre a box that still fills the window, which is a no-op that only costs
-   a reader confusion when they resize.
+   Above it the ink centres on --epic-content-max while the navbar stays on the window gutters.
 
-   The shell tokens are above; the rules that use them are in index-page.css, because the body is
-   the only thing that centres. verify-runtime.mjs measures the result at 1800px. */
+   1548 is not a taste breakpoint, it is the width where the two positions are the same pixel.
+   Left-anchored, the ink starts at --epic-page-inset, which resolves to 113.8px. Centred, it starts
+   at (W - 1320) / 2. Those are equal at W = 1320 + 2 x 113.8 = 1547.6. So crossing the breakpoint
+   moves nothing, and above it the ink has equal dark on both sides at every width. A media query
+   cannot read a custom property, so the number is written out; if --epic-content-max or the brand
+   slot changes, recompute it here.
+
+   The previous formulation started at 1450 and centred a 1418px box with a 98px left-only inset.
+   That also crossed seamlessly, but it left the ink 98px right of the window's centre for ever
+   after, which at 2401px is a 97px asymmetry a reader can see and cannot name. Measured on
+   2026-08-27.
+
+   The rules that use this are in index-page.css, because the body is the only thing that centres.
+   verify-runtime.mjs measures the result at 1800px. */
 
 .navbar {
   position: sticky;
