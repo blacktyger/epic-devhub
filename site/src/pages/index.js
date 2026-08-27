@@ -119,7 +119,7 @@ function Masthead() {
  * a copy button and a caveat line beneath.
  *
  * What it copies changed on 2026-08-27, from three commands that fetch a release archive to one
- * command that runs the installer at github.com/blacktyger/epic-install. Two measured reasons:
+ * command that runs the installer at github.com/blacktyger/epic-script. Two measured reasons:
  *
  *   1. The published Linux binaries link against GLIBC_2.39, so they do not start on anything
  *      older than Ubuntu 24.04. The download-and-unpack path silently failed for a large share of
@@ -136,16 +136,19 @@ function Masthead() {
  * clipboard holds a command that runs.
  */
 
-const INSTALL_REPO = 'https://github.com/blacktyger/epic-install';
-const INSTALL_RAW = 'https://raw.githubusercontent.com/blacktyger/epic-install/main';
+const INSTALL_REPO = 'https://github.com/blacktyger/epic-script';
+const INSTALL_RAW = 'https://raw.githubusercontent.com/blacktyger/epic-script/main';
 
 // Mirrors the installer's own --component values, so what this panel offers is what the script
-// accepts. `node_wallet` is the installer's default and is shown first for the same reason.
+// accepts. One position per binary, then All for the three together. An earlier "Both" tab for
+// node_wallet was removed because it read as a fourth component rather than a combination; All does
+// not have that problem, since it names a quantity rather than a thing. node_wallet is still
+// available from the command line.
 const COMPONENTS = [
-  {id: 'node_wallet', hasNode: true},
   {id: 'node', hasNode: true},
   {id: 'wallet', hasNode: false},
   {id: 'miner', hasNode: false},
+  {id: 'all', hasNode: true},
 ];
 
 const PLATFORMS = [
@@ -156,19 +159,19 @@ const PLATFORMS = [
 
 function componentLabels() {
   return {
-    node_wallet: translate({id: 'homepage.quickstart.bothLabel', message: 'Both', description: 'Tab label for installing the node and wallet together'}),
     node: translate({id: 'homepage.quickstart.nodeLabel', message: 'Node', description: 'Node tab label in quick start'}),
     wallet: translate({id: 'homepage.quickstart.walletLabel', message: 'Wallet', description: 'Wallet tab label in quick start'}),
     miner: translate({id: 'homepage.quickstart.minerLabel', message: 'Miner', description: 'Miner tab label in quick start'}),
+    all: translate({id: 'homepage.quickstart.allLabel', message: 'All', description: 'Tab label for building all three components'}),
   };
 }
 
 function componentTitles() {
   return {
-    node_wallet: translate({id: 'homepage.quickstart.bothTitle', message: 'Build the node and wallet', description: 'Title for the node and wallet option'}),
     node: translate({id: 'homepage.quickstart.nodeTitle', message: 'Build and run a node', description: 'Node quick start title'}),
     wallet: translate({id: 'homepage.quickstart.walletTitle', message: 'Build the wallet', description: 'Wallet quick start title'}),
     miner: translate({id: 'homepage.quickstart.minerTitle', message: 'Build the miner', description: 'Miner quick start title'}),
+    all: translate({id: 'homepage.quickstart.allTitle', message: 'Build the node, wallet and miner', description: 'Title for the all components option'}),
   };
 }
 
@@ -176,9 +179,17 @@ function componentTitles() {
  * The one command for a given selection.
  *
  * Unix passes flags through `sh -s --`, which is the documented way to hand arguments to a piped
- * script. Windows sets environment variables inside the same -c block instead, because iex cannot
- * bind parameters. Both forms are the ones the installer's own README documents, so a reader who
- * checks one against the other finds them the same.
+ * script. Windows sets environment variables instead, because a script piped into iex has no
+ * parameters to bind.
+ *
+ * No `powershell -ExecutionPolicy Bypass -c "..."` wrapper, for two reasons found by running it.
+ * From a PowerShell prompt the wrapper is actively broken: the outer shell expands
+ * `$env:EPIC_COMPONENT` inside the double quotes before the child process starts, so the child
+ * receives a bare `=node` token and the launch fails with "The Process object must have the
+ * UseShellExecute property set to false in order to use environment variables". And the bypass flag
+ * was never needed, because execution policy governs script files on disk, not a string handed to
+ * iex. Windows Terminal opens PowerShell, so the unwrapped form is the one that fits what a reader
+ * actually has in front of them. The README carries the cmd.exe variant for the other case.
  */
 function installCommand(componentId, platformId, fastSync) {
   const component = COMPONENTS.find((entry) => entry.id === componentId) ?? COMPONENTS[0];
@@ -189,7 +200,7 @@ function installCommand(componentId, platformId, fastSync) {
     if (wantsSnapshot) {
       env.push("$env:EPIC_FAST_SYNC='1'");
     }
-    return `powershell -ExecutionPolicy Bypass -c "${env.join('; ')}; irm ${INSTALL_RAW}/install.ps1 | iex"`;
+    return `${env.join('; ')}; irm ${INSTALL_RAW}/install.ps1 | iex`;
   }
 
   const flags = ['--component', component.id];
@@ -231,7 +242,7 @@ function QuickStartPanel() {
   const labels = componentLabels();
   const titles = componentTitles();
 
-  const [componentId, setComponentId] = useState('node_wallet');
+  const [componentId, setComponentId] = useState('node');
   const [chosenPlatform, setChosenPlatform] = useState(null);
   const [fastSync, setFastSync] = useState(false);
 
@@ -356,7 +367,7 @@ function QuickStartPanel() {
         </p>
         <p className="ixSnippetLinks">
           <Link to="/guides/build">
-            <Translate id="homepage.quickstart.buildLink" description="Link to the build from source guide">Build it yourself</Translate>
+            <Translate id="homepage.quickstart.buildLink" description="Link to the build from source guide">Manual build</Translate>
           </Link>
           <Link to={INSTALL_REPO}>
             <Translate id="homepage.quickstart.readScript" description="Link to read the installer source before running it">Read the script</Translate>

@@ -372,14 +372,6 @@
     "message": "Copy",
     "description": "Copy button label"
   },
-  "homepage.quickstart.bothLabel": {
-    "message": "Both",
-    "description": "Tab label for installing the node and wallet together"
-  },
-  "homepage.quickstart.bothTitle": {
-    "message": "Build the node and wallet",
-    "description": "Title for the node and wallet option"
-  },
   "homepage.quickstart.minerLabel": {
     "message": "Miner",
     "description": "Miner tab label in quick start"
@@ -409,12 +401,20 @@
     "description": "Note explaining that the installer builds from source"
   },
   "homepage.quickstart.buildLink": {
-    "message": "Build it yourself",
+    "message": "Manual build",
     "description": "Link to the build from source guide"
   },
   "homepage.quickstart.readScript": {
     "message": "Read the script",
     "description": "Link to read the installer source before running it"
+  },
+  "homepage.quickstart.allLabel": {
+    "message": "All",
+    "description": "Tab label for building all three components"
+  },
+  "homepage.quickstart.allTitle": {
+    "message": "Build the node, wallet and miner",
+    "description": "Title for the all components option"
   },
   "homepage.journey.kicker": {
     "message": "The developer journey",
