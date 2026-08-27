@@ -15,13 +15,13 @@
       - strong
         - link
   - figure
-    - button
     - tablist
       - tab
       - tab
       - tab
       - tab
       - tab
+    - button
     - group
     - list
       - listitem

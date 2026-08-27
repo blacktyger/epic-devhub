@@ -205,17 +205,18 @@ export function SlateExchange() {
           middle of a figure. Tabs before their panel is also the order `aria-controls` implies,
           so a screen reader reaches the choice before the thing it changes. */}
       <div className="seControls">
-        <button
-          type="button"
-          className="sePlay"
-          aria-pressed={!paused}
-          onClick={() => setPaused((p) => !p)}>
-          <svg className="sePlayIcon" viewBox="0 0 12 12" aria-hidden="true">
-            {paused ? <path d="M3 2l7 4-7 4z" /> : <path d="M3.5 2h2v8h-2zM6.5 2h2v8h-2z" />}
-          </svg>
-          <span>{paused ? playLabel : pauseLabel}</span>
-        </button>
+        {/* The state list comes first and the play control follows it, in the DOM and on screen at
+            every width. The row used to run the other way, and when it stopped fitting the wrap put
+            Pause alone on the first line with all five states on the second, which is the inverse of
+            what a reader wants: the states are the point of the row and the transport control is
+            secondary. Reported from a screenshot at a narrow figure column on 2026-08-27.
 
+            Ordered rather than repositioned on purpose. `order` or a grid row could keep Pause on the
+            left at wide widths and drop it below at narrow, but both leave the visual order
+            disagreeing with the tab order, and neither needs to exist: putting the two in the order
+            they should wrap in works at every width with no breakpoint and no threshold to get wrong.
+            The visible cost is that Pause sits at the right-hand end of the row on a wide screen
+            rather than the left. */}
         <div className="seDots" role="tablist" aria-label={outcomeAriaLabel} onKeyDown={onKeyDown}>
           {SCENARIOS.map((item, i) => (
             <button
@@ -235,6 +236,17 @@ export function SlateExchange() {
             </button>
           ))}
         </div>
+
+        <button
+          type="button"
+          className="sePlay"
+          aria-pressed={!paused}
+          onClick={() => setPaused((p) => !p)}>
+          <svg className="sePlayIcon" viewBox="0 0 12 12" aria-hidden="true">
+            {paused ? <path d="M3 2l7 4-7 4z" /> : <path d="M3.5 2h2v8h-2zM6.5 2h2v8h-2z" />}
+          </svg>
+          <span>{paused ? playLabel : pauseLabel}</span>
+        </button>
       </div>
       <div
         className="seScreen"
