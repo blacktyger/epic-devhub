@@ -15,6 +15,13 @@
       - strong
         - link
   - figure
+    - button
+    - tablist
+      - tab
+      - tab
+      - tab
+      - tab
+      - tab
     - group
     - list
       - listitem
@@ -28,13 +35,6 @@
       - listitem
         - button
     - paragraph
-    - button
-    - tablist
-      - tab
-      - tab
-      - tab
-      - tab
-      - tab
   - heading [level=2]
   - heading [level=2]
   - paragraph

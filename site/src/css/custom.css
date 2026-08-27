@@ -1531,15 +1531,19 @@ div[class^='announcementBar'] a:hover {
   outline-offset: -2px;
 }
 
-/* Minimal navigation: a mark and a short label per screen, on one row, with the play control. */
+/* Minimal navigation: a mark and a short label per screen, on one row, with the play control.
+
+   It is the first row of the figure rather than the last, so the rule sits under it and separates it
+   from the diagram. It was a footer with a rule above it, which is the same row doing the same job in
+   the other direction; see the comment in SlateExchange.js for why the order changed. */
 .seControls {
   display: flex;
   align-items: center;
   gap: 1.4rem;
   flex-wrap: wrap;
-  margin-top: 0.9rem;
-  padding-top: 0.8rem;
-  border-top: 1px solid var(--epic-line);
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--epic-line);
 }
 .sePlay {
   display: inline-flex;

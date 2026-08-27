@@ -198,6 +198,44 @@ export function SlateExchange() {
 
   return (
     <div className="slateExchange" ref={rootRef}>
+      {/* The picker sits above the diagram, not under it. It is the control for everything
+          below it, so it reads in the order it is used: choose a state, watch it, then read the
+          steps. It also puts the reserved height at the very bottom of the section, where the
+          slack under a short scenario reads as section padding rather than as a hole in the
+          middle of a figure. Tabs before their panel is also the order `aria-controls` implies,
+          so a screen reader reaches the choice before the thing it changes. */}
+      <div className="seControls">
+        <button
+          type="button"
+          className="sePlay"
+          aria-pressed={!paused}
+          onClick={() => setPaused((p) => !p)}>
+          <svg className="sePlayIcon" viewBox="0 0 12 12" aria-hidden="true">
+            {paused ? <path d="M3 2l7 4-7 4z" /> : <path d="M3.5 2h2v8h-2zM6.5 2h2v8h-2z" />}
+          </svg>
+          <span>{paused ? playLabel : pauseLabel}</span>
+        </button>
+
+        <div className="seDots" role="tablist" aria-label={outcomeAriaLabel} onKeyDown={onKeyDown}>
+          {SCENARIOS.map((item, i) => (
+            <button
+              key={item.id}
+              type="button"
+              ref={(el) => {
+                dotRefs.current[item.id] = el;
+              }}
+              className={`seDot${i === index ? ' isActive' : ''}`}
+              role="tab"
+              aria-selected={i === index}
+              aria-controls={panelId}
+              tabIndex={i === index ? 0 : -1}
+              onClick={() => go(i)}>
+              <span className="seDotMark" aria-hidden="true" />
+              <span className="seDotLabel">{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
       <div
         className="seScreen"
         id={panelId}
@@ -358,38 +396,6 @@ export function SlateExchange() {
         {liveStep}
       </p>
 
-      <div className="seControls">
-        <button
-          type="button"
-          className="sePlay"
-          aria-pressed={!paused}
-          onClick={() => setPaused((p) => !p)}>
-          <svg className="sePlayIcon" viewBox="0 0 12 12" aria-hidden="true">
-            {paused ? <path d="M3 2l7 4-7 4z" /> : <path d="M3.5 2h2v8h-2zM6.5 2h2v8h-2z" />}
-          </svg>
-          <span>{paused ? playLabel : pauseLabel}</span>
-        </button>
-
-        <div className="seDots" role="tablist" aria-label={outcomeAriaLabel} onKeyDown={onKeyDown}>
-          {SCENARIOS.map((item, i) => (
-            <button
-              key={item.id}
-              type="button"
-              ref={(el) => {
-                dotRefs.current[item.id] = el;
-              }}
-              className={`seDot${i === index ? ' isActive' : ''}`}
-              role="tab"
-              aria-selected={i === index}
-              aria-controls={panelId}
-              tabIndex={i === index ? 0 : -1}
-              onClick={() => go(i)}>
-              <span className="seDotMark" aria-hidden="true" />
-              <span className="seDotLabel">{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
