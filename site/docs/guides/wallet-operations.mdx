@@ -132,11 +132,14 @@ See [what reserves outputs](/concepts/outputs-and-locking#what-reserves-outputs)
 Quote the fee before committing to it:
 
 ```bash
-epic-wallet send --estimate_only -m epicbox -d <recipient-address> <amount>
+epic-wallet send -e -m epicbox -d <recipient-address> <amount>
 ```
 
-Fees follow the number of inputs and outputs rather than a flat rate. Consolidating many small outputs
-increases the estimate.
+`-e`/`--estimate-selection` prints the amount and fee for both selection strategies and builds nothing
+(<Src repo="wallet" path="controller/src/command.rs" line={482} />).
+
+Fees follow the number of inputs and outputs rather than a flat rate, and the arithmetic is in
+[keep more than one spendable output](#keep-more-than-one-spendable-output).
 
 After posting, the command polls the node's mempool to confirm the transaction arrived; see
 [the send appears to hang](/guides/stuck-transactions#case-3-the-send-appears-to-hang). With
@@ -145,6 +148,59 @@ and your own listener finalises it.
 
 Epicbox uses slate V2 and cannot carry
 a payment proof. See [transports](/concepts/transports#comparison).
+
+## Keep more than one spendable output {/* #keep-more-than-one-spendable-output */}
+
+A wallet holding a single output can run one transfer at a time. The send locks that output and writes
+the change as unconfirmed, so nothing is spendable until the transfer confirms and the change reaches
+`--min_conf` confirmations. See
+[what reserves outputs](/concepts/outputs-and-locking#what-reserves-outputs).
+
+Split the balance by sending to yourself. `-m self` locks the inputs and receives the slate back into the
+same wallet in one command (<Src repo="wallet" path="controller/src/command.rs" line={550} />), `-d` names
+the destination account, and `-o` sets how many change outputs it writes:
+
+```bash
+epic-wallet send -m self -d default -o 3 10
+```
+
+<Risk level="spend" /> This is an on-chain transfer and it locks the selected inputs until it confirms,
+like any other send. It returns them as four independent outputs.
+
+That transaction has one input, four outputs and one kernel: 10 EPIC paid back to your own `default`
+account plus three change outputs. Once it confirms, four transfers can be in flight at once instead of
+one.
+
+### What an output costs {/* #what-an-output-costs */}
+
+The fee is the transaction's weight times <Ver k="baseFee" /> EPIC. Weight counts each output four
+times, each kernel once, subtracts each input, and has a floor of 1
+(<Fn repo="node" path="core/src/core/transaction.rs" line={671} name="weight" />,
+<Fn repo="node" path="core/src/libtx/mod.rs" line={40} name="tx_fee" />):
+
+```text
+weight = max(4 × outputs + kernels − inputs, 1)
+```
+
+| Transaction | Inputs | Outputs | Weight | Fee |
+| --- | --- | --- | --- | --- |
+| Send with one change output | 1 | 2 | 8 | 0.008 |
+| Self-send with three change outputs | 1 | 4 | 16 | 0.016 |
+| Self-send with seven change outputs | 1 | 8 | 32 | 0.032 |
+| Send consolidating ten outputs | 10 | 2 | 1 | 0.001 |
+
+Each additional output adds 0.004 EPIC. Each additional input removes 0.001, down to the floor.
+
+### Which outputs a send spends {/* #which-outputs-a-send-spends */}
+
+| `-s`/`--selection` | Selects | Result |
+| --- | --- | --- |
+| `smallest`, the default | the fewest outputs that cover the amount and the fee | the rest of the balance stays spendable |
+| `all` | every output with at least `--min_conf` confirmations | the whole spendable balance is locked for the transfer, the fee is lower, and one change output comes back |
+
+`all` consolidates. It is the cheapest way to move a balance and it returns the wallet to holding one
+output, so a wallet that sends often is better served by `smallest` plus a periodic split. It also links
+the spent outputs to each other on chain; see [InitTxArgs](/api/wallet-owner#inittxargs).
 
 ## Repost a completed transfer that never confirmed {/* #repost-a-completed-transfer-that-never-confirmed */}
 
