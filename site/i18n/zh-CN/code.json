@@ -344,26 +344,6 @@
     "message": "运行节点",
     "description": "Node quick start title"
   },
-  "homepage.quickstart.nodeSetupLink": {
-    "message": "节点与钱包配置",
-    "description": "Link to mainnet setup guide"
-  },
-  "homepage.quickstart.checksums": {
-    "message": "校验和及其他构建产物",
-    "description": "Link to downloads page"
-  },
-  "homepage.quickstart.nodeLinuxNote": {
-    "message": "Linux x86-64。",
-    "description": "Platform note for node Linux"
-  },
-  "homepage.quickstart.nodeMacNote": {
-    "message": "Apple silicon。Gatekeeper会拦截未签名的二进制文件，需手动允许后方可运行。",
-    "description": "Platform note for node macOS"
-  },
-  "homepage.quickstart.nodeWinNote": {
-    "message": "x86-64，PowerShell。",
-    "description": "Platform note for node Windows"
-  },
   "homepage.quickstart.walletLabel": {
     "message": "钱包",
     "description": "Wallet tab label in quick start"
@@ -371,18 +351,6 @@
   "homepage.quickstart.walletTitle": {
     "message": "创建钱包",
     "description": "Wallet quick start title"
-  },
-  "homepage.quickstart.walletOpsLink": {
-    "message": "钱包操作",
-    "description": "Link to wallet operations guide"
-  },
-  "homepage.quickstart.walletLinuxNote": {
-    "message": "Linux x86-64。",
-    "description": "Platform note for wallet Linux"
-  },
-  "homepage.quickstart.walletWinNote": {
-    "message": "x86-64，PowerShell。",
-    "description": "Platform note for wallet Windows"
   },
   "homepage.quickstart.heading": {
     "message": "快速开始",

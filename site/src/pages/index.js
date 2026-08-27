@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import Translate, {translate} from '@docusaurus/Translate';
@@ -118,116 +118,137 @@ function Masthead() {
  * copyable quick start, and the approved landing design puts a snippet there with prompt glyphs,
  * a copy button and a caveat line beneath.
  *
- * The design's placeholder commands clone the repository and run `cargo build --release`. These
- * download a prebuilt binary instead, for a verified reason: no official Epic image exists on
- * Docker Hub or GHCR, and every Dockerfile in the EpicCash org compiles the Rust tree during the
- * image build, so no Docker path is quicker than this one. The node workspace resolves 555
- * crates, which is not a first minute.
+ * What it copies changed on 2026-08-27, from three commands that fetch a release archive to one
+ * command that runs the installer at github.com/blacktyger/epic-install. Two measured reasons:
  *
- * Two tabs, because a developer needs both binaries and the wallet is not an afterthought. The
- * platform sets differ and the panel says so rather than papering over it: the node publishes
- * Linux, macOS arm64 and Windows builds, the wallet publishes Linux and Windows only, so macOS
- * needs a source build for the wallet.
+ *   1. The published Linux binaries link against GLIBC_2.39, so they do not start on anything
+ *      older than Ubuntu 24.04. The download-and-unpack path silently failed for a large share of
+ *      readers, and the panel had no room to say so.
+ *   2. No miner binary has ever been published for any platform, so the miner could not appear
+ *      here at all. A source build is the only path that covers all three components, and the
+ *      installer is what makes it one line.
+ *
+ * So the panel is a command builder rather than a set of fixed snippets: pick the component and
+ * the platform, toggle the chain snapshot, and the command updates. The platform defaults to the
+ * one the reader is on, resolved after mount so the server and the first client render agree.
  *
  * The prompt glyph is its own span and is left out of what the copy button writes, so the
- * clipboard holds commands that run. Commands are assembled from `releases`, so a release bump
- * cannot leave a URL pointing at an asset that no longer exists.
+ * clipboard holds a command that runs.
  */
-const nodeAsset = (key) => releases.node.assets.find((a) => a.key === key).file;
-const walletAsset = (key) => releases.wallet.assets.find((a) => a.key === key).file;
 
-function quickStartData() {
-  return [
-    {
-      id: 'node',
-      label: translate({id: 'homepage.quickstart.nodeLabel', message: 'Node', description: 'Node tab label in quick start'}),
-      title: translate({id: 'homepage.quickstart.nodeTitle', message: 'Run a node', description: 'Node quick start title'}),
-      links: [
-        {to: '/guides/mainnet-setup', label: translate({id: 'homepage.quickstart.nodeSetupLink', message: 'Node and wallet setup', description: 'Link to mainnet setup guide'})},
-        {to: '/downloads', label: translate({id: 'homepage.quickstart.checksums', message: 'Checksums and other builds', description: 'Link to downloads page'})},
-      ],
-      platforms: [
-        {
-          id: 'linux',
-          label: 'Linux',
-          note: translate({id: 'homepage.quickstart.nodeLinuxNote', message: 'Linux x86-64.', description: 'Platform note for node Linux'}),
-          commands: [
-            `curl -LO ${releases.node.download}/${nodeAsset('linux')}`,
-            `tar xzf ${nodeAsset('linux')}`,
-            `./${releases.node.unpacksTo.linux}/epic`,
-          ],
-        },
-        {
-          id: 'mac',
-          label: 'macOS',
-          note: translate({id: 'homepage.quickstart.nodeMacNote', message: 'Apple silicon. Gatekeeper blocks an unsigned binary until you allow it.', description: 'Platform note for node macOS'}),
-          commands: [
-            `curl -LO ${releases.node.download}/${nodeAsset('mac')}`,
-            `unzip ${nodeAsset('mac')}`,
-            `./${releases.node.unpacksTo.mac}/epic`,
-          ],
-        },
-        {
-          id: 'windows',
-          label: 'Windows',
-          note: translate({id: 'homepage.quickstart.nodeWinNote', message: 'x86-64, PowerShell.', description: 'Platform note for node Windows'}),
-          commands: [
-            `Invoke-WebRequest ${releases.node.download}/${nodeAsset('windows')} -OutFile epic.zip`,
-            'Expand-Archive epic.zip -DestinationPath epic',
-            '.\\epic\\epic.exe',
-          ],
-        },
-      ],
-    },
-    {
-      id: 'wallet',
-      label: translate({id: 'homepage.quickstart.walletLabel', message: 'Wallet', description: 'Wallet tab label in quick start'}),
-      title: translate({id: 'homepage.quickstart.walletTitle', message: 'Create a wallet', description: 'Wallet quick start title'}),
-      links: [
-        {to: '/guides/wallet-operations', label: translate({id: 'homepage.quickstart.walletOpsLink', message: 'Wallet operations', description: 'Link to wallet operations guide'})},
-        {to: '/downloads', label: translate({id: 'homepage.quickstart.checksums', message: 'Checksums and other builds', description: 'Link to downloads page'})},
-      ],
-      platforms: [
-        {
-          id: 'linux',
-          label: 'Linux',
-          note: translate({id: 'homepage.quickstart.walletLinuxNote', message: 'Linux x86-64.', description: 'Platform note for wallet Linux'}),
-          commands: [
-            `curl -LO ${releases.wallet.download}/${walletAsset('linux')}`,
-            `unzip ${walletAsset('linux')}`,
-            './epic-wallet init',
-          ],
-        },
-        {
-          id: 'windows',
-          label: 'Windows',
-          note: translate({id: 'homepage.quickstart.walletWinNote', message: 'x86-64, PowerShell.', description: 'Platform note for wallet Windows'}),
-          commands: [
-            `Invoke-WebRequest ${releases.wallet.download}/${walletAsset('windows')} -OutFile epic-wallet.exe`,
-            '.\\epic-wallet.exe init',
-          ],
-        },
-      ],
-    },
-  ];
+const INSTALL_REPO = 'https://github.com/blacktyger/epic-install';
+const INSTALL_RAW = 'https://raw.githubusercontent.com/blacktyger/epic-install/main';
+
+// Mirrors the installer's own --component values, so what this panel offers is what the script
+// accepts. `node_wallet` is the installer's default and is shown first for the same reason.
+const COMPONENTS = [
+  {id: 'node_wallet', hasNode: true},
+  {id: 'node', hasNode: true},
+  {id: 'wallet', hasNode: false},
+  {id: 'miner', hasNode: false},
+];
+
+const PLATFORMS = [
+  {id: 'linux', label: 'Linux', prompt: '$ '},
+  {id: 'macos', label: 'macOS', prompt: '$ '},
+  {id: 'windows', label: 'Windows', prompt: '> '},
+];
+
+function componentLabels() {
+  return {
+    node_wallet: translate({id: 'homepage.quickstart.bothLabel', message: 'Both', description: 'Tab label for installing the node and wallet together'}),
+    node: translate({id: 'homepage.quickstart.nodeLabel', message: 'Node', description: 'Node tab label in quick start'}),
+    wallet: translate({id: 'homepage.quickstart.walletLabel', message: 'Wallet', description: 'Wallet tab label in quick start'}),
+    miner: translate({id: 'homepage.quickstart.minerLabel', message: 'Miner', description: 'Miner tab label in quick start'}),
+  };
+}
+
+function componentTitles() {
+  return {
+    node_wallet: translate({id: 'homepage.quickstart.bothTitle', message: 'Build the node and wallet', description: 'Title for the node and wallet option'}),
+    node: translate({id: 'homepage.quickstart.nodeTitle', message: 'Build and run a node', description: 'Node quick start title'}),
+    wallet: translate({id: 'homepage.quickstart.walletTitle', message: 'Build the wallet', description: 'Wallet quick start title'}),
+    miner: translate({id: 'homepage.quickstart.minerTitle', message: 'Build the miner', description: 'Miner quick start title'}),
+  };
+}
+
+/**
+ * The one command for a given selection.
+ *
+ * Unix passes flags through `sh -s --`, which is the documented way to hand arguments to a piped
+ * script. Windows sets environment variables inside the same -c block instead, because iex cannot
+ * bind parameters. Both forms are the ones the installer's own README documents, so a reader who
+ * checks one against the other finds them the same.
+ */
+function installCommand(componentId, platformId, fastSync) {
+  const component = COMPONENTS.find((entry) => entry.id === componentId) ?? COMPONENTS[0];
+  const wantsSnapshot = fastSync && component.hasNode;
+
+  if (platformId === 'windows') {
+    const env = [`$env:EPIC_COMPONENT='${component.id}'`];
+    if (wantsSnapshot) {
+      env.push("$env:EPIC_FAST_SYNC='1'");
+    }
+    return `powershell -ExecutionPolicy Bypass -c "${env.join('; ')}; irm ${INSTALL_RAW}/install.ps1 | iex"`;
+  }
+
+  const flags = ['--component', component.id];
+  if (wantsSnapshot) {
+    flags.push('--fast-sync');
+  }
+  return `curl -fsSL ${INSTALL_RAW}/install.sh | sh -s -- ${flags.join(' ')}`;
+}
+
+/**
+ * The platform the reader is on, or null while that is unknown.
+ *
+ * Null during server rendering and on the first client render, so both produce the same markup and
+ * hydration does not warn. The caller falls back to Linux until this resolves.
+ *
+ * userAgentData is preferred where it exists because it is not part of the User-Agent string that
+ * clients freeze and lie about. navigator.platform is deprecated but remains the most reliable
+ * fallback for this one question, and a wrong guess costs a single click.
+ */
+function useDetectedPlatform() {
+  const [detected, setDetected] = useState(null);
+
+  useEffect(() => {
+    const hint =
+      navigator.userAgentData?.platform ?? navigator.platform ?? navigator.userAgent ?? '';
+    if (/win/i.test(hint)) {
+      setDetected('windows');
+    } else if (/mac|darwin|iphone|ipad/i.test(hint)) {
+      setDetected('macos');
+    } else {
+      setDetected('linux');
+    }
+  }, []);
+
+  return detected;
 }
 
 function QuickStartPanel() {
-  const QUICK_START = quickStartData();
-  const [productId, setProductId] = useState('node');
-  const [platformId, setPlatformId] = useState('linux');
+  const labels = componentLabels();
+  const titles = componentTitles();
 
-  const product = QUICK_START.find((entry) => entry.id === productId);
-  // The wallet publishes no macOS build, so a platform carried over from the node tab may not
-  // exist here. Fall back rather than render an empty panel.
-  const active =
-    product.platforms.find((entry) => entry.id === platformId) ?? product.platforms[0];
+  const [componentId, setComponentId] = useState('node_wallet');
+  const [chosenPlatform, setChosenPlatform] = useState(null);
+  const [fastSync, setFastSync] = useState(false);
+
+  const detected = useDetectedPlatform();
+  // An explicit choice always wins over detection, so picking Windows on a Mac sticks.
+  const platformId = chosenPlatform ?? detected ?? 'linux';
+
+  const component = COMPONENTS.find((entry) => entry.id === componentId) ?? COMPONENTS[0];
+  const platform = PLATFORMS.find((entry) => entry.id === platformId) ?? PLATFORMS[0];
+  const snapshotOn = fastSync && component.hasNode;
+  const command = installCommand(componentId, platformId, fastSync);
 
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
-      // The prompt glyph is presentation, so only the commands are written.
-      await navigator.clipboard.writeText(active.commands.join('\n'));
+      // The prompt glyph is presentation, so only the command is written.
+      await navigator.clipboard.writeText(command);
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch {
@@ -238,7 +259,7 @@ function QuickStartPanel() {
   return (
     <aside className="ixPanel ixSnippet" aria-labelledby="ixQuickStartHead">
       <div className="ixSnippetHead">
-        {/* Says "Quick start" rather than the product name: the tabs below already name the
+        {/* Says "Quick start" rather than the component name: the tabs below already name the
             binary, and a reader needs to know what the panel is before what it runs. */}
         <p className="ixPanelHead ixSnippetTitle" id="ixQuickStartHead">
           <Translate id="homepage.quickstart.heading" description="Quick start panel heading">Quick start</Translate>
@@ -249,16 +270,16 @@ function QuickStartPanel() {
         <div className="ixSnippetTabs" role="group" aria-label={translate({
           id: 'homepage.quickstart.softwareAriaLabel',
           message: 'Software',
-          description: 'Aria label for the node/wallet tab group',
+          description: 'Aria label for the component tab group',
         })}>
-          {QUICK_START.map((entry) => (
+          {COMPONENTS.map((entry) => (
             <button
               key={entry.id}
               type="button"
-              className={`ixSnippetTab${entry.id === productId ? ' isActive' : ''}`}
-              aria-pressed={entry.id === productId}
-              onClick={() => setProductId(entry.id)}>
-              {entry.label}
+              className={`ixSnippetTab${entry.id === componentId ? ' isActive' : ''}`}
+              aria-pressed={entry.id === componentId}
+              onClick={() => setComponentId(entry.id)}>
+              {labels[entry.id]}
             </button>
           ))}
         </div>
@@ -269,16 +290,32 @@ function QuickStartPanel() {
         message: 'Platform',
         description: 'Aria label for the platform tab group',
       })}>
-        {product.platforms.map((entry) => (
+        {PLATFORMS.map((entry) => (
           <button
             key={entry.id}
             type="button"
-            className={`ixSnippetTab${entry.id === active.id ? ' isActive' : ''}`}
-            aria-pressed={entry.id === active.id}
-            onClick={() => setPlatformId(entry.id)}>
+            className={`ixSnippetTab${entry.id === platformId ? ' isActive' : ''}`}
+            aria-pressed={entry.id === platformId}
+            onClick={() => setChosenPlatform(entry.id)}>
             {entry.label}
           </button>
         ))}
+
+        {/* The snapshot is the node's chain database, so this is inert for the wallet and the
+            miner. Kept mounted and disabled rather than removed: the masthead's height is set by
+            this panel, and a control that appears and disappears moves every section of the page. */}
+        <button
+          type="button"
+          className={`ixSnippetTab ixSnippetToggle${snapshotOn ? ' isActive' : ''}`}
+          aria-pressed={snapshotOn}
+          disabled={!component.hasNode}
+          title={component.hasNode
+            ? translate({id: 'homepage.quickstart.fastSyncHint', message: 'Download a chain snapshot instead of validating from genesis.', description: 'Tooltip for the fast sync toggle'})
+            : translate({id: 'homepage.quickstart.fastSyncNA', message: 'Only applies when the node is included.', description: 'Tooltip shown when fast sync does not apply'})}
+          onClick={() => setFastSync((on) => !on)}>
+          <Translate id="homepage.quickstart.fastSync" description="Label for the fast sync toggle">Fast sync</Translate>
+        </button>
+
         {/* Copy sits on this row rather than below the code, as in the mockup's snippet head. In
             the foot it added a full-width button under three lines of commands, which at 375px
             made the panel's chrome taller than its content. */}
@@ -289,31 +326,41 @@ function QuickStartPanel() {
         </button>
       </div>
 
-      {/* tabIndex on the pre: the commands are longer than the column, so this scrolls, and a
-          scrollable region a keyboard cannot reach is unusable. */}
-      <pre className="ixSnippetBody" tabIndex={0}>
+      {/* tabIndex on the pre: the command is longer than the column, so this scrolls, and a
+          scrollable region a keyboard cannot reach is unusable. aria-live because the visible text
+          is the output of the controls above, so a screen reader needs telling it changed. */}
+      <pre className="ixSnippetBody" tabIndex={0} aria-live="polite">
         <code>
-          {active.commands.map((command) => (
-            <span className="ixSnippetLine" key={command}>
-              <span className="ixSnippetPrompt" aria-hidden="true">
-                {active.id === 'windows' ? '> ' : '$ '}
-              </span>
-              {command}
-            </span>
-          ))}
+          <span className="ixSnippetLine">
+            <span className="ixSnippetPrompt" aria-hidden="true">{platform.prompt}</span>
+            {command}
+          </span>
         </code>
       </pre>
 
       <div className="ixSnippetFoot">
         <p className="ixSnippetNote">
-          {product.title}. {active.note}
+          {titles[componentId]}.{' '}
+          <Translate id="homepage.quickstart.sourceNote" description="Note explaining that the installer builds from source">
+            Builds from pinned sources, so nothing prebuilt is downloaded.
+          </Translate>
+          {snapshotOn ? (
+            <>
+              {' '}
+              <Translate id="homepage.quickstart.fastSyncNote" description="Note explaining what happens when the snapshot cannot be fetched">
+                If the snapshot cannot be fetched the install still succeeds, and the installer
+                prints how to bootstrap by hand.
+              </Translate>
+            </>
+          ) : null}
         </p>
         <p className="ixSnippetLinks">
-          {product.links.map((link) => (
-            <Link key={link.to} to={link.to}>
-              {link.label}
-            </Link>
-          ))}
+          <Link to="/guides/build">
+            <Translate id="homepage.quickstart.buildLink" description="Link to the build from source guide">Build it yourself</Translate>
+          </Link>
+          <Link to={INSTALL_REPO}>
+            <Translate id="homepage.quickstart.readScript" description="Link to read the installer source before running it">Read the script</Translate>
+          </Link>
         </p>
       </div>
     </aside>

@@ -920,6 +920,17 @@
   outline: 2px solid var(--ifm-color-primary);
   outline-offset: 2px;
 }
+/* The fast-sync toggle. It shares .ixSnippetTab so the control row reads as one toolbar, and adds
+   only the disabled treatment: the snapshot applies to the node's chain database, so the toggle is
+   inert for the wallet and the miner. Kept mounted rather than removed, because this panel sets the
+   masthead's height and a control that appears and disappears drags every section of the page. */
+.ixSnippetToggle:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+.ixSnippetToggle:disabled:hover {
+  color: var(--ifm-color-content-secondary);
+}
 .ixSnippetBody {
   margin: 0;
   padding: 0.8rem 0.85rem;

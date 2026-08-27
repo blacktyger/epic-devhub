@@ -341,48 +341,16 @@
     "description": "Node tab label in quick start"
   },
   "homepage.quickstart.nodeTitle": {
-    "message": "Run a node",
+    "message": "Build and run a node",
     "description": "Node quick start title"
-  },
-  "homepage.quickstart.nodeSetupLink": {
-    "message": "Node and wallet setup",
-    "description": "Link to mainnet setup guide"
-  },
-  "homepage.quickstart.checksums": {
-    "message": "Checksums and other builds",
-    "description": "Link to downloads page"
-  },
-  "homepage.quickstart.nodeLinuxNote": {
-    "message": "Linux x86-64.",
-    "description": "Platform note for node Linux"
-  },
-  "homepage.quickstart.nodeMacNote": {
-    "message": "Apple silicon. Gatekeeper blocks an unsigned binary until you allow it.",
-    "description": "Platform note for node macOS"
-  },
-  "homepage.quickstart.nodeWinNote": {
-    "message": "x86-64, PowerShell.",
-    "description": "Platform note for node Windows"
   },
   "homepage.quickstart.walletLabel": {
     "message": "Wallet",
     "description": "Wallet tab label in quick start"
   },
   "homepage.quickstart.walletTitle": {
-    "message": "Create a wallet",
+    "message": "Build the wallet",
     "description": "Wallet quick start title"
-  },
-  "homepage.quickstart.walletOpsLink": {
-    "message": "Wallet operations",
-    "description": "Link to wallet operations guide"
-  },
-  "homepage.quickstart.walletLinuxNote": {
-    "message": "Linux x86-64.",
-    "description": "Platform note for wallet Linux"
-  },
-  "homepage.quickstart.walletWinNote": {
-    "message": "x86-64, PowerShell.",
-    "description": "Platform note for wallet Windows"
   },
   "homepage.quickstart.heading": {
     "message": "Quick start",
@@ -403,6 +371,50 @@
   "homepage.quickstart.copy": {
     "message": "Copy",
     "description": "Copy button label"
+  },
+  "homepage.quickstart.bothLabel": {
+    "message": "Both",
+    "description": "Tab label for installing the node and wallet together"
+  },
+  "homepage.quickstart.bothTitle": {
+    "message": "Build the node and wallet",
+    "description": "Title for the node and wallet option"
+  },
+  "homepage.quickstart.minerLabel": {
+    "message": "Miner",
+    "description": "Miner tab label in quick start"
+  },
+  "homepage.quickstart.minerTitle": {
+    "message": "Build the miner",
+    "description": "Miner quick start title"
+  },
+  "homepage.quickstart.fastSync": {
+    "message": "Fast sync",
+    "description": "Label for the fast sync toggle"
+  },
+  "homepage.quickstart.fastSyncHint": {
+    "message": "Download a chain snapshot instead of validating from genesis.",
+    "description": "Tooltip for the fast sync toggle"
+  },
+  "homepage.quickstart.fastSyncNA": {
+    "message": "Only applies when the node is included.",
+    "description": "Tooltip shown when fast sync does not apply"
+  },
+  "homepage.quickstart.fastSyncNote": {
+    "message": "If the snapshot cannot be fetched the install still succeeds, and the installer prints how to bootstrap by hand.",
+    "description": "Note explaining what happens when the snapshot cannot be fetched"
+  },
+  "homepage.quickstart.sourceNote": {
+    "message": "Builds from pinned sources, so nothing prebuilt is downloaded.",
+    "description": "Note explaining that the installer builds from source"
+  },
+  "homepage.quickstart.buildLink": {
+    "message": "Build it yourself",
+    "description": "Link to the build from source guide"
+  },
+  "homepage.quickstart.readScript": {
+    "message": "Read the script",
+    "description": "Link to read the installer source before running it"
   },
   "homepage.journey.kicker": {
     "message": "The developer journey",

@@ -344,26 +344,6 @@
     "message": "Запустить узел",
     "description": "Node quick start title"
   },
-  "homepage.quickstart.nodeSetupLink": {
-    "message": "Настройка узла и кошелька",
-    "description": "Link to mainnet setup guide"
-  },
-  "homepage.quickstart.checksums": {
-    "message": "Контрольные суммы и другие сборки",
-    "description": "Link to downloads page"
-  },
-  "homepage.quickstart.nodeLinuxNote": {
-    "message": "Linux x86-64.",
-    "description": "Platform note for node Linux"
-  },
-  "homepage.quickstart.nodeMacNote": {
-    "message": "Apple silicon. Gatekeeper блокирует неподписанный бинарник, пока вы не разрешите его запуск.",
-    "description": "Platform note for node macOS"
-  },
-  "homepage.quickstart.nodeWinNote": {
-    "message": "x86-64, PowerShell.",
-    "description": "Platform note for node Windows"
-  },
   "homepage.quickstart.walletLabel": {
     "message": "Кошелёк",
     "description": "Wallet tab label in quick start"
@@ -371,18 +351,6 @@
   "homepage.quickstart.walletTitle": {
     "message": "Создать кошелёк",
     "description": "Wallet quick start title"
-  },
-  "homepage.quickstart.walletOpsLink": {
-    "message": "Операции с кошельком",
-    "description": "Link to wallet operations guide"
-  },
-  "homepage.quickstart.walletLinuxNote": {
-    "message": "Linux x86-64.",
-    "description": "Platform note for wallet Linux"
-  },
-  "homepage.quickstart.walletWinNote": {
-    "message": "x86-64, PowerShell.",
-    "description": "Platform note for wallet Windows"
   },
   "homepage.quickstart.heading": {
     "message": "Быстрый старт",
