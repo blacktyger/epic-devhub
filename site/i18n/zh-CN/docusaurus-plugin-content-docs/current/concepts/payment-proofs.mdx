@@ -1,0 +1,49 @@
+---
+title: 支付证明
+description: Epic支付证明能证明什么、如何请求支付证明，以及由哪种传输方式承载。
+---
+
+# 支付证明
+
+在透明链上，证明你向某人付款意味着指向一笔交易。在Epic上没有任何东西可以指向，因为账本持有的是盲化的承诺（commitment），不含发送方、接收方或可读金额。因此，支付证明必须在转账时主动构建。
+
+支付证明就是这种构建产物。它将金额、发送方和接收方绑定为发送方日后可出示的凭据。
+
+## 它所证明的内容 {/* #what-it-establishes */}
+
+支付证明表明：特定接收方密钥的持有者确认在特定交易中从特定发送方收到了特定金额。
+
+它不能证明货物已交付、交易已获得确认，或接收方在协议之外就是其所声称的身份。它是一份密码学收据，且你保存的副本是唯一的，因为链上没有任何内容可供重建它。
+
+## 发送时请求支付证明 {/* #request-it-when-you-send */}
+
+支付证明无法事后生成。接收方在交换的轮次中对证明消息进行签名，因此必须在转账开始时请求。
+
+```bash
+epic-wallet send --request_payment_proof --proof_address <recipient_proof_address> -d <dest> 1.5
+```
+
+接收方的证明地址是必填项。向Tor地址发送时，钱包可自动提供该地址；否则接收方需从`epic-wallet address`提供。
+
+通过Owner API，在调用`init_send_tx`时在`InitTxArgs`上设置支付证明字段。检索和验证分别使用`retrieve_payment_proof`和`verify_payment_proof`。
+
+## 据此选择传输方式 {/* #choose-the-transport-accordingly */}
+
+支付证明是V3 slate字段，而epicbox会将所有slate转换为V2，因此证明请求在epicbox发送中不会保留（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={251} />）。需要支付证明的转账请通过其他任意传输方式路由；[对比说明](/concepts/transports#comparison)中有对照表。
+
+## 验证 {/* #verification */}
+
+如果证明所指定的交易内核（kernel）不在链上，或接收方签名、发送方签名中有任何一个无法通过证明消息验证，`verify_payment_proof`将返回错误。调用成功即表示证明有效。
+
+返回值是一对布尔值，表明调用钱包处于证明的哪一方，即`(sender_mine, recipient_mine)`，当钱包自身的证明地址与对应方匹配时各为true（<Fn repo="wallet" path="libwallet/src/api_impl/owner.rs" line={1082} name="verify_payment_proof" />，在<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={1143} />处返回）。JSON-RPC签名见<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={2161} />。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="传输方式" to="/concepts/transports">
+    哪些路由可携带支付证明。
+  </Card>
+  <Card title="Wallet Owner API" to="/api/wallet-owner">
+    用于请求、检索和验证支付证明的调用。
+  </Card>
+</CardGrid>

@@ -1,0 +1,124 @@
+---
+title: Загрузки
+description: Готовые бинарники узла и кошелька Epic с верификацией контрольной суммы и дальнейшими шагами.
+---
+
+import {releases} from '@site/src/data/versions';
+
+export const nodeAsset = (key) => releases.node.assets.find((a) => a.key === key);
+export const walletAsset = (key) => releases.wallet.assets.find((a) => a.key === key);
+export const sumFile = (file) => `${file.replace(/\.(tar\.gz|zip|exe)$/, '')}-sha256sum.txt`;
+
+# Загрузки
+
+Готовые бинарники публикуются в релизах GitHub. Бинарники для Linux собраны с динамической линковкой
+к `GLIBC_2.39`, поэтому требуют glibc 2.39 или новее, то есть Ubuntu 24.04 или более поздней версии.
+
+Чтобы собрать из исходников, см. [сборку бинарников](/guides/build).
+
+## Узел <Ver k="node" /> {/* #node-ver-knode- */}
+
+Релиз <a href={releases.node.url}>тег v<Ver k="node" /></a>, или{' '} <a href={releases.node.latest}>последний релиз</a> и <a href={releases.node.all}>все релизы</a>.
+
+| Платформа | Файл | Распаковывается в |
+| --- | --- | --- |
+| {nodeAsset('linux').platform} | <code>{nodeAsset('linux').file}</code> | <code>{releases.node.unpacksTo.linux}/</code> |
+| {nodeAsset('mac').platform} | <code>{nodeAsset('mac').file}</code> | <code>{releases.node.unpacksTo.mac}/</code> |
+| {nodeAsset('windows').platform} | <code>{nodeAsset('windows').file}</code> | `epic.exe`, без оборачивающего каталога |
+
+macOS Intel и Linux ARM требуют сборки из исходников.
+
+## Кошелёк <Ver k="wallet" /> {/* #wallet-ver-kwallet- */}
+
+Релиз <a href={releases.wallet.url}>тег v<Ver k="wallet" /></a>, или{' '} <a href={releases.wallet.latest}>последний релиз</a> и <a href={releases.wallet.all}>все релизы</a>.
+
+| Платформа | Файл | Распаковывается в |
+| --- | --- | --- |
+| {walletAsset('linux').platform} | <code>{walletAsset('linux').file}</code> | `epic-wallet`, без оборачивающего каталога |
+| {walletAsset('windows').platform} | <code>{walletAsset('windows').file}</code> | сам исполняемый файл, не архив |
+
+Архив назван по ветке 4.0, а не по полному тегу <Ver k="wallet" />, и содержит бинарник Linux x86-64 ELF.
+
+## Загрузить и проверить {/* #download-and-verify */}
+
+Рядом с каждым файлом публикуется файл контрольной суммы с тем же именем, но расширение заменено на
+`-sha256sum.txt`: <code>{sumFile(nodeAsset('linux').file)}</code> — для тарбола узла Linux, <code>{sumFile(walletAsset('linux').file)}</code> — для архива кошелька.
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux">
+
+```bash
+curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/epic-4.0.3-linux-amd64.tar.gz
+curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/epic-4.0.3-linux-amd64-sha256sum.txt
+
+sha256sum -c epic-4.0.3-linux-amd64-sha256sum.txt
+# ожидаемый результат: epic-4.0.3-linux-amd64.tar.gz: OK
+
+tar xzf epic-4.0.3-linux-amd64.tar.gz
+./epic --usernet
+```
+
+</TabItem>
+<TabItem value="mac" label="macOS">
+
+```bash
+curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/MacOS-aarch64-4.0.3.zip
+curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/MacOS-aarch64-4.0.3-sha256sum.txt
+
+shasum -a 256 -c MacOS-aarch64-4.0.3-sha256sum.txt
+unzip MacOS-aarch64-4.0.3.zip
+```
+
+Gatekeeper отклоняет неподписанный бинарник при первом запуске. Разрешите его в System Settings,
+Privacy and Security.
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+$tag = 'v4.0.3'
+$base = "https://github.com/EpicCash/epic/releases/download/$tag"
+Invoke-WebRequest "$base/Windows-$tag.zip" -OutFile "Windows-$tag.zip"
+Invoke-WebRequest "$base/Windows-$tag-sha256sum.txt" -OutFile "sha256sum.txt"
+
+# PowerShell не имеет `sha256sum -c`, поэтому сравните два значения вручную.
+(Get-FileHash "Windows-$tag.zip" -Algorithm SHA256).Hash.ToLower()
+Get-Content sha256sum.txt
+
+Expand-Archive "Windows-$tag.zip" -DestinationPath .
+```
+
+</TabItem>
+</Tabs>
+
+:::note
+Релизные бинарники собраны без `--features with-tor`, поэтому поддержка Tor в них отсутствует. Задайте `use_tor_listener = false` в
+[epic-wallet.toml](/reference/wallet-config) или соберите из исходников с этой функцией.
+:::
+
+## Другое программное обеспечение {/* #other-software */}
+
+| Программа | Репозиторий |
+| --- | --- |
+| Майнер | <Repo name="node">EpicCash/epic-miner</Repo> |
+| Десктопный GUI-кошелёк | `EpicCash/epic-gui-wallet` |
+| Обозреватель блоков | `EpicCash/epic_explorer` |
+| Epicbox relay | <Repo name="epicbox" /> |
+| Файлы сборки Docker | `EpicCash/epic-node-docker`, `EpicCash/epic-node-wallet-docker` |
+
+Мобильные кошельки — сторонние продукты. Stack Wallet поддерживает Epic и управляет одним из
+публичных epicbox-релеев.
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="Запустить локальную сеть" to="/guides/local-network">
+    Приватная цепочка, майнер и два кошелька.
+  </Card>
+  <Card title="Настройка узла и кошелька" to="/guides/mainnet-setup">
+    Mainnet — после того как локальная цепочка заработает корректно.
+  </Card>
+  <Card title="Выполнить перевод" to="/guides/first-transfer">
+    Сквозной сценарий на приватной локальной цепочке.
+  </Card>
+</CardGrid>

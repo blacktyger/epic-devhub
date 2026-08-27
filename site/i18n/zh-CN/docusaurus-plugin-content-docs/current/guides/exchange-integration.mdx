@@ -1,0 +1,114 @@
+---
+title: 交易所与商户集成
+sidebar_label: 交易所集成
+description: 如何架构Epic充值与提现流程，以及为何不存在按用户区分的充值地址。
+unlisted: "true"
+---
+
+# 交易所与商户集成
+
+Epic需要与基于地址的链不同的充值架构。大多数交易所后端使用的按用户分配充值地址模型在此不存在。
+
+## 不存在每用户充值地址{/* #per-user-deposit-addresses-do-not-exist */}
+
+通常的模式是为每个用户派生一个地址，监听链上对该地址的入账，并将每笔入账归属到对应用户。但这些步骤均不可用：
+
+- **账本中没有地址**。参见[MimbleWimble模型](/concepts/mimblewimble)。
+- **没有余额或历史查询**。无可轮询的内容。
+- 链上唯一的标识符是输出（output）承诺（commitment），这是一个盲化点，既不揭示任何一方的身份，也不揭示金额。
+- 充值**不能在无人值守的情况下到达**。Epic转账是交互式的，因此你方必须参与构建过程。参见[交互式交易](/concepts/interactive-transactions)。
+
+因此，归属关系不能来自链，而必须来自传输方式。
+
+## 替代方案{/* #what-replaces-it */}
+
+在充值端点中携带账户标识符。为每个用户暴露一个URL，让用户的钱包向该URL发送，并从路径中记录付款方。传输方式承载身份信息；链不承载任何身份信息。
+
+在反向代理后部署钱包监听器，将每个按用户划分的路径映射到钱包的Foreign API，并在slate到达时写入归属记录。
+
+### 将每用户路径映射到监听器{/* #map-a-per-user-path-onto-a-listener */}
+
+Epic特定的部分是现有TLS服务器内的一个`location`块。它从路径中捕获账户标识符，将其作为请求头传递给归属服务，并拒绝所有其他路径：
+
+```text title="/etc/nginx/conf.d/epic-deposits.conf"
+location ~ ^/deposit/([A-Za-z0-9_-]{1,64})$ {
+    proxy_set_header X-Epic-Account $1;
+    proxy_pass http://127.0.0.1:8080/receive;
+
+    client_max_body_size 1m;   # slates are small
+    proxy_read_timeout   120s; # the exchange is interactive
+}
+
+location / { return 404; }
+```
+
+`proxy_read_timeout`必须在一轮slate构建过程中持续存在。钱包的Foreign API绝不直接作为`proxy_pass`目标。归属服务才是目标，因此账户在任何内容被签名之前就已记录。
+
+### 联署前记录账户{/* #record-the-account-before-you-co-sign */}
+
+你在`127.0.0.1:8080`的服务将`X-Epic-Account`与传入的slate id关联记录，然后在钱包的Foreign API上调用`receive_tx`。[接收示例](/examples/send-receive#receiving)展示了该调用。Epic特定的要求是调用顺序：
+
+```python
+# 先写入归属信息并提交。未归属的入账无法
+# 在之后从链上重建，因此写入失败时拒绝该充值。
+await record_pending_deposit(account=x_epic_account, slate_id=slate["id"])
+return await receive_tx(slate)
+```
+
+slate id是关联键。它是你收到的slate的`id`字段，与钱包自身交易日志中显示为`tx_slate_id`的值相同，因此即使无法与链进行核对，归属关系也可在事后与钱包进行核对。
+
+:::danger[Your database is the only record of who paid you]
+
+链从未持有账户标识符，因此丢失或损坏的归属数据无法从链上重建。请将其作为主要财务数据进行备份。
+
+:::
+
+## 架构{/* #architecture */}
+
+1. **你自己的完整验证节点。** 参见[节点与钱包设置](/guides/mainnet-setup)。
+2. **热钱包**，运行Foreign API用于接收，运行Owner API供后端驱动。
+3. **反向代理**，负责终止TLS、将按用户划分的路径映射到监听器，并且只暴露这些路径。Foreign API不需要凭据，因为交易对手方无法持有凭据，因此代理是该接口上访问控制的全部。
+4. **Owner API上的凭据。** 该接口确实需要凭据，且你的后端是其唯一客户端。参见[接口说明](/api/authentication#the-surfaces)。
+5. **你的归属数据库**，在slate到达时同步写入。
+6. **提现处理**，通过Owner API执行，包含重试和取消逻辑。
+
+## 提现需要状态机{/* #withdrawals-need-a-state-machine */}
+
+提现是与用户钱包之间的一次交互，可能无法完成。
+
+- 发起发送会立即预留你的输出，因此未完成的提现队列会逐步冻结你的热钱包余额。参见[哪些操作会预留输出](/concepts/outputs-and-locking#what-reserves-outputs)。
+- 没有任何内容会自动过期。你决定何时放弃，并显式取消。参见[取消的前提条件](/concepts/outputs-and-locking#cancelling-has-preconditions)。
+- 发送路径在轮询内存池（mempool）时会阻塞，因此不要在请求线程上运行它。参见[发送似乎挂起](/guides/stuck-transactions#case-3-the-send-appears-to-hang)。
+
+将提现建模为：已创建、等待对手方、已最终确认、已广播、已确认或已取消。由于协议不提供截止时间，请自行设置截止时间，并在到期时取消以释放输出。
+
+## 确认深度{/* #confirmation-depth */}
+
+协议未规定充值确认深度。它固定的是一个区块深度的成本，目标出块时间为<Ver k="blockTimeSeconds" />秒。<Ver k="coinbaseMaturity" />个区块是共识本身在coinbase可被花费之前所要求的深度（[发行时序](/mining/emission#timing)）。
+
+读取特定充值的深度，方法是用链顶端高度减去该交易的`confirmation_height`，详见[交易的确认深度](/guides/wallet-operations#confirmation-depth-of-a-transaction)。两个值均来自后端已有的调用：节点上的`get_status`和钱包上的`retrieve_txs`。
+
+## 冷存储{/* #cold-storage */}
+
+接收需要交互式参与，因此接收方的密钥必须在接收时刻完成签名。这排除了像透明链那样向离线密钥接收的方式。
+
+`file`传输方式是将网络与密钥分离的基础构件。两端均无需网络，slate是一个文件。因此接收钱包可以离线运行，将slate传递给它并将响应带回，代价是转账不再自动完成。各传输方式及其各自要求在线的内容详见[传输方式](/concepts/transports#comparison)。
+
+事后归集到冷存储是从热钱包向你控制的钱包进行的普通发送，其预留和取消行为与其他任何发送相同。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="Wallet Owner API" to="/api/wallet-owner">
+    后端将调用的接口。
+  </Card>
+  <Card title="输出与锁定" to="/concepts/outputs-and-locking">
+    为何提现队列可能使热钱包陷入僵局。
+  </Card>
+  <Card title="运行本地网络" to="/guides/local-network">
+    用于测试失败路径的私有链。
+  </Card>
+  <Card title="支付证明" to="/concepts/payment-proofs#choose-the-transport-accordingly">
+    哪些传输方式携带支付证明，以及如何请求支付证明。
+  </Card>
+</CardGrid>

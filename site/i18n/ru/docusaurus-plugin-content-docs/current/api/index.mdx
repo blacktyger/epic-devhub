@@ -1,0 +1,95 @@
+---
+title: Справочник API
+sidebar_label: Обзор
+description: "Все поверхности API Epic Cash в одном месте: JSON-RPC поверхности узла, Owner и Foreign кошелька, а также протокол релея epicbox."
+---
+
+# Справочник API
+
+Epic предоставляет семь программируемых поверхностей в трёх программных компонентах. Выбор зависит
+от того, нужны ли вам данные цепочки или операции с ключами.
+
+<CardGrid>
+  <Card title="Node API" to="/api/node">
+    Данные цепочки, блоки, мемпул, пиры и отправка транзакций.
+  </Card>
+  <Card title="Wallet Owner API" to="/api/wallet-owner">
+    Балансы, переводы, доказательства. <Ver k="ownerApiMethods" /> методов. Это единственная поверхность, которая может
+    тратить средства.
+  </Card>
+  <Card title="Wallet Foreign API" to="/api/wallet-foreign">
+    Шесть методов слушателя для получения слейтов (slate) и формирования наград за майнинг.
+  </Card>
+  <Card title="Протокол релея Epicbox" to="/api/epicbox">
+    Протокол WebSocket, по которому слейты передаются между кошельками.
+  </Card>
+  <Card title="Аутентификация и TLS" to="/api/authentication">
+    Какие поверхности требуют учётные данные и как разместить перед ними TLS.
+  </Card>
+</CardGrid>
+
+## Краткий обзор {/* #at-a-glance */}
+
+| Поверхность | Где | Протокол | Порт по умолчанию | Может тратить |
+| --- | --- | --- | --- | --- |
+| Node `/v1/*` | node | REST, чтение цепочки и администрирование | <Ver k="ports.nodeApi" /> | No |
+| Node `/v2/owner` | node | JSON-RPC 2.0, администрирование узла | <Ver k="ports.nodeApi" /> | No |
+| Node `/v2/foreign` | node | JSON-RPC 2.0, чтение цепочки и отправка транзакций | <Ver k="ports.nodeApi" /> | No |
+| Wallet Owner `/v3/owner` | wallet | JSON-RPC 2.0, зашифрованный | <Ver k="ports.walletOwner" /> | **Yes** |
+| Wallet Owner `/v2/owner` | wallet | JSON-RPC 2.0, незашифрованный | <Ver k="ports.walletOwner" /> | **Yes** |
+| Wallet Foreign `/v2/foreign` | wallet | JSON-RPC 2.0 | <Ver k="ports.walletForeign" /> | No |
+| Epicbox relay | relay | WebSocket over TLS | <Ver k="ports.epicbox" /> | No |
+
+Документация актуальна для узла <Ver k="node" /> и кошелька <Ver k="wallet" />.
+
+Узел обслуживает `/v1` и `/v2` через один слушатель на одном порту как [два стиля интерфейса](/api/node#the-v1-rest-surface), а не
+два поколения. Оба активны, и на той странице каждый маршрут v1 сопоставлен с соответствующим
+методом JSON-RPC.
+
+Кошелёк также обслуживает обе поверхности Owner через один слушатель, и незашифрованный [`/v2/owner`](/api/wallet-owner#version-2)
+является более старым из них.
+
+## Выбор поверхности {/* #choosing-a-surface */}
+
+**Чтение данных цепочки.** JSON-RPC на узле: `/v2/foreign` для блоков, ядер (kernel) и выходов (output), `/v2/owner`
+для статуса узла и пиров. Ключи не задействованы. Начните с [запросов к узлу](/examples/node-api).
+
+**Всё, что связано с балансами, ключами или переводами.** Owner API кошелька. Требует
+ECDH-рукопожатие и токен кошелька — это описано пошагово в разделе [подключение и чтение](/examples/wallet-connect).
+
+**Получение платежа.** Запуск `epic-wallet listen` обрабатывает это автоматически через протокол epicbox или HTTP.
+Для программной обработки слейта используется метод Foreign API `receive_tx`.
+
+**Эксплуатация инфраструктуры релея.** [Протокол epicbox](/api/epicbox).
+
+## Конверт ответа {/* #the-response-envelope */}
+
+Каждый метод Epic JSON-RPC возвращает HTTP 200 с `result` JSON-RPC, а внутри этого результата находится
+второй конверт `Ok` или `Err`. Запрос может завершиться успешно на уровнях HTTP и JSON-RPC и при этом
+оказаться неудачным:
+
+```json
+{"id": 1, "jsonrpc": "2.0", "result": {"Ok": {"...": "data"}}}
+{"id": 1, "jsonrpc": "2.0", "result": {"Err": {"NotEnoughFunds": {"available": 0}}}}
+```
+
+Одна функция разворачивает оба уровня. `_unwrap` в [`examples/python/epic_wallet.py`](https://github.com/blacktyger/epic-devhub/blob/main/examples/python/epic_wallet.py) выбрасывает исключение при `Err` и возвращает
+значение при `Ok`, и каждый вызов в этом клиенте проходит через неё.
+
+## Суммы {/* #amounts */}
+
+Каждая сумма — это целое число **<Ver k="smallestUnit" />**, и 1 EPIC равен <Ver k="epicBase" /> таких единиц. Owner API кошелька
+сериализует поля `u64` как строки JSON, поэтому `retrieve_summary_info` возвращает `total` и каждое поле `amount_` как строку, а
+`node_height` возвращает `height` также в виде строки. Выполняйте разбор перед арифметическими операциями.
+JSON-RPC узла возвращает целые числа без кавычек, включая `supply` и `max_supply` в `get_status`.
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="Примеры кода" to="/examples/">
+    Рабочие клиенты на Python и в командной оболочке.
+  </Card>
+  <Card title="CLI reference" to="/reference/cli">
+    Эквиваленты большинства вызовов API в командной строке.
+  </Card>
+</CardGrid>

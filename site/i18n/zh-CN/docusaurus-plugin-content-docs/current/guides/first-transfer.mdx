@@ -1,0 +1,198 @@
+---
+title: 你的第一笔转账
+description: 在本地链上完成一笔交互式Epic转账，通过文件传输方式逐步演示每个slate，然后通过HTTP和epicbox完成同样的转账。
+---
+
+# 你的第一笔转账
+
+在私有usernet上完成两个钱包之间的一次转账，然后分别通过HTTP和epicbox重复该操作。只有传输方式发生变化。
+
+你需要[运行本地网络](/guides/local-network)中的环境，即一个正在产生区块的节点、两个钱包，以及Alice账户中可花费的余额。开始前请先确认：
+
+```bash
+cd wallet_alice
+epic-wallet --usernet info
+```
+
+在usernet上，coinbase成熟度为3个区块，而钱包的`--min_conf`默认值为10，因此花费命令需要加上`--min_conf 3`。参见[读取钱包信息](/guides/wallet-operations#read-what-the-wallet-knows)。
+
+<SlateLifecycle />
+
+## 文件传输方式，逐阶段说明 {/* #the-file-transport-one-stage-at-a-time */}
+
+文件方式不依赖网络，也不需要第三方。slate是一个由你在两个钱包之间手动传递的文件，这使得每个阶段都可检查，每次失败都是本地的。这就是它排在第一位的原因。
+
+### 1. Alice 构建第一轮 {/* #1-alice-builds-the-first-round */}
+
+```bash
+cd wallet_alice
+epic-wallet --usernet send -m file -d ../slate.tx --min_conf 3 1
+```
+
+发生了两件事：一个部分slate被写入`../slate.tx`，Alice的输入（input）被预留。参见[什么会预留输出](/concepts/outputs-and-locking#what-reserves-outputs)。
+
+```bash
+epic-wallet --usernet info
+epic-wallet --usernet txs
+```
+
+你应该看到一条`Sent (Created)`记录，其中`Confirmed?`为false，且可花费余额减少了超过1 EPIC，因为找零输出（output）也处于未确认状态。
+
+用编辑器打开`../slate.tx`。它是JSON格式。找到`amount`、`fee`、`id`和`participant_data`。`participant_data`中只有一条条目，即Alice的，这说明该slate是出站且不完整的。
+
+### 2. Bob 接收 {/* #2-bob-receives */}
+
+```bash
+cd ../wallet_bob
+epic-wallet --usernet receive -m file -i ../slate.tx
+```
+
+Bob已添加了他的输出（output）、其范围证明（range proof）和他的部分签名：
+
+```
+INFO Response file ../slate.tx.response generated, and can be sent back to the
+     transaction originator.
+```
+
+**响应文件名是输入路径加上`.response`。**`slate.tx`变为`slate.tx.response`，而不是使用不同扩展名的同级文件。
+
+打开它。`participant_data`现在有两条条目，因此该slate可以最终确认。
+
+### 3. Alice 最终确认并广播 {/* #3-alice-finalises-and-posts */}
+
+```bash
+cd ../wallet_alice
+epic-wallet --usernet finalize -m file -i ../slate.tx.response
+```
+
+`finalize`完成聚合签名并广播交易：
+
+```
+INFO Transaction with slate_id 91b35693-... found in mempool and marked as TxSentMempool.
+```
+
+该命令在此处可能看起来像是挂起。它正在轮询节点的内存池（mempool）以确认交易已到达；参见[发送看起来挂起](/guides/stuck-transactions#case-3-the-send-appears-to-hang)。
+
+### 4. 确认 {/* #4-confirm */}
+
+一旦某个区块将其包含：
+
+```bash
+epic-wallet --usernet info   # Alice：减少1 EPIC，加上手续费
+cd ../wallet_bob
+epic-wallet --usernet info   # Bob：增加1 EPIC
+```
+
+Alice的交易从`Sent (Created)`移出，她已预留的输入现已花费。在对该流程的一次实际观测中，转账金额为5 EPIC，Alice的余额从204.10880000变为199.10080000，因此手续费为0.00800000。手续费取决于输入和输出的数量，而非固定费率。
+
+## 通过HTTP进行相同转账 {/* #the-same-transfer-over-http */}
+
+只需一条命令，因为发送方通过Bob的[Foreign API](/api/wallet-foreign)监听器同步驱动两轮交互。
+
+```bash
+# bob，在他自己的目录中。23425是设置时指定的api_listen_port
+epic-wallet --usernet listen -n
+
+# alice
+epic-wallet --usernet send -m http -d http://127.0.0.1:23425 --min_conf 3 7
+```
+
+创建、交换、最终确认和广播全部在那一条`send`内完成。如果Bob在你发送时没有在监听，则没有队列，也没有可重试的对象，因此发送失败，Alice的输入保持已预留状态，直到她取消。
+
+## 通过epicbox进行相同转账 {/* #the-same-transfer-over-epicbox */}
+
+同样只需一条命令，但**两个**钱包都需要订阅。已签名的slate通过中继异步返回，而非作为直接响应，因此是发送方自己的监听器来完成最终确认。
+
+将两个钱包都指向你自己运行的中继。钱包默认使用<Ver k="epicboxDomain" />，端口<Ver k="ports.epicbox" />，这是公共mainnet中继，而usernet钱包会生成mainnet格式的地址，因为地址版本字节仅对floonet进行区分。
+
+```toml title="wallet_alice/epic-wallet.toml and wallet_bob/epic-wallet.toml"
+[epicbox]
+epicbox_domain = "127.0.0.1"
+epicbox_port = 3423
+epicbox_protocol_unsecure = true
+```
+
+`epicbox_protocol_unsecure = true`使钱包通过`ws://`而非`wss://`（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={158} />）连接，这是本地无TLS中继所提供的协议。中继在存储每个slate之前，会将其中的目标域名和端口与自身配置进行比对，因此启动时需加上`EPICBOX_DOMAIN=127.0.0.1`和`EPICBOX_PORT=3423`以匹配。[运行中继](/api/epicbox#run-a-relay)中有部署说明。
+
+```bash
+# bob的地址
+epic-wallet --usernet address
+
+# bob和alice，各在自己的目录中
+epic-wallet --usernet listen -m epicbox -n
+
+# alice
+epic-wallet --usernet send -m epicbox -d <bob-address> --min_conf 3 3
+```
+
+`<bob-address>`是`address`打印的内容：52个base58字符、`@`，然后是中继域名。
+
+一次实际观测的往返耗时约1.5秒：
+
+```
+14:27:31.926  bob    INFO Receive new transaction (foreign::receive_tx)
+14:27:32.569  alice  INFO Finalize transaction (owner::finalize_tx)
+14:27:33.164  alice  INFO Transaction with slate_id a6318e1c-... found in mempool, TxSentMempool
+14:27:33.164  alice  INFO Slate [a6318e1c-...] finalized successfully
+```
+
+中继从不接触链。它是以地址为键、对slate JSON进行存储转发的系统，由你自己的节点负责广播，这就是私有链可以使用自有中继的原因。
+
+`send`进程在转账完成后退出时打印以下内容，此时它正在关闭自己的短暂订阅：
+
+```
+ERROR Error reading message Io(Os { code: 10053, kind: ConnectionAborted ... })
+```
+
+:::warning[Keep a test chain off a public relay]
+
+Usernet地址与mainnet地址无法区分，因此订阅了公共中继的usernet钱包会占用一个mainnet地址。向其发送转账的真实发送方构建的slate无法被usernet钱包广播，其输出将保持已预留状态，直到他们取消。
+
+:::
+
+## 三种方式的区别 {/* #what-differs-between-the-three */}
+
+| 传输方式 | 命令 | 监听方 | 记录对手方 | 支付证明 |
+| --- | --- | --- | --- | --- |
+| `file` | 3 | 无需任何人 | 否 | 携带 |
+| `http` | 1 | 接收方 | 否 | 携带 |
+| `epicbox` | 1 | **双方** | 是 | 不携带 |
+
+`txs`仅在使用epicbox时填充其`From/To Address`列，因此通过文件和HTTP方式进行交易时，交易日志中不会显示付款方信息。Epicbox使用slate V2，无法携带支付证明；参见[传输方式](/concepts/transports#comparison)和[支付证明](/concepts/payment-proofs#choose-the-transport-accordingly)。
+
+## 出现问题时 {/* #if-something-goes-wrong */}
+
+**Alice的余额不足，转账未完成。**她的输入（input）仍处于已预留状态：
+
+```bash
+epic-wallet --usernet txs          # 记下id
+epic-wallet --usernet cancel -i <id>
+```
+
+`cancel`有前置条件；参见[取消的前置条件](/concepts/outputs-and-locking#cancelling-has-preconditions)。
+
+**`finalize`找不到该文件。**请使用`<input>.response`，并列出目录内容以确认实际存在的文件。
+
+**没有任何确认。**检查节点是否正在运行，以及矿工是否报告了已接受的份额。`Block
+rejected`行出现在`DEBUG`级别表示挖矿策略不匹配；[运行本地网络](/guides/local-network#if-something-goes-wrong)中的症状表将该消息与原因对应。
+
+**钱包命令显示错误的余额。**它作用于`~/.epic/user`而非你所指定的钱包。请从该钱包的目录下运行命令，或传入`--current_dir <path>`。
+
+其他情况请参见[诊断卡住的交易](/guides/stuck-transactions)，该文档提供了决策流程。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="交互式交易" to="/concepts/interactive-transactions">
+    这两轮实际执行的操作。
+  </Card>
+  <Card title="输出与锁定" to="/concepts/outputs-and-locking">
+    预留存在的原因及释放条件。
+  </Card>
+  <Card title="Wallet Owner API" to="/api/wallet-owner">
+    以编程方式完成上述所有操作。
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="transfer" />

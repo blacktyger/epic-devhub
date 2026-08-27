@@ -29,11 +29,18 @@ echo "==> building"
 ( cd site && npm ci && npm run build )
 
 # The build fails on a broken link or anchor, so reaching this line already means the link graph is
-# intact. Nothing here re-checks that.
-if [ ! -f site/build/index.html ]; then
-  echo "build produced no index.html, refusing to publish" >&2
-  exit 1
-fi
+# intact. Confirm every configured locale is present before publishing: a locale-specific build
+# otherwise looks valid at the English root but leaves locale-prefixed links live as 404s.
+for locale in en ru zh-CN; do
+  index="site/build/index.html"
+  if [ "$locale" != en ]; then
+    index="site/build/$locale/index.html"
+  fi
+  if [ ! -f "$index" ]; then
+    echo "build produced no $locale locale index at $index, refusing to publish" >&2
+    exit 1
+  fi
+done
 
 if [ -n "${DRY_RUN:-}" ]; then
   echo "==> dry run, would sync site/build/ to $TARGET:$RELEASE"

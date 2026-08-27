@@ -194,11 +194,13 @@ export class AssistantError extends Error {
  *
  * @param {object} o
  * @param {string} o.question
+ * @param {string} o.locale      allowlisted Docusaurus locale for the active page
+ * @param {string} o.pagePath    locale-neutral path of the active documentation page
  * @param {{role: 'user'|'assistant', text: string}[]} o.history
  * @param {AbortSignal} o.signal
  * @param {(event: {type: string, data: any}) => void} o.onEvent
  */
-export async function ask({ question, history, signal, onEvent }) {
+export async function ask({question, history, locale, pagePath, signal, onEvent}) {
   let s;
   try {
     s = await ensureSession();
@@ -217,7 +219,13 @@ export async function ask({ question, history, signal, onEvent }) {
     // The model travels in the body rather than a header, because the server treats a header override
     // as the admin path and rejects it without a token. Omitted when nothing has been chosen, so the
     // server applies its own default rather than the panel guessing at one.
-    body: JSON.stringify({ question, history, ...(selectedModel() ? { model: selectedModel() } : {}) }),
+    body: JSON.stringify({
+      question,
+      history,
+      locale,
+      pagePath,
+      ...(selectedModel() ? {model: selectedModel()} : {}),
+    }),
     signal,
   });
 
@@ -230,7 +238,7 @@ export async function ask({ question, history, signal, onEvent }) {
       onEvent({ type: 'error', data: { kind: 'unavailable', message: 'Session expired. Reload the page.' } });
       return;
     }
-    return ask({ question, history, signal, onEvent });
+    return ask({question, history, locale, pagePath, signal, onEvent});
   }
 
   if (!res.ok) {

@@ -1,0 +1,210 @@
+---
+title: Wallet Owner API v3
+description: "JSON-RPC интерфейс управления кошельком: зашифрованное рукопожатие, 37 методов, сгруппированных по назначению, и подробное описание InitTxArgs."
+---
+
+# Wallet Owner API v3
+
+Owner API — это интерфейс, через который программное обеспечение управляет кошельком: создаёт его,
+читает балансы, собирает и финализирует переводы, проверяет доказательства. Для большинства
+интеграций это основная поверхность взаимодействия.
+
+- **Эндпоинт**: `http://127.0.0.1:3420/v3/owner`, запускается с помощью `epic-wallet owner_api`
+- **Протокол**: JSON-RPC 2.0 поверх HTTP POST
+- **Учётные данные**: `token`, возвращаемый `open_wallet`, который принимает пароль кошелька
+- **Шифрование**: ECDH-хендшейк оборачивает каждый вызов после первого
+
+Передавайте `token` внутри конверта в каждом методе, который его объявляет. Держите порт на loopback.
+См. [доступ к owner на кошельке](/api/authentication#owner-access-on-the-wallet).
+
+## Методы по назначению {/* #methods-by-what-they-can-do */}
+
+### Могут тратить средства {/* #can-spend-funds */}
+
+<Risk level="spend" /> Эти семь методов собирают, завершают или отменяют переводы.
+
+| Метод | Назначение |
+| --- | --- |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={559} name="init_send_tx" /> | Выбрать входы и собрать первый раунд слейта (slate) |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={897} name="tx_lock_outputs" /> | Зарезервировать выбранные входы. Обязательно в последовательности ручной отправки. Принимает `token`, `slate`, `participant_id` и `addr_to` |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1072} name="finalize_tx" /> | Завершить агрегированную подпись |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1143} name="post_tx" /> | Транслировать в сеть |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={644} name="issue_invoice_tx" /> | Создать платёжный запрос |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={805} name="process_invoice_tx" /> | Профинансировать чужой платёжный запрос |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1177} name="cancel_tx" /> | Отменить перевод и освободить зарезервированные выходы |
+
+### Деструктивные {/* #destructive */}
+
+<Risk level="destructive" /> Удаляет локальные данные кошелька.
+
+| Метод | Эффект |
+| --- | --- |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1860} name="delete_wallet" /> | Удаляет кошелёк |
+
+### Раскрывают секрет {/* #exposes-a-secret */}
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1787} name="get_mnemonic" /> возвращает фразу восстановления.
+
+### Изменяют состояние кошелька {/* #changes-wallet-state */}
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1822} name="change_password" /> повторно шифрует сид. <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1400} name="scan" /> перестраивает состояние выходов.
+
+### Только чтение {/* #read-only */}
+
+<Risk level="read" /> Безопасно для всего, что вы разрешили бы читать ваш баланс.
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={78} name="accounts" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={253} name="retrieve_outputs" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={385} name="retrieve_txs" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={452} name="retrieve_summary_info" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1441} name="node_height" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1282} name="get_stored_tx" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1995} name="get_public_address" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2033} name="get_public_proof_address" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1957} name="get_updater_messages" />.
+
+### Жизненный цикл кошелька {/* #wallet-lifecycle */}
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1637} name="create_config" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1680} name="create_wallet" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1720} name="open_wallet" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1753} name="close_wallet" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1527} name="get_top_level_directory" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1560} name="set_top_level_directory" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={111} name="create_account_path" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={144} name="set_active_account" />.
+
+`open_wallet` возвращает токен, который требуется каждому другому вызову.
+
+### Доказательства {/* #proofs */}
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2110} name="retrieve_payment_proof" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2157} name="verify_payment_proof" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2070} name="proof_address_from_onion_v3" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1366} name="verify_slate_messages" />. См. [доказательства платежей](/concepts/payment-proofs).
+
+### Конфигурация и фоновые обновления {/* #configuration-and-background-updates */}
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2197} name="set_tor_config" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2234} name="set_epicbox_config" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1894} name="start_updater" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1924} name="stop_updater" />.
+
+### Транспорт {/* #transport */}
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1495} name="init_secure_api" />.
+
+## Зашифрованное рукопожатие {/* #the-encrypted-handshake */}
+
+Каждый вызов после `init_secure_api` передаётся внутри зашифрованного конверта. Параметры фиксированы и
+объявлены в <Src repo="wallet" path="api/src/owner_rpc_s.rs" line={1453} />: AES-256 в режиме GCM, 12-байтовый nonce, 16-байтовый тег, добавляемый к
+шифртексту, и пустые дополнительные аутентифицированные данные.
+
+1. Сгенерируйте пару ключей secp256k1 в своём клиенте.
+2. Вызовите `init_secure_api`, передав сжатый публичный ключ в виде hex в `ecdh_pubkey`. Кошелёк возвращает свой ключ в
+   том же формате.
+3. Умножьте публичную точку кошелька на ваш приватный скаляр и возьмите 32-байтовую x-координату.
+   Это и есть ключ AES-256 (<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={2433} />).
+4. Сериализуйте нужный вызов как полный объект JSON-RPC запроса. Этот внутренний запрос и является
+   тем, что шифруется, и именно в нём находятся `token` и параметры метода.
+5. Зашифруйте его со свежим 12-байтовым nonce и закодируйте шифртекст с добавленным тегом в base64.
+6. Опубликуйте метод `encrypted_request_v3` с двумя параметрами: `nonce` в виде hex и `body_enc` в виде строки base64.
+   Конверт не содержит других полей (<Src repo="wallet" path="api/src/types.rs" line={59} />).
+7. Ответ — это `encrypted_response_v3`, несущий собственные `nonce` и `body_enc`. Расшифруйте тем же ключом, чтобы получить
+   внутренний JSON-RPC ответ, который в свою очередь содержит конверт `Ok` или `Err`.
+8. `open_wallet` — первый вызов, который следует отправить через конверт. Он возвращает токен, который
+   принимает каждый другой метод.
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "encrypted_request_v3", "params": {"nonce": "ef32...", "body_enc": "e0bcd..."}}
+```
+
+[`examples/python/epic_wallet.py`](https://github.com/blacktyger/epic-devhub/blob/main/examples/python/epic_wallet.py) реализует эту последовательность, включая второй разворот расшифрованного тела. Клиент
+приведён полностью в разделе [подключение и чтение](/examples/wallet-connect).
+
+## Чтение выходов и транзакций {/* #reading-outputs-and-transactions */}
+
+`retrieve_outputs` и `retrieve_txs` принимают `limit`, `offset` и `sort_order`.
+
+## `InitTxArgs` {/* #inittxargs */}
+
+Управляет выбором входов и структурой транзакции.
+
+| Поле | Тип | Значение |
+| --- | --- | --- |
+| `src_acct_name` | string, optional | Аккаунт-источник. Null использует активный аккаунт |
+| `amount` | u64 | Сумма в freemen. 1 EPIC равен `100000000` |
+| `minimum_confirmations` | u64 | Подтверждения, необходимые для того, чтобы выход стал доступен к трате |
+| `max_outputs` | u32 | Максимальное количество выбираемых входов |
+| `num_change_outputs` | u32 | Количество создаваемых выходов сдачи |
+| `selection_strategy_is_use_all` | bool | True объединяет все доступные выходы; false выбирает минимум |
+| `message` | string, optional | Сообщение, зафиксированное в слейте |
+| `target_slate_version` | u16, optional | Версия слейта для вывода, 2 или 3 |
+| `ttl_blocks` | u64, optional | Срок действия в блоках. По умолчанию не задан |
+| `payment_proof_recipient_address` | string, optional | Запрашивает доказательство платежа |
+| `estimate_only` | bool, optional | Вычислить комиссию без резервирования |
+| `send_args` | object, optional | Назначение и транспорт для выполнения всего обмена в одном вызове |
+
+Дополнительное поведение:
+
+**`selection_strategy_is_use_all` имеет последствия для приватности.** Значение true объединяет ваши выходы в одну транзакцию,
+что связывает их между собой для любого, кто анализирует цепочку. Значение false сохраняет их
+раздельными ценой увеличения UTXO-множества в дальнейшем.
+
+**Доказательство платежа требует slate V3.** `payment_proof_recipient_address` помещает поля доказательства в слейт (slate), и
+только V3 их содержит. Доставка через epicbox конвертирует слейт в V2, поэтому перевод, отправленный
+таким способом, завершается без доказательства. Сначала выберите транспорт: [выбирайте транспорт
+соответственно](/concepts/payment-proofs#choose-the-transport-accordingly).
+
+**`ttl_blocks` не освобождает выходы по истечении срока.** См. [выходы и блокировка](/concepts/outputs-and-locking).
+
+**`src_acct_name` задаёт исходный аккаунт для одного вызова.** Метка, которую `accounts` не возвращает, разрешается
+в активный аккаунт (<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={383} />). См. [аккаунты](/concepts/accounts#which-account-a-transfer-uses).
+
+**`send_args` выполняет обмен внутри вызова.** Он доставляет слейт, затем финализирует и публикует, если
+это было запрошено, поэтому вызов блокируется на всё время, пока отвечает контрагент.
+
+**При `send_args.method`, установленном в `epicbox`, вызов возвращает слейт первого раунда**, как только он
+опубликован на релей и входы заблокированы (<Src repo="wallet" path="api/src/owner.rs" line={761} />). `finalize` и `post_tx` применяются к путям `http` и `keybase`.
+На пути epicbox собственная подписка кошелька финализирует и публикует транзакцию, когда приходит
+ответ контрагента, — именно там и происходит ожидание мемпула.
+
+## Комиссии {/* #fees */}
+
+Комиссия зависит от формы транзакции, а не от спроса в сети:
+
+```
+fee = max(4 × outputs + kernels − inputs, 1) × 0.001 EPIC
+```
+
+Типичный перевод с двумя входами (inputs), двумя выходами (outputs) и одним ядром (kernel) стоит
+700,000 freemen, то есть 0.007 EPIC. Поскольку базовая комиссия кошельком не задаётся, рынка
+комиссий для торгов не существует.
+
+## Версия 2 {/* #version-2 */}
+
+Более ранний незашифрованный Owner API с 17 методами обслуживается тем же слушателем по адресу
+`/v2/owner`. Его методы не требуют токена. Новые разработки следует ориентировать на v3, а слушатель
+должен находиться на loopback.
+
+## Полный справочник методов {/* #full-method-reference */}
+
+<CardGrid>
+  <Card title="Сессия и аккаунты" to="/api/wallet/session">
+    Десять методов. Рукопожатие, токен и метки аккаунтов.
+  </Card>
+  <Card title="Чтение состояния" to="/api/wallet/reading">
+    Восемь методов. Балансы, выходы, история, адреса.
+  </Card>
+  <Card title="Построение переводов" to="/api/wallet/transfers">
+    Семь методов. Те, что перемещают средства.
+  </Card>
+  <Card title="Доказательства платежа" to="/api/wallet/proofs">
+    Четыре метода и транспорт, который их отбрасывает.
+  </Card>
+  <Card title="Секреты и обслуживание" to="/api/wallet/secrets">
+    Четыре метода. Фраза восстановления, пароль, удаление и сканирование.
+  </Card>
+  <Card title="Конфигурация и обновление" to="/api/wallet/config">
+    Четыре метода. Настройки релея и фоновое обновление.
+  </Card>
+</CardGrid>
+
+## Источник {/* #source */}
+
+- <Src repo="wallet" path="api/src/owner_rpc_s.rs" /> определяет все методы v3, большинство — с примером JSON-запроса и ответа в комментарии к
+  документации
+- <Src repo="wallet" path="api/src/owner_rpc.rs" /> для более старой поверхности v2
+- <Src repo="wallet" path="libwallet/src/api_impl/owner.rs" /> для реализации, лежащей в основе методов
+- <Src repo="wallet" path="libwallet/src/api_impl/types.rs" /> для `InitTxArgs` и связанных с ним
+- <Src repo="wallet" path="controller/src/controller.rs" line={123} /> для описания того, как слушатель и его промежуточное ПО соединены
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="Интерактивные транзакции" to="/concepts/interactive-transactions">
+    Что делают методы отправки и почему их несколько.
+  </Card>
+  <Card title="Интеграция с биржей" to="/guides/exchange-integration">
+    Проектирование системы депозитов и вывода средств на основе этого API.
+  </Card>
+</CardGrid>

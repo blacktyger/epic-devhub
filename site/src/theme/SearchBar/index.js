@@ -1,5 +1,6 @@
 import React, {lazy, Suspense, useCallback, useEffect, useRef, useState} from 'react';
 import {useLocation} from '@docusaurus/router';
+import {translate} from '@docusaurus/Translate';
 import AiMark from '@site/src/components/Assistant/AiMark';
 
 /**
@@ -38,6 +39,19 @@ export default function SearchBar() {
   const [modifier, setModifier] = useState('Ctrl');
   const buttonRef = useRef(null);
   const {pathname} = useLocation();
+  const buttonLabel = translate({
+    id: 'search.askOrSearch',
+    message: 'Ask or search…',
+    description: 'Visible label for the combined assistant and search control',
+  });
+  const buttonAriaLabel = translate(
+    {
+      id: 'search.askOrSearchAriaLabel',
+      message: 'Ask a question or search the documentation, shortcut {modifier} plus K',
+      description: 'Accessible label for the combined assistant and search control',
+    },
+    {modifier},
+  );
 
   /**
    * Cosmetic, and deliberately not read during render. Initialising state from `navigator` produces
@@ -97,10 +111,10 @@ export default function SearchBar() {
         className="epicAsk-control"
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-label={`Ask a question or search the documentation, shortcut ${modifier} plus K`}
+        aria-label={buttonAriaLabel}
         onClick={() => setOpen(true)}>
         <AiMark className="epicAsk-controlMark" />
-        <span className="epicAsk-controlLabel">Ask or search…</span>
+        <span className="epicAsk-controlLabel">{buttonLabel}</span>
         {/* Plain dim monospace, no border and no box. A bordered chip inside a bordered control is
             two frames doing one job, and the full shortcut list lives in the modal footer. */}
         <span className="epicAsk-hint" aria-hidden="true">

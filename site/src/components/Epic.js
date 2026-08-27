@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from '@docusaurus/Link';
+import {translate} from '@docusaurus/Translate';
 
 const RISK_LABELS = {
   read: 'Read only',
@@ -36,12 +37,31 @@ export function Risk({level = 'read', children}) {
  */
 export function Unverified({children, settles}) {
   return (
-    <aside className="epicUnverified" aria-label="Unverified claim">
-      <span className="epicUnverifiedLabel">Unverified</span>
+    <aside
+      className="epicUnverified"
+      aria-label={translate({
+        id: 'unverified.ariaLabel',
+        message: 'Unverified claim',
+        description: 'Accessible name of the box marking a claim that has not been confirmed',
+      })}>
+      <span className="epicUnverifiedLabel">
+        {translate({
+          id: 'unverified.label',
+          message: 'Unverified',
+          description: 'Badge on the unverified-claim box. One word.',
+        })}
+      </span>
       <div className="epicUnverifiedBody">{children}</div>
       {settles ? (
         <div className="epicUnverifiedSettles">
-          <strong>To confirm:</strong> {settles}
+          <strong>
+            {translate({
+              id: 'unverified.toConfirm',
+              message: 'To confirm:',
+              description: 'Lead-in before what would settle an unverified claim',
+            })}
+          </strong>{' '}
+          {settles}
         </div>
       ) : null}
     </aside>

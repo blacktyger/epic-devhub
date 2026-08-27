@@ -1,26 +1,26 @@
 {
   "version.label": {
-    "message": "Next",
+    "message": "下一步",
     "description": "The label for version current"
   },
   "sidebar.docs.category.Concepts": {
-    "message": "Concepts",
+    "message": "概念",
     "description": "The label for category 'Concepts' in sidebar 'docs'"
   },
   "sidebar.docs.category.Guides": {
-    "message": "Guides",
+    "message": "指南",
     "description": "The label for category 'Guides' in sidebar 'docs'"
   },
   "sidebar.docs.category.Connecting to mainnet": {
-    "message": "Connecting to mainnet",
+    "message": "连接到mainnet",
     "description": "The label for category 'Connecting to mainnet' in sidebar 'docs'"
   },
   "sidebar.docs.category.Code examples": {
-    "message": "Code examples",
+    "message": "代码示例",
     "description": "The label for category 'Code examples' in sidebar 'docs'"
   },
   "sidebar.docs.category.API reference": {
-    "message": "API reference",
+    "message": "API参考",
     "description": "The label for category 'API reference' in sidebar 'docs'"
   },
   "sidebar.docs.category.Node API": {
@@ -28,15 +28,15 @@
     "description": "The label for category 'Node API' in sidebar 'docs'"
   },
   "sidebar.docs.category.Wallet Owner API v3": {
-    "message": "Wallet Owner API v3",
+    "message": "钱包 Owner API v3",
     "description": "The label for category 'Wallet Owner API v3' in sidebar 'docs'"
   },
   "sidebar.docs.category.Configuration and CLI": {
-    "message": "Configuration and CLI",
+    "message": "配置与CLI",
     "description": "The label for category 'Configuration and CLI' in sidebar 'docs'"
   },
   "sidebar.docs.category.Mining and consensus": {
-    "message": "Mining and consensus",
+    "message": "挖矿与共识",
     "description": "The label for category 'Mining and consensus' in sidebar 'docs'"
   }
 }

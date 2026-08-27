@@ -1,0 +1,60 @@
+---
+title: 地址
+description: Epic钱包生成的标识符、各标识符的用途，以及epicbox地址格式的工作原理。
+---
+
+# 地址
+
+`epic-wallet address`会打印多个标识符，每个标识符用途不同。这些标识符均不出现在账本中；参见[为何没有地址](/concepts/mimblewimble#there-are-no-addresses)。
+
+| 标识符 | 用途 |
+| --- | --- |
+| Epicbox地址 | 通过存储转发中继将slate路由至你 |
+| 支付证明地址 | 事后证明你是预期收款方 |
+
+钱包还会打印一个洋葱地址，供Tor传输方式使用。
+
+## Epicbox地址 {/* #epicbox-addresses */}
+
+格式如下：
+
+```text
+<public_key>@<domain>[:<port>]
+```
+
+可选择添加`epicbox://`前缀。
+
+`public_key`由52个base58字符组成，是以base58check编码的压缩secp256k1公钥，mainnet上的版本字节为`[1, 0]`，floonet上为`[1, 136]`。
+
+该编码具有两个特性。损坏的地址会校验和验证失败，钱包在本地即予拒绝，无需联系网络；此机制的保护范围和局限性详见[为何没有地址](/concepts/mimblewimble#there-are-no-addresses)。此外，mainnet与floonet的地址不会混淆，因为floonet地址无法被解析为mainnet地址。
+
+:::note
+usernet钱包生成带mainnet前缀的地址（`[1, 0]`）。只有floonet使用独立前缀（`[1, 136]`）。
+:::
+
+省略域名时默认使用`epicbox.epiccash.com`。443端口为默认值，不显示；其他端口则会显示。
+
+由于该标识符是真实的公钥，中继可以通过要求你对一个挑战值签名来验证你对该地址的所有权，而无需获取你的私钥。参见[epicbox身份验证](/api/epicbox#authentication)。
+
+:::note[One epicbox address per account]
+
+每个epicbox派生均使用索引0，因此钱包中每个账户对应一个epicbox地址。`epicbox_address_index`配置键为保留项。
+
+:::
+
+## 支付证明地址 {/* #payment-proof-addresses */}
+
+这是一个独立密钥，用于事后证明某次转账的预定接收方是特定一方。该密钥必须在转账前安排好，因为接收方在其轮次中需对证明进行签名。`epic-wallet address`在此标题下打印该信息。
+
+参见[支付证明](/concepts/payment-proofs)，以及[相应选择传输方式](/concepts/payment-proofs#choose-the-transport-accordingly)以了解哪些路由携带支付证明。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="传输方式" to="/concepts/transports">
+    slate到达对方钱包的方式。
+  </Card>
+  <Card title="支付证明" to="/concepts/payment-proofs">
+    支付证明的证明内容及请求方法。
+  </Card>
+</CardGrid>

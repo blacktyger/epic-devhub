@@ -514,6 +514,136 @@ const out = {};
     await ctx.close();
   }
 
+  // The centred body above the 1450px breakpoint in custom.css, with the navbar left full width.
+  // Measured at 1800px, where the shell has 191px of slack on each side, so a left-anchored
+  // regression is unmissable rather than a rounding argument.
+  //
+  // These invariants changed on 2026-08-27 and the reason is worth keeping. An earlier version
+  // centred the navbar inner too, so that the search field's right edge kept landing on the
+  // quick-start panel's right edge. That read as broken chrome: the navbar no longer touched either
+  // edge of its own window. So the navbar now reaches the gutters and the body aligns to the navbar
+  // rather than the other way round. What must hold:
+  //
+  //   1. The navbar inner reaches both window gutters, on the landing page as on every docs route.
+  //   2. The body is centred: equal slack either side of .ixMain.
+  //   3. The version pills sit on the navbar's first label. The rail follows the chrome, not the
+  //      body, so it does not centre. This is the one place where the page deliberately does not
+  //      line up with itself: the pills are the bottom line of the navbar.
+  //   4. The masthead h1 sits on the body's own left ink edge, and the quick-start panel's right
+  //      edge on its right ink edge. The second is what makes the panel grow leftward when it is
+  //      widened at 1700px rather than overhang the body.
+  {
+    const ctx = await browser.newContext({viewport: {width: 1800, height: 900}, colorScheme: 'dark'});
+    const page = await ctx.newPage();
+    await page.goto(`${server.origin}/`, {waitUntil: 'networkidle'});
+    const wide = await page.evaluate(() => {
+      const el = (sel) => document.querySelector(sel);
+      const rect = (sel) => (el(sel) ? el(sel).getBoundingClientRect() : null);
+      const navLink = el('.navbar__items .navbar__link');
+      const main = el('.ixMain');
+      const mast = el('.ixMastIn');
+      const mastStyle = mast ? getComputedStyle(mast) : null;
+      // The navbar's own resolved padding, not `--epic-page-gutter`. A custom property's computed
+      // value is its token text, so parseFloat on it returned 1 from "1rem" and the assertion asked
+      // for a 1px gutter against a correct 16px navbar.
+      const navEl = document.querySelector('.navbar');
+      const gutter = navEl ? parseFloat(getComputedStyle(navEl).paddingLeft) : 16;
+      return {
+        viewportWidth: window.innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        gutter: Number.isFinite(gutter) ? gutter : 16,        innerLeft: rect('.navbar__inner')?.left ?? null,
+        innerRight: rect('.navbar__inner')?.right ?? null,
+        brandLeft: rect('.navbar__brand')?.left ?? null,
+        navFirstLinkLeft: navLink
+          ? navLink.getBoundingClientRect().left + parseFloat(getComputedStyle(navLink).paddingLeft)
+          : null,
+        h1Left: rect('h1')?.left ?? null,
+        pillLeft: rect('.ixPill')?.left ?? null,
+        mainLeft: main ? main.getBoundingClientRect().left : null,
+        mainRight: main ? main.getBoundingClientRect().right : null,
+        // The masthead's ink edges, which are the box inset by its own padding. The panel and the
+        // h1 are measured against these rather than against the box, because the box keeps a
+        // right-hand gutter below the breakpoint and the ink is what a reader sees.
+        mastInkLeft: mast
+          ? mast.getBoundingClientRect().left + parseFloat(mastStyle.paddingLeft)
+          : null,
+        mastInkRight: mast
+          ? mast.getBoundingClientRect().right - parseFloat(mastStyle.paddingRight)
+          : null,
+        panelRight: rect('.ixPanel')?.right ?? null,
+      };
+    });
+    out.landingWide = wide;
+
+    // 1. The navbar reaches both gutters.
+    if (wide.innerLeft === null || wide.innerRight === null) {
+      stickyProblems.push('landing wide: could not measure the navbar inner');
+    } else {
+      if (Math.abs(wide.innerLeft - wide.gutter) > 1.5) {
+        stickyProblems.push(
+          `landing wide: navbar inner starts at ${Math.round(wide.innerLeft)}px, expected the ${wide.gutter}px gutter`,
+        );
+      }
+      const rightGap = wide.viewportWidth - wide.innerRight;
+      if (Math.abs(rightGap - wide.gutter) > 1.5) {
+        stickyProblems.push(
+          `landing wide: navbar inner ends ${Math.round(rightGap)}px from the window edge, expected the ${wide.gutter}px gutter`,
+        );
+      }
+    }
+
+    // 2. The body is centred, and has actually moved off the gutter. The second check matters
+    //    because a media query that never applied would satisfy the first one trivially.
+    if (wide.mainLeft === null || wide.mainRight === null) {
+      stickyProblems.push('landing wide: could not measure the page body');
+    } else {
+      const slackLeft = wide.mainLeft;
+      const slackRight = wide.viewportWidth - wide.mainRight;
+      if (Math.abs(slackLeft - slackRight) > 1.5) {
+        stickyProblems.push(
+          `landing wide: body is not centred, ${Math.round(slackLeft)}px left of it and ${Math.round(slackRight)}px right`,
+        );
+      }
+      if (slackLeft < 24) {
+        stickyProblems.push(
+          `landing wide: body starts at ${Math.round(wide.mainLeft)}px, so the centred shell is not in effect`,
+        );
+      }
+      // 4. The panel's right edge is the masthead's right ink edge.
+      if (
+        wide.panelRight !== null &&
+        wide.mastInkRight !== null &&
+        Math.abs(wide.panelRight - wide.mastInkRight) > 1.5
+      ) {
+        stickyProblems.push(
+          `landing wide: quick-start panel right edge is ${Math.round(wide.panelRight - wide.mastInkRight)}px off the masthead right ink edge`,
+        );
+      }
+      // And the h1 starts on the masthead's left ink edge. It does not line up with the navbar
+      // label any more, by decision: the body centres and only the chrome stays on the gutter.
+      if (wide.h1Left !== null && wide.mastInkLeft !== null && Math.abs(wide.h1Left - wide.mastInkLeft) > 1.5) {
+        stickyProblems.push(
+          `landing wide: masthead h1 is ${Math.round(wide.h1Left - wide.mastInkLeft)}px off the masthead left ink edge`,
+        );
+      }
+    }
+
+    // 3. The version pills stay on the navbar's first label.
+    if (wide.pillLeft === null || wide.navFirstLinkLeft === null) {
+      stickyProblems.push('landing wide: could not measure the version pill');
+    } else if (Math.abs(wide.pillLeft - wide.navFirstLinkLeft) > 1.5) {
+      stickyProblems.push(
+        `landing wide: version pill is ${Math.round(wide.pillLeft - wide.navFirstLinkLeft)}px off the first navbar button`,
+      );
+    }
+    if (wide.scrollWidth - wide.viewportWidth > 1) {
+      stickyProblems.push(
+        `landing wide: ${wide.scrollWidth - wide.viewportWidth}px of horizontal overflow`,
+      );
+    }
+    await ctx.close();
+  }
+
   // The quick-start panel is the taller half of the masthead grid, so its height is the
   // masthead's height, and the masthead's height is where .ixMain starts. That made a tab press
   // move the whole page: Wallet/Windows has two commands where the others have three, and the

@@ -1,0 +1,96 @@
+---
+title: 代码示例
+sidebar_label: 概述
+description: 涵盖节点查询和完整钱包交易流程的Epic Cash客户端示例，使用Python和bash编写。
+---
+
+# 代码示例
+
+可运行的示例，涵盖大多数集成所需的工作流，提供命令行和Python两种形式。
+
+<CardGrid>
+  <Card title="节点查询" to="/examples/node-api">
+    链高度、区块、内存池（mempool）和对等节点。无需身份验证流程，适合作为第一个调用目标。
+  </Card>
+  <Card title="钱包：连接与读取" to="/examples/wallet-connect">
+    加密握手、打开钱包及读取余额。
+  </Card>
+  <Card title="钱包：发送与接收" to="/examples/send-receive">
+    完整的转账流程，包括接收、取消和支付证明。
+  </Card>
+</CardGrid>
+
+## 目标接口{/* #which-surface-to-target */}
+
+| 任务 | 接口 | 凭据 |
+| --- | --- | --- |
+| 节点状态、对等节点 | 节点 `/v2/owner` | 基础，自动创建机密 |
+| 区块、区块头、内核（kernel）、内存池（mempool） | 节点`/v2/foreign` | 无 |
+| 广播原始交易 | Node `/v2/foreign` | 无 |
+| 涉及密钥或余额的任何操作 | 钱包 Owner API `/v3/owner` | ECDH 握手与钱包令牌 |
+| 接收转账 | 钱包 Foreign API，或 `epic-wallet listen` | 无 |
+
+节点的JSON-RPC方法分布在两个路径下：`/v2/owner`用于管理，所有链读取操作在`/v2/foreign`上。参见[节点API](/api/node#which-json-rpc-method-lives-where)。
+
+## 前提条件{/* #prerequisites */}
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+`curl`和`jq`。
+
+```bash
+sudo apt install curl jq      # Debian 和 Ubuntu
+```
+
+```powershell
+winget install jqlang.jq      # Windows，其中 curl 已预装
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+Python <Ver k="python" />或更高版本。
+
+```bash
+pip install requests coincurve pycryptodome
+```
+
+`coincurve`提供secp256k1，`pycryptodome`提供AES-GCM，两者均用于钱包Owner API。节点查询仅需`requests`。
+
+</TabItem>
+</Tabs>
+
+## 示例约定{/* #conventions-in-these-examples */}
+
+- 从仓库的`examples`目录运行命令，Python模块位于该目录下。
+  import each other from.
+- 节点端口为<Ver k="ports.nodeApi" />，钱包Owner API端口为<Ver k="ports.walletOwner" />，钱包Foreign API端口为<Ver k="ports.walletForeign" />。每个客户端均支持`NODE_URL`、`EPIC_OWNER_URL`和`EPIC_FOREIGN_URL`，可将其指向其他地址。
+- 金额为整数，以<Ver k="smallestUnit" />为单位计数。1 EPIC等于<Ver k="epicBase" />。
+- 机密从对应文件中读取，钱包密码从`EPIC_WALLET_PASSWORD`读取。
+
+## 响应信封{/* #the-response-envelope */}
+
+每个Epic JSON-RPC方法均返回HTTP 200及JSON-RPC `result`，该结果内部包含第二层信封。操作成功时携带`Ok`：
+
+```json
+{"id": 1, "jsonrpc": "2.0", "result": {"Ok": {"...": "the actual data"}}}
+```
+
+操作失败时在相同位置携带`Err`：
+
+```json
+{"id": 1, "jsonrpc": "2.0", "result": {"Err": {"NotEnoughFunds": {"available": 0, "needed": 100000000}}}}
+```
+
+编写一个解包辅助函数并在所有地方使用。[连接与读取](/examples/wallet-connect)中钱包客户端的`_unwrap`在`Err`时抛出异常，在`Ok`时返回值，该客户端中的每个调用均通过它执行。
+
+信封的逐字段说明见[API概述](/api#the-response-envelope)。
+
+## 参考客户端位置{/* #where-the-reference-clients-live */}
+
+钱包仓库附带一个执行相同握手的Python客户端：<Src repo="wallet" path="doc/samples/python/secure_api_example.py" />。
+
+方法签名定义在<Src repo="wallet" path="api/src/owner_rpc_s.rs" />中，几乎每个方法的文档注释中都包含完整的JSON请求和响应示例。
+
+<JourneyNav stage="integrate" />

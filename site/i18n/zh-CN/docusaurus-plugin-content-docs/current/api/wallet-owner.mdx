@@ -1,0 +1,183 @@
+---
+title: Wallet Owner API v3
+description: 钱包的JSON-RPC控制接口，涵盖加密握手、按功能分组的37个方法，以及InitTxArgs的详细说明。
+---
+
+# Wallet Owner API v3
+
+Owner API是软件驱动钱包的接口：创建钱包、读取余额、构建并最终确认转账、验证证明。对于大多数集成场景，它是主要接口层。
+
+- **端点**：`http://127.0.0.1:3420/v3/owner`，通过`epic-wallet owner_api`启动
+- **协议**：JSON-RPC 2.0 over HTTP POST
+- **凭据**：由`open_wallet`返回的`token`，`open_wallet`接受钱包密码
+- **加密**：首次调用之后，每次调用均通过ECDH握手进行封装
+
+在每个声明了`token`的方法的信封中发送该`token`。将端口保持在本地回环地址。参见[钱包的owner访问](/api/authentication#owner-access-on-the-wallet)。
+
+## 按功能分类的方法 {/* #methods-by-what-they-can-do */}
+
+### 可花费资金 {/* #can-spend-funds */}
+
+<Risk level="spend" /> 这七个方法用于构建、完成或放弃转账。
+
+| 方法 | 用途 |
+| --- | --- |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={559} name="init_send_tx" /> | 选择输入并构建slate的第一轮 |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={897} name="tx_lock_outputs" /> | 预留已选输入。手动发送流程中必须调用。接受`token`、`slate`、`participant_id`和`addr_to` |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1072} name="finalize_tx" /> | 完成聚合签名 |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1143} name="post_tx" /> | 广播至网络 |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={644} name="issue_invoice_tx" /> | 创建支付请求 |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={805} name="process_invoice_tx" /> | 为他人的支付请求提供资金 |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1177} name="cancel_tx" /> | 放弃转账并释放其已预留输出 |
+
+### 破坏性 {/* #destructive */}
+
+<Risk level="destructive" /> 删除本地钱包数据。
+
+| 方法 | 效果 |
+| --- | --- |
+| <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1860} name="delete_wallet" /> | 删除钱包 |
+
+### 暴露机密 {/* #exposes-a-secret */}
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1787} name="get_mnemonic" /> 返回恢复助记词。
+
+### 更改钱包状态 {/* #changes-wallet-state */}
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1822} name="change_password" /> 重新加密种子文件。<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1400} name="scan" /> 重建输出（output）状态。
+
+### 只读 {/* #read-only */}
+
+<Risk level="read" /> 适用于任何允许读取余额的操作，安全无副作用。
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={78} name="accounts" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={253} name="retrieve_outputs" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={385} name="retrieve_txs" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={452} name="retrieve_summary_info" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1441} name="node_height" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1282} name="get_stored_tx" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1995} name="get_public_address" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2033} name="get_public_proof_address" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1957} name="get_updater_messages" />.
+
+### 钱包生命周期 {/* #wallet-lifecycle */}
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1637} name="create_config" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1680} name="create_wallet" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1720} name="open_wallet" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1753} name="close_wallet" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1527} name="get_top_level_directory" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1560} name="set_top_level_directory" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={111} name="create_account_path" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={144} name="set_active_account" />.
+
+`open_wallet` 返回其他所有调用所需的令牌。
+
+### 证明 {/* #proofs */}
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2110} name="retrieve_payment_proof" />、<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2157} name="verify_payment_proof" />、<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2070} name="proof_address_from_onion_v3" />、<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1366} name="verify_slate_messages" />。参见[支付证明](/concepts/payment-proofs)。
+
+### 配置与后台更新 {/* #configuration-and-background-updates */}
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2197} name="set_tor_config" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={2234} name="set_epicbox_config" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1894} name="start_updater" />, <Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1924} name="stop_updater" />.
+
+### 传输方式 {/* #transport */}
+
+<Fn repo="wallet" path="api/src/owner_rpc_s.rs" line={1495} name="init_secure_api" />.
+
+## 加密握手 {/* #the-encrypted-handshake */}
+
+`init_secure_api`之后的每次调用均在加密信封内传输。参数固定，在<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={1453} />中声明：AES-256 GCM模式，12字节nonce，16字节tag附加在密文末尾，附加认证数据为空。
+
+1. 在客户端生成一个secp256k1密钥对。
+2. 调用`init_secure_api`，将压缩公钥以十六进制形式填入`ecdh_pubkey`。钱包以相同形式返回其自身的公钥。
+3. 用你的私有标量乘以钱包的公钥点，取32字节的x坐标。该值即为AES-256密钥（<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={2433} />）。
+4. 将目标调用序列化为完整的JSON-RPC请求对象。该内层请求即为被加密的内容，`token`和方法参数均放置于此。
+5. 使用新生成的12字节nonce对其加密，将密文与tag拼接后进行base64编码。
+6. 以`encrypted_request_v3`方法发送请求，携带两个参数：`nonce`为十六进制，`body_enc`为上述base64字符串。信封不含其他字段（<Src repo="wallet" path="api/src/types.rs" line={59} />）。
+7. 响应为`encrypted_response_v3`，携带其自身的`nonce`和`body_enc`。使用相同密钥解密，恢复内层JSON-RPC响应，该响应再包含其自身的`Ok`或`Err`信封。
+8. `open_wallet`是第一个通过信封发送的调用，返回其他所有方法所需的令牌。
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "encrypted_request_v3", "params": {"nonce": "ef32...", "body_enc": "e0bcd..."}}
+```
+
+[`examples/python/epic_wallet.py`](https://github.com/blacktyger/epic-devhub/blob/main/examples/python/epic_wallet.py)实现了完整流程，包括对解密体的第二次解包。完整客户端代码列于[连接与读取](/examples/wallet-connect)。
+
+## 读取输出（output）与交易 {/* #reading-outputs-and-transactions */}
+
+`retrieve_outputs`和`retrieve_txs`接受`limit`、`offset`和`sort_order`。
+
+## `InitTxArgs` {/* #inittxargs */}
+
+控制输入（input）选择和交易结构。
+
+| 字段 | 类型 | 含义 |
+| --- | --- | --- |
+| `src_acct_name` | string，可选 | 来源账户。为null时使用当前活跃账户 |
+| `amount` | u64 | 金额，单位为freemen。1 EPIC为`100000000` |
+| `minimum_confirmations` | u64 | 输出（output）可用前所需的确认数 |
+| `max_outputs` | u32 | 最多选择的输入（input）数量 |
+| `num_change_outputs` | u32 | 创建的找零输出数量 |
+| `selection_strategy_is_use_all` | bool | true时合并所有可用输出；false时选择最少数量 |
+| `message` | string，可选 | 提交至slate中的消息 |
+| `target_slate_version` | u16，可选 | 输出的slate版本，2或3 |
+| `ttl_blocks` | u64，可选 | 过期区块数。默认为无 |
+| `payment_proof_recipient_address` | string，可选 | 请求支付证明 |
+| `estimate_only` | bool，可选 | 计算手续费但不预留任何资源 |
+| `send_args` | object，可选 | 目标地址与传输方式，用于在单次调用中完成整个交换流程 |
+
+附加行为：
+
+**`selection_strategy_is_use_all`具有隐私影响。** 设为true时，会将你的输出（output）合并到一笔交易中，这会将它们关联在一起，使链上分析者能够追踪。设为false时，输出保持独立，代价是后续UTXO集合更大。
+
+**支付证明需要slate V3。** `payment_proof_recipient_address`将证明字段写入slate，而只有V3才携带这些字段。通过epicbox传输会将slate转换为V2，因此以该方式发送的转账虽能完成，但不会产生证明。请先确定传输方式：[相应地选择传输方式](/concepts/payment-proofs#choose-the-transport-accordingly)。
+
+**`ttl_blocks`在到期时不会释放输出（output）。** 参见[输出与锁定](/concepts/outputs-and-locking)。
+
+**`src_acct_name`为单次调用指定来源账户。** `accounts`未返回的标签将解析为当前活跃账户（<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={383} />）。参见[账户](/concepts/accounts#which-account-a-transfer-uses)。
+
+**`send_args`在调用内部执行完整交换流程。** 它发送slate，然后在你请求的情况下最终确认并广播，因此该调用会阻塞，直到对方响应为止。
+
+**将`send_args.method`设为`epicbox`时，调用在slate发布到中继且输入（input）已锁定后立即返回第一轮slate**（<Src repo="wallet" path="api/src/owner.rs" line={761} />）。`finalize`和`post_tx`适用于`http`和`keybase`路径。在epicbox路径上，钱包自身的订阅会在对方回复到达时完成最终确认并广播，内存池（mempool）等待也在此时发生。
+
+## 手续费 {/* #fees */}
+
+手续费是交易结构的函数，与网络需求无关：
+
+```
+fee = max(4 × outputs + kernels − inputs, 1) × 0.001 EPIC
+```
+
+一笔典型的双输入（input）、双输出（output）、单内核（kernel）转账需要700,000 freemen，即0.007 EPIC。由于钱包不提供基础手续费，因此不存在可竞价的手续费市场。
+
+## 版本2 {/* #version-2 */}
+
+同一监听器还提供一个早期的、未加密的Owner API，共17个方法，地址为`/v2/owner`。其方法无需令牌。新开发应以v3为目标，且该监听器应绑定在回环地址上。
+
+## 完整方法参考 {/* #full-method-reference */}
+
+<CardGrid>
+  <Card title="会话与账户" to="/api/wallet/session">
+    十个方法。握手、令牌及账户标签。
+  </Card>
+  <Card title="读取状态" to="/api/wallet/reading">
+    八个方法。余额、输出、历史记录、地址。
+  </Card>
+  <Card title="构建转账" to="/api/wallet/transfers">
+    七个方法。用于转移价值的方法。
+  </Card>
+  <Card title="支付证明" to="/api/wallet/proofs">
+    四个方法，以及丢弃这些方法的传输方式。
+  </Card>
+  <Card title="机密与维护" to="/api/wallet/secrets">
+    四个方法。恢复助记词、密码、删除和扫描。
+  </Card>
+  <Card title="配置与更新器" to="/api/wallet/config">
+    四个方法。中继设置和后台刷新。
+  </Card>
+</CardGrid>
+
+## 来源 {/* #source */}
+
+- <Src repo="wallet" path="api/src/owner_rpc_s.rs" />定义了所有v3方法，大多数方法在其文档注释中包含完整的JSON请求和响应示例
+- <Src repo="wallet" path="api/src/owner_rpc.rs" />对应旧版v2接口
+- <Src repo="wallet" path="libwallet/src/api_impl/owner.rs" />对应方法背后的实现
+- <Src repo="wallet" path="libwallet/src/api_impl/types.rs" />对应`InitTxArgs`及相关内容
+- <Src repo="wallet" path="controller/src/controller.rs" line={123} />说明监听器及其中间件的连接方式
+
+## 下一页 {/* #next */}
+
+<CardGrid>
+  <Card title="交互式交易" to="/concepts/interactive-transactions">
+    发送方法的作用及存在多个方法的原因。
+  </Card>
+  <Card title="交易所集成" to="/guides/exchange-integration">
+    基于此API设计充值和提现系统。
+  </Card>
+</CardGrid>

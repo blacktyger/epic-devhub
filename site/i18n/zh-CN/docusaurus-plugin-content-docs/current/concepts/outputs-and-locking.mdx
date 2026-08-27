@@ -1,0 +1,76 @@
+---
+title: 输出与锁定
+description: 从发起发送到交易确认期间，你的资金会发生什么，以及如何释放未完成转账所预留的输出（output）。
+---
+
+# 输出与锁定
+
+发起发送操作会预留所选输入（input），且没有任何机制会自动释放它们。如果转账未完成，这些资金将持续不可用，直到你取消该交易。系统没有超时机制，也没有后台进程负责清理。
+
+## 输出状态 {/* #output-states */}
+
+钱包所拥有的每个输出（output）都带有一个状态。`Unspent`表示已确认且可用。`Unconfirmed`表示已发现但尚未被足够多的区块埋入，包括尚未确认的发送操作所产生的找零。`Locked`表示已作为输入（input）预留给你发起的转账。`Spent`表示已被已确认的交易消耗，`Deleted`表示已被`scan --delete_unconfirmed`移除。只有`Unspent`是可花费的。
+
+Coinbase输出带有额外规则。挖矿奖励在可花费之前就会出现在钱包中，且成熟窗口因网络而异。参见[emission](/mining/emission#timing)。
+
+## 什么会预留输出 {/* #what-reserves-outputs */}
+
+预留输入（input）的操作是`tx_lock_outputs`。它将所选输入（input）标记为`Locked`，并将找零输出（output）写为`Unconfirmed`。在命令行中，该操作在同一`send`内运行，在slate已交付给传输方式之后（<Src repo="wallet" path="controller/src/command.rs" line={542} />）。在通过Owner API手动执行的流程中，需在`init_send_tx`选定输入（input）并构建初始slate之后立即自行调用它。
+
+在发送进行中，你发送的金额和找零均不可用。从单个100 EPIC输出（output）中发送1 EPIC，在转账完成之前你没有任何可花费余额，而不是99 EPIC。找零输出（output）尚不存在于链上。
+
+## 什么会释放输出 {/* #what-releases-them */}
+
+**转账已确认。** 输入（input）变为`Spent`，找零变为`Unspent`。无需任何操作。
+
+**你取消了它。** `cancel_tx`将`Locked`输入（input）恢复为`Unspent`，并丢弃未确认的找零。
+
+没有第三种途径。重启钱包不会释放输出（output），因为状态保存在磁盘上；设置到期区块高度同样不会释放。
+
+## 取消的前提条件 {/* #cancelling-has-preconditions */}
+
+`cancel_tx`在执行任何操作之前会先联系节点，因此节点宕机或未同步会阻止其执行（<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={758} />）。之后它需要恰好一笔与你传入的id或slate id匹配的交易，该交易的类型为`TxSentCreated`或`TxReceived`，且其`confirmed`字段为false（<Src repo="wallet" path="libwallet/src/internal/tx.rs" line={309} />）。
+
+类型条件划定了边界。一旦已广播的转账在节点的内存池（mempool）中被观察到，其条目就变为`TxSentMempool`，从那时起你只能等待链上确认，而无法选择放弃。钱包在广播后最多轮询四分钟以等待该观察结果；参见[the send appears to hang](/guides/stuck-transactions#case-3-the-send-appears-to-hang)。
+
+## 交易状态 {/* #transaction-states */}
+
+钱包对已执行操作的记录是带有类型的交易日志条目。`ConfirmedCoinbase`是挖矿奖励。`TxReceived`和`TxSent`分别是已完成的入账和出账转账。`TxSentCreated`是进行中的出账转账，其输入（input）已锁定。`TxSentMempool`和`TxReceivedMempool`是在节点内存池（mempool）中观察到的转账。`TxSentCancelled`和`TxReceivedCancelled`是已取消的形式。
+
+读取日志时有两个字段语义需要注意。`TxReceived`条目在确认后保留其类型，因此告知你确认状态的是`confirmed`字段，而非类型。`fee`在接收方的交易中为空，因为接收方不设置该字段；请从发送方的记录或内核（kernel）中核对。
+
+CLI为这些类型打印显示名称，因此`epic-wallet txs`中的`Sent (Created)`行在通过Owner API查询时显示为`tx_type`中的`TxSentCreated`。字段类型详见[Wallet Owner API reference](/api/wallet-owner)。
+
+## 读取余额摘要 {/* #reading-the-balance-summary */}
+
+`epic-wallet info`将钱包的价值分摊到造成差额的各行：
+
+```bash
+$ epic-wallet info
+
+____ Wallet Summary Info - Account 'default' as of height 3675163 ____
+
+ Confirmed Total                  | 12.50000000
+ Awaiting Confirmation (< 10)     |  0.00000000
+ Awaiting Finalization            |  8.49300000
+ Locked by transaction            | 12.50000000
+ -------------------------------- | -------------
+ Currently Spendable              |  0.00000000
+```
+
+这是一个钱包持有单个已确认的12.5 EPIC输出（output），正在发送4 EPIC（手续费0.007）的过程中。整个输入（input）为`Locked by transaction`，8.493的找零为`Awaiting Finalization`，因为它尚不在链上，且没有任何可花费余额。两行均不会自行解决。
+
+`(< 10)`为`minimum_confirmations`，即输出（output）在此钱包花费之前所需的确认数。默认值为10，`--min_conf`可覆盖该值；参见[read what the wallet knows](/guides/wallet-operations#read-what-the-wallet-knows)。`Immature Coinbase`行仅在钱包持有处于成熟窗口内的coinbase输出（output）时出现。
+
+查找持有相关输入（input）的转账、释放该转账并重新扫描的方法，请参阅卡住的交易](/guides/stuck-transactions)。编程方式请参阅发送与接收](/examples/send-receive)。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="诊断卡住的交易" to="/guides/stuck-transactions">
+    包含命令的分步操作流程。
+  </Card>
+  <Card title="交互式交易" to="/concepts/interactive-transactions">
+    转账为何需要两轮交互。
+  </Card>
+</CardGrid>

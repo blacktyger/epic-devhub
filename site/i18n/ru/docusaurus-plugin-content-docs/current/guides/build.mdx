@@ -1,0 +1,178 @@
+---
+title: Собрать бинарники
+sidebar_label: Собрать бинарники
+description: Сборка узла Epic, кошелька и майнера из исходного кода на Linux, macOS и Windows, включая две дополнительные зависимости для Windows.
+---
+
+# Собрать бинарники
+
+Три отдельных репозитория производят бинарники узла, кошелька и майнера.
+
+| Бинарник | Репозиторий | Для чего нужен |
+| --- | --- | --- |
+| `epic` | <Repo name="node" /> | Валидация и релей цепочки. Всё остальное требует его наличия |
+| `epic-wallet` | <Repo name="wallet" /> | Ключи, балансы и формирование переводов |
+| `epic-miner` | `EpicCash/epic-miner` | Производство блоков. Только для локальной цепочки или реального майнинга |
+
+Если вы предпочитаете не собирать, [downloads](/downloads) содержит архивы релизов.
+
+## Одно предварительное требование {/* #one-prerequisite */}
+
+Установите [rustup](https://rustup.rs). Оба Rust-репозитория фиксируют версию тулчейна в репозитории, поэтому rustup
+выбирает нужную самостоятельно. Не передавайте флаг `+toolchain` и не устанавливайте конкретную версию
+вручную.
+
+На Linux и macOS это полный список зависимостей. Оба проекта собираются на стандартных CI-раннерах
+`ubuntu-latest` и `macos-latest` без дополнительных системных пакетов.
+
+## Windows требует ещё двух компонентов {/* #windows-needs-two-more-things */}
+
+**LLVM, для `libclang.dll`.** Крейты `randomx` и `progpow` запускают `bindgen`, который загружает `libclang` во время сборки.
+Компонент LLVM в рабочей нагрузке Visual Studio «Desktop development with C++» поставляется только с
+`clang-format.exe` и `clang-tidy.exe`. Установите LLVM отдельно и укажите `LIBCLANG_PATH` путь к его каталогу `bin`.
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux и macOS">
+
+```bash
+# Нужно только если libclang не находится в стандартном расположении.
+export LIBCLANG_PATH=/path/to/llvm/lib
+```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+# Только для текущей сессии.
+$env:LIBCLANG_PATH = 'C:\Program Files\LLVM\bin'
+
+# Сохранить для будущих сессий.
+[Environment]::SetEnvironmentVariable('LIBCLANG_PATH', 'C:\Program Files\LLVM\bin', 'User')
+```
+
+</TabItem>
+</Tabs>
+
+**Windows SDK 10.0.20348 или новее.** `croaring-sys` компилируется с `-std:c11`, и режим C11 в MSVC требует
+заголовков UCRT `<stdalign.h>`, появившихся в этом SDK. При наличии только более старого SDK сборка
+завершается ошибкой `fatal error C1083: Cannot open include file: 'stdalign.h'`.
+
+Узел и кошелёк не требуют ни `openssl`, ни `strawberryperl` на Windows. TLS там работает через SChannel, поэтому `openssl-sys`
+никогда не компилируется. Майнер требует обоих.
+
+## Узел {/* #node */}
+
+```bash
+git clone https://github.com/EpicCash/epic.git
+cd epic
+cargo build --release
+```
+
+Бинарник размещается по пути `target/release/epic`, или `target\release\epic.exe` на Windows.
+
+Docker — альтернатива, если нужен только узел:
+
+```bash
+docker build -t epic-mainnet -f etc/Dockerfile .
+docker run -d --name epic-mainnet -p 127.0.0.1:3413:3413 -p 3414:3414 epic-mainnet
+```
+
+Публикация <Ver k="ports.nodeApi" /> только на loopback соответствует привязке, которую узел использует вне Docker. [Node
+and wallet setup](/guides/mainnet-setup#ports) содержит полную таблицу портов.
+
+`docker compose up -d` тоже работает. `docker-compose.yml` монтирует данные цепочки в `./target/`, поэтому последующий `cargo clean` удалит
+синхронизированную цепочку.
+
+## Кошелёк {/* #wallet */}
+
+```bash
+git clone https://github.com/EpicCash/epic-wallet.git
+cd epic-wallet
+cargo build --release
+```
+
+Бинарник размещается по пути `target/release/epic-wallet`, или `target\release\epic-wallet.exe` на Windows.
+
+## Майнер {/* #miner */}
+
+На Linux и macOS майнер собирается так же, как остальные:
+
+```bash
+git clone --recursive https://github.com/EpicCash/epic-miner.git
+cd epic-miner
+cargo build --release
+```
+
+`--recursive` важен, поскольку реализации [RandomX и ProgPow](/mining/proof-of-work) являются субмодулями. Бинарник размещается
+по пути `target/release/epic-miner`.
+
+:::note[Windows: build from the patched fork]
+
+Сборки для Windows берутся из [blacktyger/epic-miner](https://github.com/blacktyger/epic-miner) — это upstream плюс исправления,
+необходимые для актуального тулчейна MSVC.
+
+```bash
+git clone --recursive https://github.com/blacktyger/epic-miner.git
+cd epic-miner
+cargo build --release
+```
+
+Бинарник размещается по пути `target\release\epic-miner.exe`, собранный для `x86_64-pc-windows-msvc`.
+
+Клонируйте этот форк, а не добавляйте его как remote к checkout upstream. `.gitmodules` использует
+относительные URL субмодулей, поэтому субмодули RandomX и ProgPow разрешаются относительно того
+репозитория, который вы клонировали, а клон upstream тянет субмодули upstream.
+
+На `PATH` также потребуется [Strawberry Perl](https://strawberryperl.com). Майнер зависит от `openssl` с фичей `vendored`, поэтому
+компилирует OpenSSL из исходников, а скрипт `Configure` OpenSSL отвергает msys perl, поставляемый с Git for
+Windows.
+
+Стандартная сборка для Windows майнит только RandomX. Плагины [cuckoo](/mining/proof-of-work) там не собираются, а
+ProgPow требует фичи `opencl` или `cuda`.
+
+:::
+
+## Проверить наличие трёх бинарников {/* #confirm-you-have-three-binaries */}
+
+Поместите все три бинарника куда-нибудь в `PATH` или запомните, где они находятся. Узел и кошелёк
+разрешают конфигурацию из **текущего рабочего каталога** перед тем, как обратиться к `~/.epic/<network>`, поэтому
+место запуска важнее места расположения бинарника. Именно это позволяет одному бинарнику кошелька
+управлять несколькими кошельками.
+
+При наличии их в `PATH`:
+
+```bash
+epic --version
+epic-wallet --version
+epic-miner --version
+```
+
+## Собрать и протестировать всё в репозитории {/* #build-and-test-everything-in-a-repository */}
+
+Каждый репозиторий собирается и тестируется как воркспейс:
+
+```bash
+cargo build --workspace --all-targets
+cargo test --workspace -- --nocapture --test-threads=1
+```
+
+`--test-threads=1` важен, поскольку несколько тестов используют общий каталог данных. Интеграционные тесты узла
+скрыты за флагом фичи:
+
+```bash
+cargo test --features cucumber-tests
+```
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="Запустить локальную сеть" to="/guides/local-network">
+    Приватная цепочка, майнер и два кошелька на одной машине.
+  </Card>
+  <Card title="Загрузки" to="/downloads">
+    Архивы релизов — если вы предпочитаете не собирать.
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="build" />

@@ -1,0 +1,62 @@
+{
+  "link.title.Docs": {
+    "message": "Docs",
+    "description": "The title of the footer links column with title=Docs in the footer"
+  },
+  "link.title.Code": {
+    "message": "Code",
+    "description": "The title of the footer links column with title=Code in the footer"
+  },
+  "link.title.Community": {
+    "message": "Community",
+    "description": "The title of the footer links column with title=Community in the footer"
+  },
+  "link.item.label.Start here": {
+    "message": "Start here",
+    "description": "The label of footer link with label=Start here linking to /start"
+  },
+  "link.item.label.Concepts": {
+    "message": "Concepts",
+    "description": "The label of footer link with label=Concepts linking to /concepts/mimblewimble"
+  },
+  "link.item.label.Config and CLI": {
+    "message": "Config and CLI",
+    "description": "The label of footer link with label=Config and CLI linking to /reference/cli"
+  },
+  "link.item.label.API reference": {
+    "message": "API reference",
+    "description": "The label of footer link with label=API reference linking to /api/"
+  },
+  "link.item.label.Code examples": {
+    "message": "Code examples",
+    "description": "The label of footer link with label=Code examples linking to /examples/"
+  },
+  "link.item.label.Node": {
+    "message": "Node",
+    "description": "The label of footer link with label=Node linking to https://github.com/EpicCash/epic"
+  },
+  "link.item.label.Wallet": {
+    "message": "Wallet",
+    "description": "The label of footer link with label=Wallet linking to https://github.com/EpicCash/epic-wallet"
+  },
+  "link.item.label.Epicbox relay": {
+    "message": "Epicbox relay",
+    "description": "The label of footer link with label=Epicbox relay linking to https://github.com/EpicCash/epic-epicbox-docker"
+  },
+  "link.item.label.Telegram": {
+    "message": "Telegram",
+    "description": "The label of footer link with label=Telegram linking to https://t.me/EpicCash"
+  },
+  "link.item.label.Reddit": {
+    "message": "Reddit",
+    "description": "The label of footer link with label=Reddit linking to https://www.reddit.com/r/epiccash"
+  },
+  "link.item.label.epiccash.com": {
+    "message": "epiccash.com",
+    "description": "The label of footer link with label=epiccash.com linking to https://epiccash.com"
+  },
+  "link.item.label.Block explorer": {
+    "message": "Block explorer",
+    "description": "The label of footer link with label=Block explorer linking to https://explorer.epicmine.io"
+  }
+}

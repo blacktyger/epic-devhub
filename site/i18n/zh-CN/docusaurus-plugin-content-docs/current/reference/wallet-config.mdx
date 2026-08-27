@@ -1,0 +1,169 @@
+---
+title: epic-wallet.toml
+description: Epic钱包的完整配置参考，涵盖每个部分和键及其默认值。
+---
+
+# `epic-wallet.toml`
+
+钱包配置文件的完整参考。所示默认值为全新mainnet钱包写入的内容。
+
+## 文件位置 {/* #where-the-file-lives */}
+
+1. 如果当前工作目录中存在`./epic-wallet.toml`，则使用该文件。
+2. 否则使用`~/.epic/<network>/epic-wallet.toml`。
+
+`<network>`为`main`、`floo`、`user`或`auto`。
+
+该文件由`epic-wallet init`写入，运行其他命令不会生成此文件。如果目标目录（<Src repo="wallet" path="impls/src/lifecycle/default.rs" line={132} />）中`epic-wallet.toml`和`wallet_data/`已同时存在，`init`将拒绝继续执行。
+
+首次运行时，钱包还会在钱包目录中创建两个凭据文件`.owner_api_secret`和`.api_secret`，各为20个字符的随机字符串。
+
+## 完整示例 {/* #a-worked-example */}
+
+生成的文件包含所有键。同一台机器上第二个钱包的最小配置：
+
+```toml title="epic-wallet.toml"
+[wallet]
+chain_type = "Mainnet"
+api_listen_interface = "127.0.0.1"
+api_listen_port = 3415
+
+# 不按网络偏移，因此同一台机器上的第二个钱包必须更改此端口。
+owner_api_listen_port = 3421
+
+api_secret_path = "/home/you/wallets/bob/.owner_api_secret"
+node_api_secret_path = "/home/you/.epic/main/.api_secret"
+check_node_api_http_addr = "http://127.0.0.1:3413"
+data_file_dir = "/home/you/wallets/bob/wallet_data"
+
+[tor]
+# 默认值true需要在钱包可执行文件旁边放置tor二进制文件。
+use_tor_listener = false
+socks_proxy_addr = "127.0.0.1:9050"
+send_config_dir = "/home/you/wallets/bob"
+
+[epicbox]
+epicbox_domain = "epicbox.epiccash.com"
+epicbox_port = 443
+epicbox_protocol_unsecure = false
+
+[logging]
+log_to_stdout = true
+stdout_log_level = "Info"
+log_to_file = true
+file_log_level = "Debug"
+log_file_path = "/home/you/wallets/bob/epic-wallet.log"
+```
+
+## `[wallet]` {/* #wallet */}
+
+| Key | 类型 | Default | 用途 |
+| --- | --- | --- | --- |
+| `chain_type` | 枚举，可选 | `Mainnet` | `Mainnet`, `Floonet`, `UserTesting`, `AutomatedTesting` |
+| `api_listen_interface` | string | `127.0.0.1` | Foreign API监听器的绑定地址。设为`0.0.0.0`以接受来自其他主机的转账 |
+| `api_listen_port` | u16 | <Ver k="ports.walletForeign" />，floonet为13415，usernet为23415 | Foreign API端口，供`listen`使用 |
+| `owner_api_listen_port` | u16，可选 | 每个网络上的<Ver k="ports.walletOwner" /> | Owner API端口 |
+| `owner_api_interface` | string，可选 | `127.0.0.1` | Owner API绑定地址。默认以注释形式输出 |
+| `api_secret_path` | string，可选 | `<wallet dir>/.owner_api_secret` | Owner监听器Foreign路径的基本身份验证机密。`/v3/owner`从`open_wallet`获取令牌；参见[authentication](/api/authentication) |
+| `node_api_secret_path` | string，可选 | `<wallet dir>/.api_secret` | 钱包调用节点时所用的Basic auth机密 |
+| `check_node_api_http_addr` | string | <code>http://127.0.0.1:<Ver k="ports.nodeApi" /></code> | 钱包查询的节点。可通过`-r`在每次运行时覆盖 |
+| `owner_api_include_foreign` | bool，可选 | `false` | 在Owner API端口上同时提供Foreign API，适用于单端口环境 |
+| `data_file_dir` | string | `<wallet dir>/wallet_data` | 种子文件和数据库的存储位置 |
+| `no_commit_cache` | bool，可选 | `false` | 已预留 |
+| `tls_certificate_file` | string，可选 | unset | 监听器的TLS证书 |
+| `tls_certificate_key` | string，可选 | unset | TLS私钥。设置了证书但未设置此项将导致启动错误 |
+| `dark_background_color_scheme` | bool，可选 | `true` | CLI表格的配色方案 |
+| `keybase_notify_ttl` | 分钟，可选 | `1440` | Keybase接收通知的有效期。`0`表示禁用 |
+
+:::warning[The Owner API port is the same on every network]
+
+`owner_api_listen_port`不像`api_listen_port`和`check_node_api_http_addr`那样按网络调整。mainnet钱包和floonet钱包都使用<Ver k="ports.walletOwner" />，因此同时运行多个实例需要覆盖该值。参见[端口表](/reference/cli#ports)。
+
+:::
+
+## `[tor]` {/* #tor */}
+
+生成的文件将此部分标记为实验性。参见[此版本未涵盖的内容](/start#what-this-version-does-not-cover)。
+
+| Key | 类型 | Default | 用途 |
+| --- | --- | --- | --- |
+| `use_tor_listener` | bool | `true` | 在`listen`上启动隐藏服务。可通过`-n`/`--no_tor`在每次运行时覆盖 |
+| `socks_proxy_addr` | string | `127.0.0.1:9050` | SOCKS代理地址 |
+| `send_config_dir` | string | `<wallet dir>` | 已预留 |
+
+`use_tor_listener`不可省略。`[tor]`部分若缺少该键则解析失败，因此要么为其赋值，要么将整个部分省略。
+
+`true`的默认值需要在钱包可执行文件旁放置一个`tor`二进制文件，而[发布版本归档中不包含该文件](/downloads)。请提供该二进制文件，或设置`use_tor_listener = false`并在`listen`上传入`-n`。
+
+## `[epicbox]` {/* #epicbox */}
+
+| Key | 类型 | Default | 用途 |
+| --- | --- | --- | --- |
+| `epicbox_domain` | string，可选 | `epicbox.epiccash.com` | 中继主机，以及epicbox地址中`@`后显示的域名 |
+| `epicbox_port` | u16，可选 | <Ver k="ports.epicbox" /> | 中继端口 |
+| `epicbox_protocol_unsecure` | bool，可选 | `false` | `false`使用`wss://`，`true`使用`ws://` |
+| `epicbox_address_index` | u32，可选 | `0` | 已预留。所有派生均使用索引0 |
+
+地址和发送路径直接读取`epicbox_domain`和`epicbox_port`，没有回退机制，因此需要显式设置两者，或省略整个`[epicbox]`部分并使用代码中的默认值。
+
+参见[epicbox协议](/api/epicbox)了解中继的作用。
+
+## `[logging]` {/* #logging */}
+
+| Key | 类型 | Default | 用途 |
+| --- | --- | --- | --- |
+| `log_to_stdout` | bool | `true` | 输出到标准输出 |
+| `stdout_log_level` | enum | `Info` | `Error`, `Warning`, `Info`, `Debug`, `Trace` |
+| `log_to_file` | bool | `false` | 输出到文件 |
+| `file_log_level` | enum | `Debug` | 文件日志级别 |
+| `log_file_path` | string | `<wallet dir>/epic-wallet.log` | 日志文件路径 |
+| `log_file_append` | bool | `true` | 每次运行时追加而非截断 |
+| `log_max_size` | bytes，可选 | `16777216` | 超过此大小时轮转。注释掉以禁用轮转 |
+| `log_max_files` | u32，可选 | `32` | 保留的轮转文件数量 |
+| `tui_running` | bool，可选 | unset | 启动时从节点的`run_tui`中设置 |
+
+全新钱包不写入日志文件，因为`log_to_file`为`false`而`log_file_path`已填充。设置`log_to_file = true`可将日志写入磁盘。
+
+## 各网络默认值 {/* #per-network-defaults */}
+
+| 网络 | `api_listen_port` | `check_node_api_http_addr` | 钱包目录 |
+| --- | --- | --- | --- |
+| Mainnet | <Ver k="ports.walletForeign" /> | <code>http://127.0.0.1:<Ver k="ports.nodeApi" /></code> | `~/.epic/main` |
+| Floonet | 13415 | `http://127.0.0.1:13413` | `~/.epic/floo` |
+| UserTesting | 23415 | `http://127.0.0.1:23413` | `~/.epic/user` |
+| AutomatedTesting | <Ver k="ports.walletForeign" /> | <code>http://127.0.0.1:<Ver k="ports.nodeApi" /></code> | `~/.epic/auto` |
+
+## 首次运行时设置的路径 {/* #paths-set-on-first-run */}
+
+代码中的相对默认值在文件创建时会被重写为绝对路径：
+
+| Key | 写入值 |
+| --- | --- |
+| `wallet.data_file_dir` | `<wallet dir>/wallet_data` |
+| `wallet.api_secret_path` | `<wallet dir>/.owner_api_secret` |
+| `wallet.node_api_secret_path` | `<wallet dir>/.api_secret` |
+| `logging.log_file_path` | `<wallet dir>/epic-wallet.log` |
+| `tor.send_config_dir` | `<wallet dir>` |
+
+`<wallet dir>`为`~/.epic/<network>`，除非通过`--current_dir`或`init --cwd`提供了自定义值。
+
+## 来源 {/* #source */}
+
+- <Src repo="wallet" path="config/src/types.rs" />用于查看结构体及其默认值
+- <Src repo="wallet" path="config/src/types.rs" line={223} />用于`[logging]`，即节点共享的日志配置
+- <Src repo="wallet" path="config/src/comments.rs" />用于查看写入磁盘的带注释模板
+- <Src repo="wallet" path="config/src/config.rs" />用于文件发现、按网络覆盖及路径重写
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="API身份验证与TLS" to="/api/authentication">
+    哪些接口受到保护以及如何配置它们。
+  </Card>
+  <Card title="epic-server.toml" to="/reference/node-config">
+    节点的配置文件。
+  </Card>
+  <Card title="CLI 参考" to="/reference/cli">
+    命令、参数、端口与网络。
+  </Card>
+</CardGrid>

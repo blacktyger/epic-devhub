@@ -1,0 +1,157 @@
+---
+title: 构建二进制文件
+sidebar_label: 构建二进制文件
+description: 在Linux、macOS和Windows上从源码构建Epic节点、钱包和矿工，包括两个额外的Windows依赖项。
+---
+
+# 构建二进制文件
+
+三个独立的代码仓库分别生成节点、钱包和矿工的二进制文件。
+
+| 构建产物 | 代码仓库 | 用途 |
+| --- | --- | --- |
+| `epic` | <Repo name="node" /> | 验证和中继链。所有组件都需要它 |
+| `epic-wallet` | <Repo name="wallet" /> | 密钥、余额及构建转账 |
+| `epic-miner` | `EpicCash/epic-miner` | 生成区块。仅用于本地链或实际挖矿 |
+
+如果不想自行构建，[下载页面](/downloads)列出了发布版本的归档文件。
+
+## 一项前置条件 {/* #one-prerequisite */}
+
+安装[rustup](https://rustup.rs)。两个Rust仓库均在仓库中固定了工具链版本，rustup会自动选择正确的版本。不要传入`+toolchain`，也不要自行安装特定版本。
+
+以上就是Linux和macOS上的全部依赖。两个项目均可在标准`ubuntu-latest`和`macos-latest` CI运行器上构建，无需额外的系统软件包。
+
+## Windows还需要两项额外依赖 {/* #windows-needs-two-more-things */}
+
+**LLVM，用于`libclang.dll`。** `randomx`和`progpow` crate会运行`bindgen`，后者在构建时加载`libclang`。Visual Studio"使用C++的桌面开发"工作负载中的LLVM组件仅附带`clang-format.exe`和`clang-tidy.exe`。需单独安装LLVM，并将`LIBCLANG_PATH`指向其`bin`目录。
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux 和 macOS">
+
+```bash
+# 仅在libclang不在默认位置时需要。
+export LIBCLANG_PATH=/path/to/llvm/lib
+```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+# 仅限当前会话。
+$env:LIBCLANG_PATH = 'C:\Program Files\LLVM\bin'
+
+# 为后续会话持久化设置。
+[Environment]::SetEnvironmentVariable('LIBCLANG_PATH', 'C:\Program Files\LLVM\bin', 'User')
+```
+
+</TabItem>
+</Tabs>
+
+**Windows SDK 10.0.20348或更高版本。** `croaring-sys`使用`-std:c11`编译，MSVC的C11模式需要该SDK引入的UCRT `<stdalign.h>`。若仅安装了旧版SDK，构建将因`fatal error C1083: Cannot open include file: 'stdalign.h'`而中止。
+
+节点和钱包在Windows上不需要`openssl`或`strawberryperl`。TLS在Windows上通过SChannel处理，因此`openssl-sys`不会被编译。矿工则两者都需要。
+
+## 节点 {/* #node */}
+
+```bash
+git clone https://github.com/EpicCash/epic.git
+cd epic
+cargo build --release
+```
+
+二进制文件位于`target/release/epic`，Windows上为`target\release\epic.exe`。
+
+如果只需要节点，Docker是一种替代方案：
+
+```bash
+docker build -t epic-mainnet -f etc/Dockerfile .
+docker run -d --name epic-mainnet -p 127.0.0.1:3413:3413 -p 3414:3414 epic-mainnet
+```
+
+将<Ver k="ports.nodeApi" />仅发布到回环地址，与节点在Docker外部使用的绑定方式一致。[节点与钱包设置](/guides/mainnet-setup#ports)包含完整的端口列表。
+
+`docker compose up -d`同样可用。`docker-compose.yml`将链数据映射到`./target/`下，因此后续执行`cargo clean`会删除已同步的链数据。
+
+## 钱包 {/* #wallet */}
+
+```bash
+git clone https://github.com/EpicCash/epic-wallet.git
+cd epic-wallet
+cargo build --release
+```
+
+二进制文件位于`target/release/epic-wallet`，Windows上为`target\release\epic-wallet.exe`。
+
+## 矿工 {/* #miner */}
+
+在Linux和macOS上，矿工的构建方式与其他组件相同：
+
+```bash
+git clone --recursive https://github.com/EpicCash/epic-miner.git
+cd epic-miner
+cargo build --release
+```
+
+`--recursive`不可省略，因为[RandomX和ProgPow](/mining/proof-of-work)的实现是子模块。二进制文件位于`target/release/epic-miner`。
+
+:::note[Windows: build from the patched fork]
+
+Windows构建来自[blacktyger/epic-miner](https://github.com/blacktyger/epic-miner)，该仓库是上游代码加上适配当前MSVC工具链所需的修复。
+
+```bash
+git clone --recursive https://github.com/blacktyger/epic-miner.git
+cd epic-miner
+cargo build --release
+```
+
+二进制文件位于`target\release\epic-miner.exe`，为`x86_64-pc-windows-msvc`构建。
+
+请克隆该fork，而非将其作为远程仓库添加到上游的检出中。`.gitmodules`使用相对子模块URL，因此RandomX和ProgPow子模块会相对于所克隆的仓库进行解析，克隆上游仓库则会拉取上游的子模块。
+
+在`PATH`上还需要安装[Strawberry Perl](https://strawberryperl.com)。矿工依赖带有`vendored`特性的`openssl`，因此需要从源码编译OpenSSL，而OpenSSL的`Configure`会拒绝Git for Windows附带的msys perl。
+
+标准Windows构建仅挖RandomX。该平台不构建任何[cuckoo](/mining/proof-of-work)插件，ProgPow需要`opencl`或`cuda`特性。
+
+:::
+
+## 确认三个构建产物 {/* #confirm-you-have-three-binaries */}
+
+将三个二进制文件放入`PATH`中的某个目录，或记录其所在位置。节点和钱包均优先从**当前工作目录**解析配置，然后才回退到`~/.epic/<network>`，因此运行它们时所在的目录比二进制文件的存放位置更重要。这也是一个钱包二进制文件可以管理多个钱包的原因。
+
+将它们加入`PATH`后：
+
+```bash
+epic --version
+epic-wallet --version
+epic-miner --version
+```
+
+## 在单一仓库中构建并测试所有内容 {/* #build-and-test-everything-in-a-repository */}
+
+两个仓库均可作为工作区进行构建和测试：
+
+```bash
+cargo build --workspace --all-targets
+cargo test --workspace -- --nocapture --test-threads=1
+```
+
+`--test-threads=1`不可省略，因为多个测试使用共享的数据目录。节点的集成测试位于一个特性参数后面：
+
+```bash
+cargo test --features cucumber-tests
+```
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="运行本地网络" to="/guides/local-network">
+    在一台机器上运行私有链、一个矿工和两个钱包。
+  </Card>
+  <Card title="下载" to="/downloads">
+    发布版本归档文件，如果不想自行构建。
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="build" />

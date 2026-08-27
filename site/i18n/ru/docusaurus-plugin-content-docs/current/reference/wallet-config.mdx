@@ -1,0 +1,181 @@
+---
+title: epic-wallet.toml
+description: "Полный справочник конфигурации кошелька Epic: все секции и ключи со значениями по умолчанию."
+---
+
+# `epic-wallet.toml`
+
+Полный справочник по файлу конфигурации кошелька. Показанные значения по умолчанию соответствуют
+тому, что записывает новый кошелёк в mainnet.
+
+## Расположение файла {/* #where-the-file-lives */}
+
+1. `./epic-wallet.toml` в текущем рабочем каталоге, если присутствует.
+2. Иначе `~/.epic/<network>/epic-wallet.toml`.
+
+`<network>` — это `main`, `floo`, `user` или `auto`.
+
+Файл записывается командой `epic-wallet init`, а не любой другой командой. `init` отказывается продолжать, если и
+`epic-wallet.toml`, и `wallet_data/` уже существуют в целевом каталоге (<Src repo="wallet" path="impls/src/lifecycle/default.rs" line={132} />).
+
+При первом запуске кошелёк также создаёт два файла с учётными данными в каталоге кошелька — `.owner_api_secret` и
+`.api_secret`, каждый из которых представляет собой случайную строку из 20 символов.
+
+## Пример конфигурации {/* #a-worked-example */}
+
+Сгенерированный файл содержит все ключи. Минимальная конфигурация для второго кошелька на той же
+машине:
+
+```toml title="epic-wallet.toml"
+[wallet]
+chain_type = "Mainnet"
+api_listen_interface = "127.0.0.1"
+api_listen_port = 3415
+
+# Не смещается по сети, поэтому второй кошелёк на этой машине должен изменить его.
+owner_api_listen_port = 3421
+
+api_secret_path = "/home/you/wallets/bob/.owner_api_secret"
+node_api_secret_path = "/home/you/.epic/main/.api_secret"
+check_node_api_http_addr = "http://127.0.0.1:3413"
+data_file_dir = "/home/you/wallets/bob/wallet_data"
+
+[tor]
+# Значение по умолчанию true требует наличия бинарника tor рядом с исполняемым файлом кошелька.
+use_tor_listener = false
+socks_proxy_addr = "127.0.0.1:9050"
+send_config_dir = "/home/you/wallets/bob"
+
+[epicbox]
+epicbox_domain = "epicbox.epiccash.com"
+epicbox_port = 443
+epicbox_protocol_unsecure = false
+
+[logging]
+log_to_stdout = true
+stdout_log_level = "Info"
+log_to_file = true
+file_log_level = "Debug"
+log_file_path = "/home/you/wallets/bob/epic-wallet.log"
+```
+
+## `[wallet]` {/* #wallet */}
+
+| Ключ | Тип | Default | Назначение |
+| --- | --- | --- | --- |
+| `chain_type` | enum, необязательный | `Mainnet` | `Mainnet`, `Floonet`, `UserTesting`, `AutomatedTesting` |
+| `api_listen_interface` | string | `127.0.0.1` | Адрес привязки слушателя Foreign API. Установите `0.0.0.0`, чтобы принимать переводы от других хостов |
+| `api_listen_port` | u16 | <Ver k="ports.walletForeign" />, 13415 floonet, 23415 usernet | Порт Foreign API, используется `listen` |
+| `owner_api_listen_port` | u16, optional | <Ver k="ports.walletOwner" /> в каждой сети | Порт Owner API |
+| `owner_api_interface` | string, optional | `127.0.0.1` | Адрес привязки Owner API. Выводится закомментированным |
+| `api_secret_path` | string, optional | `<wallet dir>/.owner_api_secret` | Секрет базовой аутентификации для пути Foreign на слушателе владельца. `/v3/owner` принимает токен из `open_wallet`; см. [аутентификация](/api/authentication) |
+| `node_api_secret_path` | string, optional | `<wallet dir>/.api_secret` | Секрет базовой аутентификации, который кошелёк передаёт при обращении к узлу |
+| `check_node_api_http_addr` | string | <code>http://127.0.0.1:<Ver k="ports.nodeApi" /></code> | Узел, к которому обращается кошелёк. Переопределяется для каждого запуска через `-r` |
+| `owner_api_include_foreign` | bool, optional | `false` | Обслуживать Foreign API на порту Owner API для окружений с одним портом |
+| `data_file_dir` | string | `<wallet dir>/wallet_data` | Расположение сида и базы данных |
+| `no_commit_cache` | bool, optional | `false` | Зарезервировано |
+| `tls_certificate_file` | string, optional | unset | TLS-сертификат для слушателя |
+| `tls_certificate_key` | string, optional | unset | Приватный ключ TLS. Указание сертификата без этого ключа является ошибкой запуска |
+| `dark_background_color_scheme` | bool, optional | `true` | Цветовая схема для таблиц CLI |
+| `keybase_notify_ttl` | минуты, необязательный | `1440` | Время жизни уведомлений о получении Keybase. `0` отключает |
+
+:::warning[The Owner API port is the same on every network]
+
+`owner_api_listen_port` не корректируется в зависимости от сети, в отличие от `api_listen_port` и `check_node_api_http_addr`. Кошелёк mainnet и кошелёк
+floonet оба используют <Ver k="ports.walletOwner" />, поэтому при одновременном запуске нескольких экземпляров необходимо
+переопределить это значение. См. [таблицу портов](/reference/cli#ports).
+
+:::
+
+## `[tor]` {/* #tor */}
+
+Сгенерированный файл помечает этот раздел как экспериментальный. См. [что эта версия не
+охватывает](/start#what-this-version-does-not-cover).
+
+| Ключ | Тип | Default | Назначение |
+| --- | --- | --- | --- |
+| `use_tor_listener` | bool | `true` | Запустить скрытый сервис на `listen`. Переопределяется для каждого запуска через `-n` / `--no_tor` |
+| `socks_proxy_addr` | string | `127.0.0.1:9050` | Адрес SOCKS-прокси |
+| `send_config_dir` | string | `<wallet dir>` | Зарезервировано |
+
+`use_tor_listener` не является необязательным. Раздел `[tor]`, в котором отсутствует этот ключ, не проходит разбор —
+укажите значение или полностью исключите весь раздел.
+
+Значение по умолчанию `true` требует наличия бинарника `tor` рядом с исполняемым файлом кошелька,
+который [релизные архивы не поставляют](/downloads). Либо предоставьте бинарник, либо задайте `use_tor_listener = false` и
+передайте `-n` в `listen`.
+
+## `[epicbox]` {/* #epicbox */}
+
+| Ключ | Тип | Default | Назначение |
+| --- | --- | --- | --- |
+| `epicbox_domain` | string, optional | `epicbox.epiccash.com` | Хост релея и домен, отображаемый после `@` в вашем адресе epicbox |
+| `epicbox_port` | u16, optional | <Ver k="ports.epicbox" /> | Порт релея |
+| `epicbox_protocol_unsecure` | bool, optional | `false` | `false` использует `wss://`, `true` использует `ws://` |
+| `epicbox_address_index` | u32, optional | `0` | Зарезервировано. Каждое выведение использует индекс 0 |
+
+Пути для адреса и отправки читают `epicbox_domain` и `epicbox_port` без запасного варианта, поэтому задайте оба явно или
+полностью исключите раздел `[epicbox]` и используйте значения по умолчанию из кода.
+
+См. [протокол epicbox](/api/epicbox) для понимания того, что делает релей.
+
+## `[logging]` {/* #logging */}
+
+| Ключ | Тип | Default | Назначение |
+| --- | --- | --- | --- |
+| `log_to_stdout` | bool | `true` | Логировать в stdout |
+| `stdout_log_level` | enum | `Info` | `Error`, `Warning`, `Info`, `Debug`, `Trace` |
+| `log_to_file` | bool | `false` | Логировать в файл |
+| `file_log_level` | enum | `Debug` | Уровень для файлового лога |
+| `log_file_path` | string | `<wallet dir>/epic-wallet.log` | Путь к файлу лога |
+| `log_file_append` | bool | `true` | Дописывать, а не перезаписывать при каждом запуске |
+| `log_max_size` | bytes, optional | `16777216` | Ротация при превышении этого размера. Закомментируйте для отключения ротации |
+| `log_max_files` | u32, optional | `32` | Сколько ротированных файлов хранить |
+| `tui_running` | bool, optional | unset | Устанавливается из `run_tui` узла при запуске |
+
+Новый кошелёк не записывает лог-файл, поскольку `log_to_file` равно `false`, тогда как `log_file_path` заполнено.
+Задайте `log_to_file = true` для записи лога на диск.
+
+## Значения по умолчанию для каждой сети {/* #per-network-defaults */}
+
+| Сеть | `api_listen_port` | `check_node_api_http_addr` | Каталог кошелька |
+| --- | --- | --- | --- |
+| Mainnet | <Ver k="ports.walletForeign" /> | <code>http://127.0.0.1:<Ver k="ports.nodeApi" /></code> | `~/.epic/main` |
+| Floonet | 13415 | `http://127.0.0.1:13413` | `~/.epic/floo` |
+| UserTesting | 23415 | `http://127.0.0.1:23413` | `~/.epic/user` |
+| AutomatedTesting | <Ver k="ports.walletForeign" /> | <code>http://127.0.0.1:<Ver k="ports.nodeApi" /></code> | `~/.epic/auto` |
+
+## Пути, задаваемые при первом запуске {/* #paths-set-on-first-run */}
+
+Относительные значения по умолчанию в коде перезаписываются в абсолютные пути при создании файла:
+
+| Ключ | Записанное значение |
+| --- | --- |
+| `wallet.data_file_dir` | `<wallet dir>/wallet_data` |
+| `wallet.api_secret_path` | `<wallet dir>/.owner_api_secret` |
+| `wallet.node_api_secret_path` | `<wallet dir>/.api_secret` |
+| `logging.log_file_path` | `<wallet dir>/epic-wallet.log` |
+| `tor.send_config_dir` | `<wallet dir>` |
+
+`<wallet dir>` равно `~/.epic/<network>`, если вы не указали его с помощью `--current_dir` или `init --cwd`.
+
+## Источник {/* #source */}
+
+- <Src repo="wallet" path="config/src/types.rs" /> — структуры и их значения по умолчанию
+- <Src repo="wallet" path="config/src/types.rs" line={223} /> — `[logging]`, конфигурация логирования, общая для узла
+- <Src repo="wallet" path="config/src/comments.rs" /> — аннотированный шаблон, записываемый на диск
+- <Src repo="wallet" path="config/src/config.rs" /> — обнаружение файлов, переопределения для каждой сети и перезапись путей
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="Аутентификация API и TLS" to="/api/authentication">
+    Какие поверхности защищены и как их настроить.
+  </Card>
+  <Card title="epic-server.toml" to="/reference/node-config">
+    Файл конфигурации узла.
+  </Card>
+  <Card title="CLI reference" to="/reference/cli">
+    Команды, флаги, порты и сети.
+  </Card>
+</CardGrid>

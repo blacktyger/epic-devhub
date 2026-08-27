@@ -1,0 +1,81 @@
+---
+title: API参考
+sidebar_label: 概述
+description: 所有Epic Cash API接口汇总于此，涵盖节点的JSON-RPC接口、钱包Owner及Foreign API，以及epicbox中继协议。
+---
+
+# API参考
+
+Epic在三个软件中提供七个可编程接口。选择哪个取决于你需要链数据还是密钥操作。
+
+<CardGrid>
+  <Card title="Node API" to="/api/node">
+    链数据、区块、内存池（mempool）、对等节点及交易提交。
+  </Card>
+  <Card title="Wallet Owner API" to="/api/wallet-owner">
+    余额、转账、证明。<Ver k="ownerApiMethods" />个方法。这是唯一能花费资金的接口。
+  </Card>
+  <Card title="Wallet Foreign API" to="/api/wallet-foreign">
+    六个监听器方法，用于接收slate并构建挖矿奖励。
+  </Card>
+  <Card title="Epicbox中继协议" to="/api/epicbox">
+    在钱包之间传输slate的WebSocket协议。
+  </Card>
+  <Card title="身份验证与TLS" to="/api/authentication">
+    哪些接口需要凭据，以及如何在其前面部署TLS。
+  </Card>
+</CardGrid>
+
+## 概览 {/* #at-a-glance */}
+
+| 接口 | 位置 | 协议 | 默认端口 | 可花费 |
+| --- | --- | --- | --- | --- |
+| Node `/v1/*` | 节点 | REST，链读取与管理 | <Ver k="ports.nodeApi" /> | 否 |
+| 节点`/v2/owner` | 节点 | JSON-RPC 2.0，节点管理 | <Ver k="ports.nodeApi" /> | 否 |
+| Node `/v2/foreign` | 节点 | JSON-RPC 2.0，链读取与交易提交 | <Ver k="ports.nodeApi" /> | 否 |
+| 钱包 Owner `/v3/owner` | 钱包 | JSON-RPC 2.0，加密 | <Ver k="ports.walletOwner" /> | **是** |
+| Wallet Owner `/v2/owner` | 钱包 | JSON-RPC 2.0，未加密 | <Ver k="ports.walletOwner" /> | **是** |
+| Wallet Foreign `/v2/foreign` | 钱包 | JSON-RPC 2.0 | <Ver k="ports.walletForeign" /> | 否 |
+| Epicbox中继 | 中继 | WebSocket over TLS | <Ver k="ports.epicbox" /> | 否 |
+
+文档基于节点<Ver k="node" />和钱包<Ver k="wallet" />编写。
+
+节点在同一端口的同一监听器上同时提供`/v1`和`/v2`，作为[两种接口风格](/api/node#the-v1-rest-surface)而非两代接口。两者均处于活跃状态，该页面将每个v1路由映射到对应的JSON-RPC方法。
+
+钱包也通过同一监听器提供两个owner接口，其中未加密的[`/v2/owner`](/api/wallet-owner#version-2)是两者中较旧的一个。
+
+## 选择接口 {/* #choosing-a-surface */}
+
+**读取链数据。** 使用节点上的JSON-RPC：`/v2/foreign`用于区块、内核（kernel）和输出（output），`/v2/owner`用于节点状态和对等节点。不涉及密钥。从[节点查询](/examples/node-api)开始。
+
+**涉及余额、密钥或转账的操作。** 使用钱包Owner API。它需要ECDH握手和钱包令牌，具体步骤参见[连接与读取](/examples/wallet-connect)。
+
+**接收支付。** 运行`epic-wallet listen`会通过epicbox协议或HTTP自动处理。若要以编程方式处理slate，对应的Foreign API方法为`receive_tx`。
+
+**运营中继基础设施。** 参见[epicbox协议](/api/epicbox)。
+
+## 响应封装 {/* #the-response-envelope */}
+
+每个Epic JSON-RPC方法均返回HTTP 200及JSON-RPC `result`，该结果内部包含第二层`Ok`或`Err`信封。一个请求可以在HTTP层和JSON-RPC层均成功，但仍可能执行失败：
+
+```json
+{"id": 1, "jsonrpc": "2.0", "result": {"Ok": {"...": "data"}}}
+{"id": 1, "jsonrpc": "2.0", "result": {"Err": {"NotEnoughFunds": {"available": 0}}}}
+```
+
+一个函数负责解包两层。[`examples/python/epic_wallet.py`](https://github.com/blacktyger/epic-devhub/blob/main/examples/python/epic_wallet.py)中的`_unwrap`在`Err`时抛出异常，在`Ok`时返回值，该客户端中的每个调用都经过它。
+
+## 金额 {/* #amounts */}
+
+每个金额均为**<Ver k="smallestUnit" />**的整数计数，1 EPIC等于<Ver k="epicBase" />个。钱包Owner API将其`u64`字段序列化为JSON字符串，因此`retrieve_summary_info`以字符串形式返回`total`及每个`amount_`字段，`node_height`也以字符串形式返回`height`。在进行算术运算前需先解析。节点的JSON-RPC返回裸整数，包括`get_status`上的`supply`和`max_supply`。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="代码示例" to="/examples/">
+    Python和shell的可用客户端示例。
+  </Card>
+  <Card title="CLI 参考" to="/reference/cli">
+    大多数API调用对应的命令行等效操作。
+  </Card>
+</CardGrid>

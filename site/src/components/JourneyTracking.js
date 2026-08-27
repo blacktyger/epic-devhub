@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import Link from '@docusaurus/Link';
-import {developerJourney, journeyStorageKey} from '@site/src/data/developerJourney';
+import Translate, {translate} from '@docusaurus/Translate';
+import {developerJourney, translatedJourney, journeyStorageKey} from '@site/src/data/developerJourney';
 
 /**
  * Journey completeness measured by how far each stage page was actually read.
@@ -203,23 +204,24 @@ function StageRow({stage, percent}) {
  * eight stages are the only sequence, each carrying its own reading depth.
  */
 export function JourneyInvite() {
+  const stages = translatedJourney();
   const {depths, ready, overall} = useJourneyProgress();
   const started = overall > 0;
   const nextStage =
-    developerJourney.find((stage) => (depths[stage.id] ?? 0) < 95) ?? developerJourney[0];
+    stages.find((stage) => (depths[stage.id] ?? 0) < 95) ?? stages[0];
 
   return (
     <div className="jtInvite">
       <div className="jtHead">
         <div className="jtHeadText">
-          <h2 className="ixHeading jtTitle">Learn Epic in eight stages</h2>
+          <h2 className="ixHeading jtTitle"><Translate id="journey.invite.heading" description="Journey section heading on landing page">Learn Epic in eight stages</Translate></h2>
           <p className="jtLede">
-            From how the ledger works to driving a wallet from code. Each stage is one page.
+            <Translate id="journey.invite.lede" description="Journey section sub-heading on landing page">From how the ledger works to driving a wallet from code. Each stage is one page.</Translate>
           </p>
         </div>
-        <div className="jtDial" role="group" aria-label="Journey completeness">
+        <div className="jtDial" role="group" aria-label={translate({id: 'journey.invite.completenessAriaLabel', message: 'Journey completeness', description: 'Aria label for journey progress dial'})}>
           <span className="jtDialPct">{ready ? `${overall}%` : '—'}</span>
-          <span className="jtDialNote">read</span>
+          <span className="jtDialNote"><Translate id="journey.invite.read" description="Label below the progress percentage">read</Translate></span>
         </div>
       </div>
 
@@ -228,17 +230,19 @@ export function JourneyInvite() {
       </div>
 
       <ol className="jtStages">
-        {developerJourney.map((stage) => (
+        {stages.map((stage) => (
           <StageRow key={stage.id} stage={stage} percent={depths[stage.id] ?? 0} />
         ))}
       </ol>
 
       <div className="jtActions">
         <Link className="jtGo" to={started ? nextStage.to : '/start'}>
-          {started ? `Continue: ${nextStage.title}` : 'Start at stage 01'}
+          {started
+            ? translate({id: 'journey.invite.continue', message: 'Continue: {title}', description: 'Continue button when journey is in progress'}, {title: nextStage.title})
+            : <Translate id="journey.invite.startAt01" description="Start button when journey has not begun">Start at stage 01</Translate>}
         </Link>
         <span className="jtActionsNote">
-          Progress is measured by how far you read and stays in this browser.
+          <Translate id="journey.invite.progressNote" description="Note about how progress is tracked">Progress is measured by how far you read and stays in this browser.</Translate>
         </span>
       </div>
     </div>

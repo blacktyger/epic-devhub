@@ -1,0 +1,160 @@
+---
+title: Epicbox中继协议
+description: Epicbox线路协议，涵盖寻址、握手、消息类型、投递行为以及如何运行中继。
+---
+
+# Epicbox中继协议
+
+Epicbox是一个存储转发中继，用于在无法直接互达的钱包之间传递slate（交易协商数据），这使得两个位于NAT后的钱包之间的转账得以实现。
+
+协议版本：**<Ver k="epicboxProtocol" />**。
+
+## 中继的功能 {/* #what-a-relay-does */}
+
+它接收以公钥为地址的已签名slate数据块，将其存储，并在接收方连接并证明对该密钥的所有权后进行投递。
+
+它不接收任何密钥材料，其唯一的密码学操作是验证签名。
+
+中继可以看到它所路由的公钥、通信时间以及连接方的IP地址。金额包含在slate的承诺（commitment）中，对中继不可见。
+
+## 传输方式与寻址 {/* #transport-and-addressing */}
+
+默认使用TLS上的WebSocket，端口<Ver k="ports.epicbox" />。消息为JSON对象，包含`type`字段。
+
+地址格式为`<public_key>@<domain>[:<port>]`，其中`public_key`是52个base58-check字符，编码一个压缩的secp256k1公钥。参见[addresses](/concepts/addresses)。
+
+密钥按账户派生，因此钱包为其每个账户持有一个epicbox地址，监听器以所打开账户的地址进行订阅（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={145} />）。参见[accounts](/concepts/accounts#which-account-a-transfer-uses)。
+
+钱包的默认中继域名为<Ver k="epicboxDomain" />。
+
+## 身份验证 {/* #authentication */}
+
+地址所有权通过对挑战值签名来证明。私钥不会离开钱包。
+
+1. 连接时以及此后按固定间隔，中继发送`Challenge`，内含一个随机字符串。
+2. 客户端回复`Subscribe`，附带其地址及对该挑战值的签名。
+3. 中继验证签名。签名有效即证明所有权，客户端可接收该地址的队列消息。
+
+挑战间隔默认为<Ver k="epicboxChallengeSeconds" />秒，这决定了已排队的slate在已连接客户端收到它之前的最长等待时间。已连接并注册为监听器的客户端会立即收到slate，无需等待下一次挑战。
+
+声明协议版本`2.0.0`或未声明版本的客户端，将收到固定挑战字符串而非随机字符串，以兼容3.5.2之前的旧版钱包。
+
+## 消息类型 {/* #message-types */}
+
+### 客户端到中继 {/* #client-to-relay */}
+
+| 类型 | 字段 | 用途 |
+| --- | --- | --- |
+| `Subscribe` | `address`, `ver`, `signature` | 证明所有权并开始接收 |
+| `Unsubscribe` | `address` | 停止接收并关闭 |
+| `PostSlate` | `from`, `to`, `str`, `signature` | 提交slate以投递 |
+| `Made` | `address`, `signature`, `ver`, `epicboxmsgid` | 确认slate已处理 |
+| `ClientDetails` | `wallet_version`, `wallet_mode`, `protocol_version` | 声明客户端身份 |
+| `ping` / `pong` | 无 | 保活 |
+
+`Challenge`、`GetVersion`和`FastSend`出于兼容性被接受，不属于<Ver k="epicboxProtocol" />的组成部分。
+
+声明`wallet_mode`为`listener`的客户端将被注册为即时投递模式，连接期间到达的slate会直接推送给它。
+
+### 中继到客户端 {/* #relay-to-client */}
+
+| 类型 | 字段 | 用途 |
+| --- | --- | --- |
+| `Challenge` | `str` | 签名此内容以订阅 |
+| `Ok` | 无 | 已接受 |
+| `Slate` | `from`, `str`, `signature`, `challenge`, `ver`, `epicboxmsgid` | 给你的slate |
+| `Error` | `kind`, `description` | 已拒绝 |
+
+错误类型：`UnknownError`、`InvalidRequest`、`InvalidSignature`、`InvalidChallenge`、`TooManySubscriptions`。
+
+## 广播slate {/* #posting-a-slate */}
+
+`PostSlate`在存储前经过两次验证：`from`和`to`的地址格式，以及针对`from`地址中密钥对载荷的签名。
+
+目标域名和端口与中继自身配置匹配的slate将存储在本地。其他目标则通过新建出站WebSocket连接转发至对应中继，这就是跨中继投递的实现方式。
+
+## 投递机制及其限制 {/* #delivery-and-its-limits */}
+
+投递采用确认机制而非即发即忘，这是相对于协议2.0.0的主要变更。
+
+1. 收到有效的`Subscribe`后，中继向该密钥发送**最旧的未投递**slate，并附带`epicboxmsgid`。
+2. 客户端处理后回复`Made`，对`epicboxmsgid`进行签名。
+3. 仅在收到有效的`Made`后，该slate才被标记为已投递，并释放下一条。
+
+因此队列对每个接收方是串行的：同一时刻只有一条slate处于待确认状态。停止确认的客户端会阻塞自身队列。
+
+适用两项限制，较短的那项并非存储过期时间：
+
+**存储过期时间，<Ver k="epicboxSlateExpiryDays" />天。** Slate保存604,800秒后无论状态如何均被删除。
+
+**确认限制，约九轮挑战。**中继按套接字统计发送尝试次数。三次未确认的尝试后，重置计数器并开始新一轮；三轮之后，共九次尝试，中继将丢弃该接收方的**所有**未投递slate，而不仅仅是失败的那一个（<Src repo="epicbox" path="app_mongo.js" line={366} />）。以<Ver k="epicboxChallengeSeconds" />秒的挑战间隔计算，约为九分钟。
+
+:::warning[An accepted post is not a delivered slate]
+
+两种限制均不通知发送方。从发送方角度看，slate已被接受后消失，而其输入（input）在转账取消之前始终处于已预留状态。参见[释放方式](/concepts/outputs-and-locking#what-releases-them)。
+
+:::
+
+其他投递特性：
+
+**投递状态按连接维护。**确认计数器与套接字绑定，因此重新连接会重置计数器，负载均衡器后端的多个中继实例之间不共享计数器。参考部署通过IP将客户端固定到同一实例。
+
+**转发的slate不在本地存储。**发往其他中继的slate通过新建出站连接转发，接受该slate的中继不对其进行持久化存储。
+
+## 客户端行为 {/* #client-behaviour */}
+
+钱包的中继客户端：
+
+- 延迟5秒后重新连接，并持续重试。
+- 广播最终确认的交易后，每秒轮询一次节点的内存池（mempool），最长持续<Ver k="mempoolWaitMinutes" />分钟。
+- 使用slate V2，因此不携带支付证明和`ttl_cutoff_height`。参见[相应选择传输方式](/concepts/payment-proofs#choose-the-transport-accordingly)。
+
+## 运行中继 {/* #run-a-relay */}
+
+参考部署在nginx后端运行两个中继实例，使用MongoDB存储，并使用Rust辅助二进制文件进行签名和地址验证。
+
+```bash
+git clone https://github.com/EpicCash/epic-epicbox-docker.git
+cd epic-epicbox-docker
+git submodule update --init --recursive
+EPICBOX_DOMAIN=epicbox.example.com docker compose up -d --build
+```
+
+将钱包指向该部署：
+
+```toml
+[epicbox]
+epicbox_domain = "epicbox.example.com"
+epicbox_port = 443
+```
+
+配置来自环境变量或`default_config.json`，环境变量优先。关键配置项：`EPICBOX_DOMAIN`、`EPICBOX_PORT`、`MONGO_URL`、`CHALLENGE_INTERVAL`（毫秒，默认值60000）、`DEBUG`、`STATS`。
+
+生产环境前提条件：
+
+**MongoDB索引来自`mongo-init.js`。**compose文件将其挂载到`/docker-entrypoint-initdb.d`，因此全新的MongoDB卷会自动获得队列索引和`createdat`上的TTL索引。如果将中继指向已有的MongoDB，则需手动创建索引；相同的命令位于<Src repo="epicbox" path="app_mongo.js" />顶部的注释块中。若缺少TTL索引，slate将永不过期。
+
+**将`STATS`设置为true。**该选项默认关闭。其暴露的每小时计数器存储在内存中，重启后重置，如需保留历史数据请及时抓取。
+
+参考compose文件将两个中继实例发布在宿主机端口8888和8889上，nginx发布在
+8443. 在自己的部署中将其映射到<Ver k="ports.epicbox" />，或直接编辑compose文件。
+
+## 源码 {/* #source */}
+
+- <Src repo="epicbox" path="app_mongo.js" />是完整的中继实现：协议、存储和转发
+- <Src repo="epicbox" path="default_config.json" />包含配置项及其默认值
+- <Src repo="epicbox" path="mongo-init.js" />在全新数据库上创建用户和索引
+- <Src repo="wallet" path="impls/src/epicbox/protocol.rs" />在客户端定义消息枚举
+- <Src repo="wallet" path="impls/src/adapters/epicbox.rs" />是钱包的中继客户端
+- <Src repo="wallet" path="libwallet/src/epicbox_address.rs" line={22} />是地址格式
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="传输方式" to="/concepts/transports">
+    epicbox与其他方案的对比。
+  </Card>
+  <Card title="卡住的交易" to="/guides/stuck-transactions">
+    投递失败时用户应采取的操作。
+  </Card>
+</CardGrid>

@@ -284,6 +284,19 @@ html {
     var(--epic-page-gutter) + var(--epic-navbar-brand-slot) + var(--epic-navbar-item-inset)
   );
   --epic-content-max: var(--ifm-container-width, 1140px);
+  /* The centred shell, used above --epic-page-centre-from only. It is the content cap plus the
+     brand slot, so the navbar inner and the landing page can be centred on the same box: centring
+     equal widths inside the navbar's symmetric padding and inside the full page width lands on the
+     same x, which is what keeps the first nav label and the page's left edge together.
+
+     Derived from the tokens above rather than restated, so a change to the brand slot or the
+     content cap cannot leave the shell behind. */
+  --epic-page-shell: calc(
+    var(--epic-content-max) + var(--epic-page-inset) - var(--epic-page-gutter)
+  );
+  /* How far into the shell the page's ink starts: the brand slot and the nav item's text inset,
+     which is --epic-page-inset with the navbar's own gutter taken back off. */
+  --epic-page-shell-inset: calc(var(--epic-page-inset) - var(--epic-page-gutter));
   /* The one gap left under the navbar, and it belongs to the contents panel alone. The sidebar
      and the breadcrumb row start on the navbar's bottom edge instead, so the left panel and the
      navbar read as a single charcoal shape and the breadcrumb is the top ink of the middle
@@ -312,18 +325,34 @@ html {
   }
 }
 
-/* The landing page caps its body at the container width, so the navbar's right-hand group has
-   to stop at the same x or the search field overhangs the content below it. Docs pages already
-   agree, because their contents panel and the search field both end on the navbar gutter, so
-   this is scoped to the pages plugin and leaves them untouched. */
-html.plugin-pages .navbar__inner {
-  /* The inner starts after the navbar's own left gutter and the body reserves a right one,
-     so both come off the cap. Result: the search field's right edge lands on the content's
-     right edge rather than 32px past it. */
-  max-width: calc(
-    var(--epic-page-inset) + var(--epic-content-max) - 2 * var(--epic-page-gutter)
-  );
-}
+/* The navbar is full width on every route, landing page included: the logo sits in the left corner
+   and the search field on the right gutter, at any window size.
+
+   This used to be capped here so the search field's right edge landed on the landing page's content
+   right edge. That cap is gone deliberately. Once the page body is centred, the two edges cannot
+   coincide without dragging the navbar off the corners, and a navbar that does not reach the edges
+   of its own window reads as broken chrome — which is exactly how it looked when tried, in a
+   screenshot on 2026-08-27. Aligning the navbar to the body was the weaker of the two goals, so the
+   body now aligns to the navbar instead: the page's left ink and the version pills both sit on the
+   navbar's first label, and the body's right edge is its own.
+
+   The upside is that the landing page and all 34 documentation routes now share one navbar
+   geometry, so nothing in the chrome shifts when a reader leaves the homepage. */
+
+/* ---- The centred shell above 1450px -----------------------------------
+   Below this width the landing page stays exactly as it was: left-anchored on the navbar's first
+   label, capped at --epic-content-max. That is deliberate. The left-anchored rules carry the
+   mobile gutters, and a `min()` formulation that centred at every width would drop the right-hand
+   gutter below 996px, where the brand slot collapses to zero.
+
+   Above it, the page body centres on --epic-page-shell while the navbar stays on the gutters.
+   1450 is where the shell first has slack to move into: the shell is 1417.8px once
+   --epic-content-max switches to 1320 at 1440, plus the navbar's two 16px gutters. Starting the
+   query any lower would centre a box that still fills the window, which is a no-op that only costs
+   a reader confusion when they resize.
+
+   The shell tokens are above; the rules that use them are in index-page.css, because the body is
+   the only thing that centres. verify-runtime.mjs measures the result at 1800px. */
 
 .navbar {
   position: sticky;
@@ -2486,13 +2515,26 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
   position: relative;
 }
 
+/* Only the two sides each tick actually draws are declared, and never as a `border` shorthand on the
+   shared rule.
+
+   This is not a style preference. The previous version set `border: 1px solid` on both pseudo-elements
+   and then removed two sides each with `border-right: none` and `border-bottom: none`. That is correct
+   CSS and it renders correctly on the dev server, but cssnano merges rules with equal specificity in
+   the production build and hoisted the shorthand *after* the longhands, so every tick shipped as a
+   closed 9px square that interrupted the enclosure's outline instead of bracketing its corner. It was
+   wrong in both themes, on every ticked element, in every build, and invisible in development. Found
+   from a screenshot on 2026-08-27 and confirmed in build/assets/css.
+
+   Declaring only the sides that are drawn removes the ordering fight entirely: there is no declaration
+   for a later rule to win against. Do not reintroduce a `border` shorthand here, and do not "simplify"
+   these four longhands back into one. */
 .epic-ticked::before,
 .epic-ticked::after {
   content: '';
   position: absolute;
   width: 9px;
   height: 9px;
-  border: 1px solid var(--epic-gold-deep);
   pointer-events: none;
   z-index: 1;
 }
@@ -2500,15 +2542,15 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
 .epic-ticked::before {
   top: -1px;
   left: -1px;
-  border-right: none;
-  border-bottom: none;
+  border-top: 1px solid var(--epic-gold-deep);
+  border-left: 1px solid var(--epic-gold-deep);
 }
 
 .epic-ticked::after {
   bottom: -1px;
   right: -1px;
-  border-left: none;
-  border-top: none;
+  border-bottom: 1px solid var(--epic-gold-deep);
+  border-right: 1px solid var(--epic-gold-deep);
 }
 
 /* A quiet monospace label for metadata. Replaces the uppercase letterspaced
@@ -2832,12 +2874,13 @@ div[class*='codeBlockContainer']:not(:has(div[class^='codeBlockTitle'])) {
   border-radius: 0;
 }
 
-/* Nested items get a hairline spine, so depth is visible without counting
-   indentation. */
+/* Nested items are set in by indentation alone. They used to carry a hairline spine as well, so depth
+   was visible without counting the indent, but at two and three levels deep the column read as a stack
+   of vertical rules competing with the scrollbar at the other edge. Removed on request, 2026-08-27.
+   Restoring it is one declaration: `border-left: 1px solid var(--epic-line)`. */
 .menu__list .menu__list {
   margin-left: 0.75rem;
   padding-left: 0.35rem;
-  border-left: 1px solid var(--epic-line);
 }
 
 /* ---- Table of contents -------------------------------------------------
@@ -3484,6 +3527,36 @@ html {
   }
 }
 
+/* ---- The documentation sidebar scrolls with no bar at all ---------------
+   The left column is a tall hairline surface, and a thumb pinned to its right edge sat opposite the
+   fold tab on its left edge, so the column was bracketed by two thin vertical objects that are not
+   part of the navigation. A reader who can see the list is cut off knows to scroll it.
+
+   `scrollbar-width: none` is declared outright rather than behind a feature query, which is the
+   opposite of what the two blocks above do, and the reason is that they want a *styled* bar and this
+   wants no bar. Those blocks force Chromium onto the webkit pseudo-element path because the standard
+   properties cannot express a thumb colour and an invisible track. `none` needs no such trick: it is
+   the whole instruction, both engines honour it, and there is nothing left for the pseudo-element to
+   style. The zero-width webkit rule stays as the fallback for a Safari old enough to lack
+   `scrollbar-width`.
+
+   Infima also sets `scrollbar-width: thin` on `.thin-scrollbar` inside `@media (pointer: fine)`, which
+   the sidebar menu carries and which beat the reset above; measured `thin` on this element before this
+   rule existed. Naming the container as well as the menu clears it on specificity.
+
+   Scoped to the docs sidebar. Every other scroller on the site keeps its bar, because a code block or
+   a wide table gives no other signal that it continues. */
+.theme-doc-sidebar-container .menu {
+  scrollbar-width: none;
+}
+
+@supports selector(::-webkit-scrollbar) {
+  .theme-doc-sidebar-container .menu::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   ::-webkit-scrollbar-thumb {
     transition: none;
@@ -3650,6 +3723,31 @@ html[class*='docs-doc-id-examples/'],
   }
 }
 
+/* ---- The middle navbar tier, 601px to 996px ----------------------------
+   Below 997px Docusaurus moves the whole navigation into the drawer, and Infima's
+   `.navbar__item { display: none }` takes the locale picker with it while the theme toggle is hidden
+   by the theme's own `colorModeToggle` wrapper class. The result was a navbar holding a burger, the
+   logo, then several hundred pixels of nothing and a 37px icon: everything collapsed at one
+   breakpoint, far earlier than the row actually ran out of room.
+
+   So there are three tiers now rather than two. This one drops only the seven navigation labels,
+   which are the wide part and the part the drawer duplicates, and keeps the three controls the drawer
+   handles worst: language, theme, and a search field wide enough to read its own placeholder. Under
+   601px they go too and the row is burger, logo and the icon-only ask control, which is the tier that
+   already existed. 600 is the breakpoint the rest of this project uses for "phone".
+
+   `.epicThemeToggle` is our own class on the theme's wrapper, so the hashed `colorModeToggle_*` name
+   is never referenced. Both controls also render inside the drawer, which is where they came from and
+   where they stay; a reader on this tier simply reaches them without opening it. */
+@media (min-width: 601px) and (max-width: 996px) {
+  .navbar__items--right > .navbar__item.dropdown {
+    display: inline-flex;
+  }
+  .navbar__items--right .epicThemeToggle {
+    display: flex;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .navbar__search-input {
     transition: none;
@@ -3696,12 +3794,34 @@ html[class*='docs-doc-id-examples/'],
     width: 7.5rem;
   }
 }
-@media (max-width: 996px) {
+/* The search slot is capped only on the icon-only tier, and the query says 600 rather than 996 for a
+   reason worth recording.
+ *
+ * The nesting is container > `.navbar__search` > `.epicAsk-control`, where the container carries the
+ * hashed `navbarSearchContainer_*` class. Easy to miss: a class grep of the built HTML shows only the
+ * container, which makes `.navbar__search` look like it does not exist on this site.
+ *
+ * 88px fits the mark alone. From 601px up the control carries its label and is 136px, so the cap left
+ * it hanging 48px out of its own slot and 32px past the window, and the page scrolled sideways at every
+ * width from 601 to 996.
+ *
+ * The first attempt at this was a second rule under `@media (min-width: 601px) and (max-width: 996px)`
+ * releasing the cap. Correct CSS, and it worked when injected into a running page, but cssnano reordered
+ * the two equal-specificity rules in the production build and emitted the override *before* the cap, so
+ * the built site was unchanged. Non-overlapping queries have no ordering to lose: do not merge these
+ * back into one query with an override. This is the same failure the corner ticks had, recorded on
+ * `.epic-ticked` above. */
+@media (max-width: 600px) {
   .navbar__search,
   .navbar__search:focus-within {
     flex: 0 0 5.5rem;
     max-width: 5.5rem;
   }
+}
+
+/* The Infima search input, unrelated to the slot cap above and left on the desktop breakpoint where it
+   has always been. */
+@media (max-width: 996px) {
   .navbar__search-input,
   .navbar__search-input:focus,
   .navbar__search-input:focus-visible {
@@ -3884,7 +4004,6 @@ html[class*='docs-doc-id-examples/'],
   font-weight: 600;
 }
 [data-theme='light'] .menu__link:hover { color: #f7f2e8; }
-[data-theme='light'] .menu__list .menu__list { border-left-color: var(--epic-chrome-line); }
 
 /* Light TOC. A recessed panel on the paper, not another sheet at the same value.
    The current row takes --epic-mark, the gold that clears 3:1 on this surface; the
@@ -4494,4 +4613,103 @@ html[class*='docs-doc-id-examples/'],
   .epicThemeToggle-button {
     transition: none;
   }
+}
+
+
+
+/* ------------------------------------------------------------------ locale picker
+
+   A flag on every language option, on desktop and in the mobile sidebar, and a flag instead of the
+   language name on the navbar control that opens the list.
+
+   Docusaurus puts `lang` on every anchor the locale dropdown renders and on nothing else in the
+   navbar, so the options need no shadowed component and no hashed class. The same list renders twice
+   with different Infima classes: `.dropdown__link` in the desktop menu, `.menu__link` inside the
+   mobile sidebar. Both are matched, which is why the mobile menu gets flags for free.
+
+   SVG files rather than the flag emoji, which is the usual shortcut. Windows ships no glyphs for the
+   regional-indicator pairs, so U+1F1EC U+1F1E7 renders there as the letters "GB": the feature would
+   silently not exist for readers on the one platform this site documents with its own tab in every
+   install block.
+
+   Matched on the language subtag rather than the full `htmlLang`, so correcting a region code in
+   docusaurus.config.js cannot silently drop the flags. `zh-Hans` is spelt out because a later zh-TW
+   must not inherit the Simplified flag.
+
+   The flag never replaces a language name in the list. Every option keeps its name written in its own
+   language, which is what a reader who cannot read the current page scans for, and a flag names a
+   country rather than a language. The navbar control is the one place the name goes, because there it
+   is redundant with the page the reader is already looking at. */
+
+/* The flag box. 3:2, which is exact for two of the three; the Union Jack is 2:1 and letterboxes
+   inside the box rather than being cropped, because `cover` would cut the ends off its diagonals. */
+.dropdown__link[lang]::before,
+.menu__link[lang]::before,
+.navbar__item.dropdown > .navbar__link.epicLocalePicker::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 1.25rem;
+  height: 0.8333rem;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  border-radius: 1px;
+  /* A hairline, so the white band of the Russian flag still has an edge against the surface. */
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 22%);
+}
+
+[data-theme='light'] .dropdown__link[lang]::before,
+[data-theme='light'] .menu__link[lang]::before,
+[data-theme='light'] .navbar__item.dropdown > .navbar__link.epicLocalePicker::before {
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 20%);
+}
+
+/* Which flag: the per-locale rules are generated from src/locales.js by plugins/locale-flags.js and
+   injected as a style tag, so adding a locale is that file plus the SVG asset and never this one.
+   They set `background-image` on all three selectors below, matching the language subtag rather than
+   the full tag so a region correction cannot silently drop the flags. */
+
+/* The options: flag, then the language name. */
+.dropdown__link[lang],
+.menu__link[lang] {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* The navbar control: globe, flag, caret, and no language name.
+ *
+ * `font-size: 0` collapses the label text node. Leaving the text in the DOM is the point rather than a
+ * shortcut: it is the accessible name of the control, an accessible name is computed from rendered
+ * text, and zero-sized text is still rendered where `display: none` would not be. A shadowed
+ * component that dropped the text would have to reintroduce it as an aria-label to stay equivalent.
+ *
+ * Both pseudo-elements restore a font size because Infima draws the dropdown caret as `0.4em` borders
+ * on `::after`, which a zero font size would render at zero and silently remove the only affordance
+ * saying the control opens a list. */
+.navbar__item.dropdown > .navbar__link.epicLocalePicker {
+  font-size: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.navbar__item.dropdown > .navbar__link.epicLocalePicker::before,
+.navbar__item.dropdown > .navbar__link.epicLocalePicker::after {
+  font-size: 1rem;
+}
+
+/* The globe carries a 5px right margin meant to separate it from the language name that is no longer
+   there. Targeted by element, because its own class name is content-hashed.
+ *
+ * Sized and toned to sit in a row of chrome rather than lead it. Docusaurus renders this at 20x20,
+ * which made it taller than the 13.33px flag beside it and heavier than the 16px stroked theme icon
+ * on its other side, so the three read as three unrelated objects. It now matches the flag's height
+ * exactly, off the same value, and takes the secondary content colour the theme icon uses. The path
+ * is `fill="currentColor"`, so `color` is what tones it. */
+.navbar__item.dropdown > .navbar__link.epicLocalePicker > svg {
+  margin-right: 0;
+  width: 0.8333rem;
+  height: 0.8333rem;
+  color: var(--ifm-color-content-secondary);
 }

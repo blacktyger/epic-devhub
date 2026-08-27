@@ -1,0 +1,1484 @@
+{
+  "journey.overview.heading": {
+    "message": "The route",
+    "description": "Heading for the journey overview on the start page"
+  },
+  "journey.overview.ofRouteRead": {
+    "message": "of the route read",
+    "description": "Label next to the overall progress percentage"
+  },
+  "journey.overview.continue": {
+    "message": "Continue: {title}",
+    "description": "Continue button label with stage title"
+  },
+  "journey.overview.begin": {
+    "message": "Begin: {title}",
+    "description": "Begin button label with first stage title"
+  },
+  "journey.overview.resetProgress": {
+    "message": "Reset progress",
+    "description": "Reset progress button label"
+  },
+  "journey.overview.footNote": {
+    "message": "Counted from how far you read each page, kept in this browser.",
+    "description": "Note explaining how progress tracking works"
+  },
+  "journey.nav.ariaLabel": {
+    "message": "Developer journey",
+    "description": "Aria label for the journey navigation"
+  },
+  "journey.nav.label": {
+    "message": "Developer journey",
+    "description": "Label identifying this as the developer journey"
+  },
+  "journey.nav.previous": {
+    "message": "Previous: {title}",
+    "description": "Previous stage link label"
+  },
+  "journey.nav.overview": {
+    "message": "Journey overview",
+    "description": "Link back to journey overview"
+  },
+  "journey.nav.next": {
+    "message": "Next: {title}",
+    "description": "Next stage link label"
+  },
+  "journey.nav.browseApi": {
+    "message": "Browse API reference",
+    "description": "Link to API reference after the last stage"
+  },
+  "journey.lifecycle.prepare.title": {
+    "message": "Prepare"
+  },
+  "journey.lifecycle.prepare.summary": {
+    "message": "A node both wallets can reach, and a sender holding spendable outputs. Whether the receiver has to be online depends on the transport."
+  },
+  "journey.lifecycle.draft.title": {
+    "message": "Draft and lock"
+  },
+  "journey.lifecycle.draft.summary": {
+    "message": "The sender builds a partial slate and reserves the selected outputs locally. Nothing is on the chain yet, and only a cancellation releases the reservation."
+  },
+  "journey.lifecycle.deliver.title": {
+    "message": "Deliver"
+  },
+  "journey.lifecycle.deliver.summary": {
+    "message": "The slate reaches the receiver as a file you move, an HTTP request, or a message queued by a relay. This is the step that fails in practice."
+  },
+  "journey.lifecycle.cosign.title": {
+    "message": "Co-sign"
+  },
+  "journey.lifecycle.cosign.summary": {
+    "message": "The receiver adds an output, its range proof and a partial signature, then returns the slate the same way it arrived."
+  },
+  "journey.lifecycle.post.title": {
+    "message": "Post or cancel"
+  },
+  "journey.lifecycle.post.summary": {
+    "message": "The sender completes the aggregate signature and posts the transaction. If the exchange cannot finish, cancel it deliberately to release the reserved outputs."
+  },
+  "journey.lifecycle.heading": {
+    "message": "What a transfer actually does",
+    "description": "Heading for the slate lifecycle section"
+  },
+  "journey.lifecycle.ariaLabel": {
+    "message": "Slate lifecycle stages",
+    "description": "Aria label for the lifecycle stage buttons"
+  },
+  "journey.lifecycle.stageAriaLabel": {
+    "message": "Stage {number}: {title}",
+    "description": "Aria label for individual lifecycle stage button"
+  },
+  "journey.invite.heading": {
+    "message": "Learn Epic in eight stages",
+    "description": "Journey section heading on landing page"
+  },
+  "journey.invite.lede": {
+    "message": "From how the ledger works to driving a wallet from code. Each stage is one page.",
+    "description": "Journey section sub-heading on landing page"
+  },
+  "journey.invite.completenessAriaLabel": {
+    "message": "Journey completeness",
+    "description": "Aria label for journey progress dial"
+  },
+  "journey.invite.read": {
+    "message": "read",
+    "description": "Label below the progress percentage"
+  },
+  "journey.invite.continue": {
+    "message": "Continue: {title}",
+    "description": "Continue button when journey is in progress"
+  },
+  "journey.invite.startAt01": {
+    "message": "Start at stage 01",
+    "description": "Start button when journey has not begun"
+  },
+  "journey.invite.progressNote": {
+    "message": "Progress is measured by how far you read and stays in this browser.",
+    "description": "Note about how progress is tracked"
+  },
+  "slateExchange.scenario.completes": {
+    "message": "It completes",
+    "description": "Scenario label: successful direct transfer"
+  },
+  "slateExchange.completes.step1": {
+    "message": "The sender asks the node for the chain tip, builds a slate, and reserves the inputs it will spend."
+  },
+  "slateExchange.completes.step2": {
+    "message": "The sender posts the slate straight to the receiver’s listener."
+  },
+  "slateExchange.completes.step3": {
+    "message": "The receiver adds their half and signs."
+  },
+  "slateExchange.completes.step4": {
+    "message": "The signed slate comes back in the same response."
+  },
+  "slateExchange.completes.step5": {
+    "message": "The sender finalises it and posts it to the node, which broadcasts it."
+  },
+  "slateExchange.scenario.receiverAway": {
+    "message": "No receiver",
+    "description": "Scenario label: receiver offline"
+  },
+  "slateExchange.receiverAway.step1": {
+    "message": "The sender builds a slate and reserves the inputs it will spend."
+  },
+  "slateExchange.receiverAway.step2": {
+    "message": "Nothing is listening on the receiver’s address, so the request fails."
+  },
+  "slateExchange.receiverAway.step3": {
+    "message": "One half is signed, so there is nothing to finalise."
+  },
+  "slateExchange.receiverAway.step4": {
+    "message": "The reserved inputs stay reserved. Cancelling the transaction returns them."
+  },
+  "slateExchange.scenario.senderAway": {
+    "message": "No sender",
+    "description": "Scenario label: sender offline"
+  },
+  "slateExchange.senderAway.step1": {
+    "message": "The sender builds a slate and reserves the inputs it will spend."
+  },
+  "slateExchange.senderAway.step2": {
+    "message": "The sender posts the slate straight to the receiver’s listener."
+  },
+  "slateExchange.senderAway.step3": {
+    "message": "The receiver adds their half and signs."
+  },
+  "slateExchange.senderAway.step4": {
+    "message": "The sender is gone, so the signed slate has nowhere to return to. Nothing holds it for later."
+  },
+  "slateExchange.senderAway.step5": {
+    "message": "Nothing finalises, and the reserved inputs stay reserved until the transaction is cancelled."
+  },
+  "slateExchange.scenario.noNode": {
+    "message": "No node",
+    "description": "Scenario label: node offline"
+  },
+  "slateExchange.noNode.step1": {
+    "message": "A wallet reads the chain and posts through a node, so the send contacts one first."
+  },
+  "slateExchange.noNode.step2": {
+    "message": "With none reachable the send stops before a slate exists, so no inputs are reserved."
+  },
+  "slateExchange.noNode.step3": {
+    "message": "Point the wallet at a node it can reach, then send again."
+  },
+  "slateExchange.epicbox.step1": {
+    "message": "The sender encrypts the slate and posts it to the relay."
+  },
+  "slateExchange.epicbox.step2": {
+    "message": "The relay holds it until the receiver’s wallet connects. The two wallets never have to be online at the same time."
+  },
+  "slateExchange.epicbox.step3": {
+    "message": "The receiver collects it, adds their half and signs."
+  },
+  "slateExchange.epicbox.step4": {
+    "message": "The signed slate goes back to the relay, which holds it until the sender returns."
+  },
+  "slateExchange.epicbox.step5": {
+    "message": "The sender comes back online and collects the signed slate from the relay."
+  },
+  "slateExchange.epicbox.step6": {
+    "message": "The sender finalises it and posts it to the node, which broadcasts it."
+  },
+  "slateExchange.epicbox.step7": {
+    "message": "Confirmations bury the output, and the receiver can spend it."
+  },
+  "slateExchange.label.sender": {
+    "message": "Sender",
+    "description": "Label for the sender in the SVG diagram"
+  },
+  "slateExchange.label.receiver": {
+    "message": "Receiver",
+    "description": "Label for the receiver in the SVG diagram"
+  },
+  "slateExchange.label.epicboxRelay": {
+    "message": "Epicbox relay",
+    "description": "Label for the epicbox relay in the SVG diagram"
+  },
+  "slateExchange.label.holdingSlate": {
+    "message": "holding the slate",
+    "description": "Relay sub-label when holding"
+  },
+  "slateExchange.label.idle": {
+    "message": "idle",
+    "description": "Relay sub-label when idle"
+  },
+  "slateExchange.label.inputsReserved": {
+    "message": "inputs reserved",
+    "description": "Sender sub-label when inputs are reserved"
+  },
+  "slateExchange.label.play": {
+    "message": "Play",
+    "description": "Play button label"
+  },
+  "slateExchange.label.pause": {
+    "message": "Pause",
+    "description": "Pause button label"
+  },
+  "slateExchange.label.transferOutcome": {
+    "message": "Transfer outcome",
+    "description": "Aria label for the scenario dot tabs"
+  },
+  "slateExchange.status.online": {
+    "message": "online",
+    "description": "Online status shown in the SVG diagram"
+  },
+  "slateExchange.status.offline": {
+    "message": "offline",
+    "description": "Offline status shown in the SVG diagram"
+  },
+  "slateExchange.label.node": {
+    "message": "Node",
+    "description": "Node label in the SVG diagram"
+  },
+  "slateExchange.liveStep": {
+    "message": "{scenario}. Step {current} of {total}. {step}",
+    "description": "Live announcement for the active transfer-diagram step"
+  },
+  "journey.fundamentals.title": {
+    "message": "Understand the ledger"
+  },
+  "journey.exchange.title": {
+    "message": "Understand the exchange"
+  },
+  "journey.build.title": {
+    "message": "Build the binaries"
+  },
+  "journey.localNetwork.title": {
+    "message": "Run a private chain"
+  },
+  "journey.transfer.title": {
+    "message": "Complete a transfer"
+  },
+  "journey.mainnet.title": {
+    "message": "Connect to mainnet"
+  },
+  "journey.operate.title": {
+    "message": "Operate a wallet"
+  },
+  "journey.integrate.title": {
+    "message": "Build an integration"
+  },
+  "journey.fundamentals.outcome": {
+    "message": "You know why Epic has no on-chain receiving addresses and no public transaction history."
+  },
+  "journey.exchange.outcome": {
+    "message": "You can describe a slate, its two rounds, and why delivery can fail without losing funds."
+  },
+  "journey.build.outcome": {
+    "message": "You have working epic, epic-wallet and epic-miner binaries for your platform."
+  },
+  "journey.localNetwork.outcome": {
+    "message": "A node is producing blocks on usernet and one of your two wallets holds spendable coins."
+  },
+  "journey.transfer.outcome": {
+    "message": "You have moved coins between your own wallets and seen what each transport changes."
+  },
+  "journey.mainnet.outcome": {
+    "message": "A synced mainnet node and a wallet you have backed up, with real value at stake."
+  },
+  "journey.operate.outcome": {
+    "message": "You can receive, send, read what the wallet reports, recover it, and clear a stuck transfer."
+  },
+  "journey.integrate.outcome": {
+    "message": "You can drive the node and wallet APIs and handle Epic’s Ok/Err response envelope."
+  },
+  "homepage.masthead.versionsAriaLabel": {
+    "message": "Software versions",
+    "description": "Aria label for the version pills strip in the masthead"
+  },
+  "homepage.masthead.title": {
+    "message": "Developer's Hub",
+    "description": "Main heading on the homepage"
+  },
+  "homepage.masthead.tagline": {
+    "message": "Documentation, Guidelines and Code Examples."
+  },
+  "homepage.masthead.taglineMobileLine1": {
+    "message": "Documentation, Guidelines",
+    "description": "First line of the tagline on mobile"
+  },
+  "homepage.masthead.taglineMobileLine2": {
+    "message": "and Code Examples.",
+    "description": "Second line of the tagline on mobile"
+  },
+  "homepage.masthead.pill.pow": {
+    "message": "Proof of Work",
+    "description": "Proof of Work pill in masthead"
+  },
+  "homepage.masthead.pill.opensource": {
+    "message": "Open Source",
+    "description": "Open Source pill in masthead"
+  },
+  "homepage.masthead.pill.private": {
+    "message": "Private",
+    "description": "Private pill in masthead"
+  },
+  "homepage.quickstart.nodeLabel": {
+    "message": "Node",
+    "description": "Node tab label in quick start"
+  },
+  "homepage.quickstart.nodeTitle": {
+    "message": "Run a node",
+    "description": "Node quick start title"
+  },
+  "homepage.quickstart.nodeSetupLink": {
+    "message": "Node and wallet setup",
+    "description": "Link to mainnet setup guide"
+  },
+  "homepage.quickstart.checksums": {
+    "message": "Checksums and other builds",
+    "description": "Link to downloads page"
+  },
+  "homepage.quickstart.nodeLinuxNote": {
+    "message": "Linux x86-64.",
+    "description": "Platform note for node Linux"
+  },
+  "homepage.quickstart.nodeMacNote": {
+    "message": "Apple silicon. Gatekeeper blocks an unsigned binary until you allow it.",
+    "description": "Platform note for node macOS"
+  },
+  "homepage.quickstart.nodeWinNote": {
+    "message": "x86-64, PowerShell.",
+    "description": "Platform note for node Windows"
+  },
+  "homepage.quickstart.walletLabel": {
+    "message": "Wallet",
+    "description": "Wallet tab label in quick start"
+  },
+  "homepage.quickstart.walletTitle": {
+    "message": "Create a wallet",
+    "description": "Wallet quick start title"
+  },
+  "homepage.quickstart.walletOpsLink": {
+    "message": "Wallet operations",
+    "description": "Link to wallet operations guide"
+  },
+  "homepage.quickstart.walletLinuxNote": {
+    "message": "Linux x86-64.",
+    "description": "Platform note for wallet Linux"
+  },
+  "homepage.quickstart.walletWinNote": {
+    "message": "x86-64, PowerShell.",
+    "description": "Platform note for wallet Windows"
+  },
+  "homepage.quickstart.heading": {
+    "message": "Quick start",
+    "description": "Quick start panel heading"
+  },
+  "homepage.quickstart.softwareAriaLabel": {
+    "message": "Software",
+    "description": "Aria label for the node/wallet tab group"
+  },
+  "homepage.quickstart.platformAriaLabel": {
+    "message": "Platform",
+    "description": "Aria label for the platform tab group"
+  },
+  "homepage.quickstart.copied": {
+    "message": "Copied",
+    "description": "Copy button label after copying"
+  },
+  "homepage.quickstart.copy": {
+    "message": "Copy",
+    "description": "Copy button label"
+  },
+  "homepage.journey.kicker": {
+    "message": "The developer journey",
+    "description": "Section kicker above the developer journey"
+  },
+  "homepage.model.kicker": {
+    "message": "If you have worked with other blockchains",
+    "description": "Kicker text above the four differences section"
+  },
+  "homepage.model.heading": {
+    "message": "Four things that work differently here",
+    "description": "Heading for the four differences section"
+  },
+  "homepage.model.noAddresses.title": {
+    "message": "There are no addresses in the ledger.",
+    "description": "Bold title for no-addresses point"
+  },
+  "homepage.model.noAddresses.body": {
+    "message": "An epicbox address routes a message between wallets. No output is paid to it, so there is no balance to query and no history to read.",
+    "description": "Explanation of epicbox address routing"
+  },
+  "homepage.model.interactive.title": {
+    "message": "A transfer needs both parties.",
+    "description": "Bold title for interactive transfers point"
+  },
+  "homepage.model.interactive.body": {
+    "message": "The sender builds a partial transaction called a slate, the receiver adds their half, the sender finalises. Delivery, not consensus, is where transfers fail.",
+    "description": "Explanation of slate exchange"
+  },
+  "homepage.model.locking.title": {
+    "message": "Sending reserves your outputs.",
+    "description": "Bold title for output locking point"
+  },
+  "homepage.model.locking.body": {
+    "message": "They stay unavailable until the transfer confirms or you cancel it. Nothing releases them on a timer.",
+    "description": "Explanation of output reservation"
+  },
+  "homepage.model.restore.title": {
+    "message": "A seed phrase restores funds, not history.",
+    "description": "Bold title for seed restore point"
+  },
+  "homepage.model.restore.body": {
+    "message": "There is no public record to rebuild from, so a recovered wallet has a correct balance and an empty transaction log.",
+    "description": "Explanation of seed restore behaviour"
+  },
+  "homepage.index.concepts": {
+    "message": "Concepts",
+    "description": "Concepts section label in index"
+  },
+  "homepage.index.concepts.mimblewimble": {
+    "message": "The MimbleWimble model"
+  },
+  "homepage.index.concepts.interactive": {
+    "message": "Interactive transactions"
+  },
+  "homepage.index.concepts.outputs": {
+    "message": "Outputs and locking"
+  },
+  "homepage.index.concepts.addresses": {
+    "message": "Addresses"
+  },
+  "homepage.index.concepts.transports": {
+    "message": "Transports"
+  },
+  "homepage.index.concepts.proofs": {
+    "message": "Payment proofs"
+  },
+  "homepage.index.guides": {
+    "message": "Guides",
+    "description": "Guides section label in index"
+  },
+  "homepage.index.guides.build": {
+    "message": "Build the binaries"
+  },
+  "homepage.index.guides.localNetwork": {
+    "message": "Run a local network"
+  },
+  "homepage.index.guides.firstTransfer": {
+    "message": "Your first transfer"
+  },
+  "homepage.index.guides.mainnetSetup": {
+    "message": "Node and wallet setup"
+  },
+  "homepage.index.guides.walletOps": {
+    "message": "Wallet operations"
+  },
+  "homepage.index.guides.backup": {
+    "message": "Back up and restore"
+  },
+  "homepage.index.guides.stuck": {
+    "message": "Diagnose a stuck transaction"
+  },
+  "homepage.index.api": {
+    "message": "API reference",
+    "description": "API reference section label in index"
+  },
+  "homepage.index.api.overview": {
+    "message": "Overview"
+  },
+  "homepage.index.api.node": {
+    "message": "Node API"
+  },
+  "homepage.index.api.walletOwner": {
+    "message": "Wallet Owner API"
+  },
+  "homepage.index.api.epicbox": {
+    "message": "Epicbox relay protocol"
+  },
+  "homepage.index.api.auth": {
+    "message": "Authentication and TLS"
+  },
+  "homepage.index.examples": {
+    "message": "Code examples",
+    "description": "Code examples section label in index"
+  },
+  "homepage.index.examples.overview": {
+    "message": "Overview and setup"
+  },
+  "homepage.index.examples.node": {
+    "message": "Node queries"
+  },
+  "homepage.index.examples.walletConnect": {
+    "message": "Wallet: connect and read"
+  },
+  "homepage.index.examples.sendReceive": {
+    "message": "Wallet: send and receive"
+  },
+  "homepage.index.config": {
+    "message": "Configuration and CLI",
+    "description": "Config section label in index"
+  },
+  "homepage.index.config.cli": {
+    "message": "CLI"
+  },
+  "homepage.index.config.downloads": {
+    "message": "Downloads"
+  },
+  "homepage.index.mining": {
+    "message": "Mining and consensus",
+    "description": "Mining section label in index"
+  },
+  "homepage.index.mining.pow": {
+    "message": "Proof of work"
+  },
+  "homepage.index.mining.emission": {
+    "message": "Emission and the levy"
+  },
+  "homepage.index.mining.migrating": {
+    "message": "Migrating from 3.x"
+  },
+  "homepage.index.kicker": {
+    "message": "Everything else",
+    "description": "Kicker above the doc index section"
+  },
+  "homepage.layout.title": {
+    "message": "Epic Cash Developer Documentation",
+    "description": "Page title for the homepage"
+  },
+  "homepage.layout.description": {
+    "message": "Developer documentation for Epic Cash: node and wallet APIs, the epicbox relay protocol, consensus, mining and integration.",
+    "description": "Meta description for the homepage"
+  },
+  "assistant.host.resizePanel": {
+    "message": "Resize the assistant panel"
+  },
+  "assistant.host.loading": {
+    "message": "Loading the assistant"
+  },
+  "assistant.modal.label": {
+    "message": "Ask or search the documentation"
+  },
+  "assistant.modal.inputLabel": {
+    "message": "Ask a question, or search the documentation"
+  },
+  "assistant.modal.placeholder": {
+    "message": "Ask or search…"
+  },
+  "assistant.modal.clear": {
+    "message": "Clear the box"
+  },
+  "assistant.modal.optionsWithQuery": {
+    "message": "Ask the assistant, or open a page"
+  },
+  "assistant.modal.suggestedQuestions": {
+    "message": "Suggested questions"
+  },
+  "assistant.modal.askAi": {
+    "message": "Ask AI: {question}"
+  },
+  "assistant.modal.askAiNote": {
+    "message": "Answers from these docs, with the sections it used"
+  },
+  "assistant.modal.searchMissing": {
+    "message": "The search index did not load, so only the assistant is available."
+  },
+  "assistant.modal.devIndexMissing": {
+    "message": "Keyword results need an index. Run npm run build once, then reload."
+  },
+  "assistant.modal.noMatches": {
+    "message": "No page matches those words. Ask the assistant instead."
+  },
+  "assistant.modal.seeAll": {
+    "message": "See all results for “{query}”"
+  },
+  "assistant.modal.devIndexStale": {
+    "message": "Dev: index is from the last build."
+  },
+  "assistant.shortcut.move": {
+    "message": "move"
+  },
+  "assistant.shortcut.open": {
+    "message": "open"
+  },
+  "assistant.shortcut.askDirectly": {
+    "message": "ask directly"
+  },
+  "assistant.shortcut.close": {
+    "message": "close"
+  },
+  "assistant.shortcut.send": {
+    "message": "send"
+  },
+  "assistant.shortcut.newline": {
+    "message": "newline"
+  },
+  "assistant.page.copiedAnnouncement": {
+    "message": "Page copied as Markdown"
+  },
+  "assistant.page.copyFailedAnnouncement": {
+    "message": "Could not copy this page"
+  },
+  "assistant.page.ask": {
+    "message": "Ask about this page"
+  },
+  "assistant.page.copied": {
+    "message": "Copied"
+  },
+  "assistant.page.copyFailed": {
+    "message": "Copy failed"
+  },
+  "assistant.page.copy": {
+    "message": "Copy page"
+  },
+  "assistant.markdown.externalLink": {
+    "message": " (opens in a new tab)"
+  },
+  "assistant.markdown.codeText": {
+    "message": "text"
+  },
+  "assistant.markdown.copyAfterAnswer": {
+    "message": "Copy is available once the answer finishes"
+  },
+  "assistant.markdown.copyCodeLabel": {
+    "message": "Copy {language} to clipboard"
+  },
+  "assistant.markdown.copy": {
+    "message": "Copy"
+  },
+  "assistant.markdown.copied": {
+    "message": "Copied"
+  },
+  "assistant.error.rate": {
+    "message": "That is the question limit for now. Try again in a few minutes."
+  },
+  "assistant.error.network": {
+    "message": "Connection lost."
+  },
+  "assistant.error.unavailable": {
+    "message": "AI assistant currently unavailable."
+  },
+  "assistant.error.label": {
+    "message": "Error"
+  },
+  "assistant.error.tryAgain": {
+    "message": "Try again"
+  },
+  "assistant.notice.lengthLimit": {
+    "message": "That is longer than the {count} character limit. Try trimming it."
+  },
+  "assistant.notice.sessionLimit": {
+    "message": "You have reached the question limit for this session. Reload the page to start a new one, or use the search box."
+  },
+  "assistant.notice.budgetDegraded": {
+    "message": "The assistant has used its budget for today, so here are the closest sections of the documentation instead."
+  },
+  "assistant.notice.budgetUnavailable": {
+    "message": "The assistant is unavailable for the rest of today. The search box covers the same documentation."
+  },
+  "assistant.notice.label": {
+    "message": "Notice"
+  },
+  "assistant.notice.sectionLink": {
+    "message": "Documentation section {number}"
+  },
+  "assistant.announce.working": {
+    "message": "Working on an answer"
+  },
+  "assistant.announce.limit": {
+    "message": "Question limit reached for this session"
+  },
+  "assistant.announce.degraded": {
+    "message": "The assistant is over budget for today, showing documentation sections instead"
+  },
+  "assistant.announce.unavailable": {
+    "message": "The assistant is unavailable"
+  },
+  "assistant.announce.stopped": {
+    "message": "Answer stopped"
+  },
+  "assistant.announce.failed": {
+    "message": "Could not generate an answer"
+  },
+  "assistant.announce.connectionLost": {
+    "message": "Connection lost"
+  },
+  "assistant.announce.complete": {
+    "message": "Answer complete"
+  },
+  "assistant.announce.completeSource": {
+    "message": "Answer complete, 1 source"
+  },
+  "assistant.announce.completeSources": {
+    "message": "Answer complete, {count} sources"
+  },
+  "assistant.panel.dialogLabel": {
+    "message": "Epic documentation assistant"
+  },
+  "assistant.panel.title": {
+    "message": "Docs assistant"
+  },
+  "assistant.panel.scopeLive": {
+    "message": "Answers from the Epic developer documentation, and it can check the live chain and the EpicCash repositories. It can be wrong, so check the linked section."
+  },
+  "assistant.panel.scopeDocs": {
+    "message": "Answers from the Epic developer documentation, and it knows which page you are on. It can be wrong, so check the linked section."
+  },
+  "assistant.panel.close": {
+    "message": "Close the assistant"
+  },
+  "assistant.panel.conversation": {
+    "message": "Conversation with the documentation assistant"
+  },
+  "assistant.panel.emptyLead": {
+    "message": "Ask about the node, the wallet, epicbox, mining or the APIs."
+  },
+  "assistant.panel.youAsked": {
+    "message": "You asked:"
+  },
+  "assistant.panel.assistantAnswered": {
+    "message": "Assistant answered:"
+  },
+  "assistant.panel.reading": {
+    "message": "Reading the documentation"
+  },
+  "assistant.panel.liveDataLabel": {
+    "message": "Live data checked for this answer"
+  },
+  "assistant.panel.activityUnavailable": {
+    "message": " (unavailable)"
+  },
+  "assistant.panel.stopped": {
+    "message": "Stopped. What arrived is above."
+  },
+  "assistant.panel.sourcesLabel": {
+    "message": "Sources for this answer"
+  },
+  "assistant.panel.sources": {
+    "message": "Sources"
+  },
+  "assistant.panel.followups": {
+    "message": "Follow-up suggestions"
+  },
+  "assistant.panel.composerLabel": {
+    "message": "Ask a question about the Epic Cash developer documentation"
+  },
+  "assistant.panel.composerPlaceholder": {
+    "message": "Ask about Epic…"
+  },
+  "assistant.panel.composerHint": {
+    "message": "Press Enter to send, Shift plus Enter for a new line, Escape to close."
+  },
+  "assistant.panel.stopGenerating": {
+    "message": "Stop generating"
+  },
+  "assistant.panel.stop": {
+    "message": "Stop"
+  },
+  "assistant.panel.sendQuestion": {
+    "message": "Send question"
+  },
+  "assistant.panel.ask": {
+    "message": "Ask"
+  },
+  "assistant.panel.modelLabel": {
+    "message": "Which model answers your questions"
+  },
+  "assistant.panel.questionLeft": {
+    "message": "1 question left"
+  },
+  "assistant.panel.questionsLeft": {
+    "message": "{count} questions left"
+  },
+  "assistant.panel.footLive": {
+    "message": "Answers can be wrong, so verify against the linked page."
+  },
+  "assistant.panel.footDocs": {
+    "message": "Answers are generated and can be wrong. Verify against the linked page."
+  },
+  "assistant.model.opus-4-6.note": {
+    "message": "Slower. Better at writing code."
+  },
+  "assistant.model.sonnet-4-6.note": {
+    "message": "Fast. Best for lookups."
+  },
+  "assistant.tool.epic_chain_status": {
+    "message": "Checking the live Epic chain"
+  },
+  "assistant.tool.epic_chain_window": {
+    "message": "Measuring recent network difficulty"
+  },
+  "assistant.tool.epic_block": {
+    "message": "Looking up an Epic block"
+  },
+  "assistant.tool.epic_mempool": {
+    "message": "Checking the transaction pool"
+  },
+  "assistant.tool.epic_node_peers": {
+    "message": "Checking which node versions peers are running"
+  },
+  "assistant.tool.epic_github_releases": {
+    "message": "Checking EpicCash releases"
+  },
+  "assistant.tool.epic_github_activity": {
+    "message": "Checking recent EpicCash development activity"
+  },
+  "assistant.tool.epic_github_repo": {
+    "message": "Checking an EpicCash repository"
+  },
+  "assistant.tool.default": {
+    "message": "Checking live data"
+  },
+  "assistant.suggestion.wrongAddress": {
+    "message": "Why can a wrong address not lose my funds?"
+  },
+  "assistant.suggestion.bothOnline": {
+    "message": "Why does an Epic transfer need both parties online?"
+  },
+  "assistant.suggestion.slate": {
+    "message": "What is a slate, and what is in one?"
+  },
+  "assistant.suggestion.slateTransport": {
+    "message": "What can carry a slate between two wallets?"
+  },
+  "assistant.suggestion.hiddenAmounts": {
+    "message": "How does MimbleWimble hide amounts?"
+  },
+  "assistant.suggestion.lockedBalance": {
+    "message": "Why is my balance locked after a failed send?"
+  },
+  "assistant.suggestion.privateChain": {
+    "message": "How do I run a private chain on one machine?"
+  },
+  "assistant.suggestion.usernetMining": {
+    "message": "What config makes a usernet chain actually mine?"
+  },
+  "assistant.suggestion.buildWindows": {
+    "message": "How do I build the node on Windows?"
+  },
+  "assistant.suggestion.mainnetSetup": {
+    "message": "How do I set up a node and wallet on mainnet?"
+  },
+  "assistant.suggestion.firstTransfer": {
+    "message": "How do I complete my first transfer?"
+  },
+  "assistant.suggestion.backup": {
+    "message": "How do I back up a wallet, and what does recovery not restore?"
+  },
+  "assistant.suggestion.stuck": {
+    "message": "My transaction is stuck unconfirmed. What do I do?"
+  },
+  "assistant.suggestion.twoWallets": {
+    "message": "How do I run two wallets on the same machine?"
+  },
+  "assistant.suggestion.ownerApiPython": {
+    "message": "How do I open a wallet over the Owner API from Python?"
+  },
+  "assistant.suggestion.spendingMethods": {
+    "message": "Which Owner API methods can spend funds?"
+  },
+  "assistant.suggestion.sendSequence": {
+    "message": "What is the full call sequence to send a transaction?"
+  },
+  "assistant.suggestion.encryptedHandshake": {
+    "message": "How does the encrypted Owner API handshake work?"
+  },
+  "assistant.suggestion.credentials": {
+    "message": "Which credential does each API surface need?"
+  },
+  "assistant.suggestion.balance": {
+    "message": "How do I read a wallet balance and what do the figures mean?"
+  },
+  "assistant.suggestion.nodeSync": {
+    "message": "How do I check whether my node is synced?"
+  },
+  "assistant.suggestion.algorithms": {
+    "message": "Which proof-of-work algorithms does Epic use?"
+  },
+  "assistant.suggestion.reward": {
+    "message": "What is the block reward and how does the levy work?"
+  },
+  "assistant.suggestion.minerNode": {
+    "message": "How do I point a miner at my node?"
+  },
+  "assistant.suggestion.exchange": {
+    "message": "What do I need to integrate Epic into an exchange?"
+  },
+  "assistant.suggestion.paymentProof": {
+    "message": "How do I prove I paid someone?"
+  },
+  "assistant.suggestion.ports": {
+    "message": "Which ports does each component open?"
+  },
+  "assistant.suggestion.v4Changes": {
+    "message": "What changed between 3.x and 4.0?"
+  },
+  "assistant.suggestion.download": {
+    "message": "Where do I download the wallet and how do I verify it?"
+  },
+  "theme.colorToggle.title": {
+    "message": "Switch to {mode}",
+    "description": "Tooltip for the color mode toggle"
+  },
+  "theme.colorToggle.ariaLabel": {
+    "message": "Switch between dark and light mode (currently {mode})",
+    "description": "The ARIA label for the color mode toggle"
+  },
+  "search.askOrSearch": {
+    "message": "Ask or search…",
+    "description": "Visible label for the combined assistant and search control"
+  },
+  "search.askOrSearchAriaLabel": {
+    "message": "Ask a question or search the documentation, shortcut {modifier} plus K",
+    "description": "Accessible label for the combined assistant and search control"
+  },
+  "theme.ErrorPageContent.title": {
+    "message": "This page crashed.",
+    "description": "The title of the fallback page when the page crashed"
+  },
+  "theme.BackToTopButton.buttonAriaLabel": {
+    "message": "Scroll back to top",
+    "description": "The ARIA label for the back to top button"
+  },
+  "theme.blog.archive.title": {
+    "message": "Archive",
+    "description": "The page & hero title of the blog archive page"
+  },
+  "theme.blog.archive.description": {
+    "message": "Archive",
+    "description": "The page & hero description of the blog archive page"
+  },
+  "theme.blog.paginator.navAriaLabel": {
+    "message": "Blog list page navigation",
+    "description": "The ARIA label for the blog pagination"
+  },
+  "theme.blog.paginator.newerEntries": {
+    "message": "Newer entries",
+    "description": "The label used to navigate to the newer blog posts page (previous page)"
+  },
+  "theme.blog.paginator.olderEntries": {
+    "message": "Older entries",
+    "description": "The label used to navigate to the older blog posts page (next page)"
+  },
+  "theme.blog.post.paginator.navAriaLabel": {
+    "message": "Blog post page navigation",
+    "description": "The ARIA label for the blog posts pagination"
+  },
+  "theme.blog.post.paginator.newerPost": {
+    "message": "Newer post",
+    "description": "The blog post button label to navigate to the newer/previous post"
+  },
+  "theme.blog.post.paginator.olderPost": {
+    "message": "Older post",
+    "description": "The blog post button label to navigate to the older/next post"
+  },
+  "theme.tags.tagsPageLink": {
+    "message": "View all tags",
+    "description": "The label of the link targeting the tag list page"
+  },
+  "theme.colorToggle.ariaLabel.mode.system": {
+    "message": "system mode",
+    "description": "The name for the system color mode"
+  },
+  "theme.colorToggle.ariaLabel.mode.light": {
+    "message": "light mode",
+    "description": "The name for the light color mode"
+  },
+  "theme.colorToggle.ariaLabel.mode.dark": {
+    "message": "dark mode",
+    "description": "The name for the dark color mode"
+  },
+  "theme.docs.breadcrumbs.navAriaLabel": {
+    "message": "Breadcrumbs",
+    "description": "The ARIA label for the breadcrumbs"
+  },
+  "theme.docs.paginator.navAriaLabel": {
+    "message": "Docs pages",
+    "description": "The ARIA label for the docs pagination"
+  },
+  "theme.docs.paginator.previous": {
+    "message": "Previous",
+    "description": "The label used to navigate to the previous doc"
+  },
+  "theme.docs.paginator.next": {
+    "message": "Next",
+    "description": "The label used to navigate to the next doc"
+  },
+  "theme.docs.tagDocListPageTitle.nDocsTagged": {
+    "message": "One doc tagged|{count} docs tagged",
+    "description": "Pluralized label for \"{count} docs tagged\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  },
+  "theme.docs.tagDocListPageTitle": {
+    "message": "{nDocsTagged} with \"{tagName}\"",
+    "description": "The title of the page for a docs tag"
+  },
+  "theme.docs.versionBadge.label": {
+    "message": "Version: {versionLabel}"
+  },
+  "theme.docs.versions.unreleasedVersionLabel": {
+    "message": "This is unreleased documentation for {siteTitle} {versionLabel} version.",
+    "description": "The label used to tell the user that he's browsing an unreleased doc version"
+  },
+  "theme.docs.versions.unmaintainedVersionLabel": {
+    "message": "This is documentation for {siteTitle} {versionLabel}, which is no longer actively maintained.",
+    "description": "The label used to tell the user that he's browsing an unmaintained doc version"
+  },
+  "theme.docs.versions.latestVersionSuggestionLabel": {
+    "message": "For up-to-date documentation, see the {latestVersionLink} ({versionLabel}).",
+    "description": "The label used to tell the user to check the latest version"
+  },
+  "theme.docs.versions.latestVersionLinkLabel": {
+    "message": "latest version",
+    "description": "The label used for the latest version suggestion link label"
+  },
+  "theme.common.editThisPage": {
+    "message": "Edit this page",
+    "description": "The link label to edit the current page"
+  },
+  "theme.common.headingLinkTitle": {
+    "message": "Direct link to {heading}",
+    "description": "Title for link to heading"
+  },
+  "theme.lastUpdated.atDate": {
+    "message": " on {date}",
+    "description": "The words used to describe on which date a page has been last updated"
+  },
+  "theme.lastUpdated.byUser": {
+    "message": " by {user}",
+    "description": "The words used to describe by who the page has been last updated"
+  },
+  "theme.lastUpdated.lastUpdatedAtBy": {
+    "message": "Last updated{atDate}{byUser}",
+    "description": "The sentence used to display when a page has been last updated, and by who"
+  },
+  "theme.NotFound.title": {
+    "message": "Page Not Found",
+    "description": "The title of the 404 page"
+  },
+  "theme.navbar.mobileVersionsDropdown.label": {
+    "message": "Versions",
+    "description": "The label for the navbar versions dropdown on mobile view"
+  },
+  "theme.tags.tagsListLabel": {
+    "message": "Tags:",
+    "description": "The label alongside a tag list"
+  },
+  "theme.AnnouncementBar.closeButtonAriaLabel": {
+    "message": "Close",
+    "description": "The ARIA label for close button of announcement bar"
+  },
+  "theme.admonition.caution": {
+    "message": "caution",
+    "description": "The default label used for the Caution admonition (:::caution)"
+  },
+  "theme.admonition.danger": {
+    "message": "danger",
+    "description": "The default label used for the Danger admonition (:::danger)"
+  },
+  "theme.admonition.info": {
+    "message": "info",
+    "description": "The default label used for the Info admonition (:::info)"
+  },
+  "theme.admonition.note": {
+    "message": "note",
+    "description": "The default label used for the Note admonition (:::note)"
+  },
+  "theme.admonition.tip": {
+    "message": "tip",
+    "description": "The default label used for the Tip admonition (:::tip)"
+  },
+  "theme.admonition.warning": {
+    "message": "warning",
+    "description": "The default label used for the Warning admonition (:::warning)"
+  },
+  "theme.blog.sidebar.navAriaLabel": {
+    "message": "Blog recent posts navigation",
+    "description": "The ARIA label for recent posts in the blog sidebar"
+  },
+  "theme.DocSidebarItem.expandCategoryAriaLabel": {
+    "message": "Expand sidebar category '{label}'",
+    "description": "The ARIA label to expand the sidebar category"
+  },
+  "theme.DocSidebarItem.collapseCategoryAriaLabel": {
+    "message": "Collapse sidebar category '{label}'",
+    "description": "The ARIA label to collapse the sidebar category"
+  },
+  "theme.IconExternalLink.ariaLabel": {
+    "message": "(opens in new tab)",
+    "description": "The ARIA label for the external link icon"
+  },
+  "theme.NavBar.navAriaLabel": {
+    "message": "Main",
+    "description": "The ARIA label for the main navigation"
+  },
+  "theme.NotFound.p1": {
+    "message": "We could not find what you were looking for.",
+    "description": "The first paragraph of the 404 page"
+  },
+  "theme.NotFound.p2": {
+    "message": "Please contact the owner of the site that linked you to the original URL and let them know their link is broken.",
+    "description": "The 2nd paragraph of the 404 page"
+  },
+  "theme.navbar.mobileLanguageDropdown.label": {
+    "message": "Languages",
+    "description": "The label for the mobile language switcher dropdown"
+  },
+  "theme.TOCCollapsible.toggleButtonLabel": {
+    "message": "On this page",
+    "description": "The label used by the button on the collapsible TOC component"
+  },
+  "theme.blog.post.readMore": {
+    "message": "Read more",
+    "description": "The label used in blog post item excerpts to link to full blog posts"
+  },
+  "theme.blog.post.readMoreLabel": {
+    "message": "Read more about {title}",
+    "description": "The ARIA label for the link to full blog posts from excerpts"
+  },
+  "theme.blog.post.readingTime.plurals": {
+    "message": "One min read|{readingTime} min read",
+    "description": "Pluralized label for \"{readingTime} min read\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  },
+  "theme.CodeBlock.copy": {
+    "message": "Copy",
+    "description": "The copy button label on code blocks"
+  },
+  "theme.CodeBlock.copied": {
+    "message": "Copied",
+    "description": "The copied button label on code blocks"
+  },
+  "theme.CodeBlock.copyButtonAriaLabel": {
+    "message": "Copy code to clipboard",
+    "description": "The ARIA label for copy code blocks button"
+  },
+  "theme.CodeBlock.wordWrapToggle": {
+    "message": "Toggle word wrap",
+    "description": "The title attribute for toggle word wrapping button of code block lines"
+  },
+  "theme.docs.breadcrumbs.home": {
+    "message": "Home page",
+    "description": "The ARIA label for the home page in the breadcrumbs"
+  },
+  "theme.docs.sidebar.collapseButtonTitle": {
+    "message": "Collapse sidebar",
+    "description": "The title attribute for collapse button of doc sidebar"
+  },
+  "theme.docs.sidebar.collapseButtonAriaLabel": {
+    "message": "Collapse sidebar",
+    "description": "The title attribute for collapse button of doc sidebar"
+  },
+  "theme.docs.sidebar.navAriaLabel": {
+    "message": "Docs sidebar",
+    "description": "The ARIA label for the sidebar navigation"
+  },
+  "theme.docs.sidebar.closeSidebarButtonAriaLabel": {
+    "message": "Close navigation bar",
+    "description": "The ARIA label for close button of mobile sidebar"
+  },
+  "theme.navbar.mobileSidebarSecondaryMenu.backButtonLabel": {
+    "message": "← Back to main menu",
+    "description": "The label of the back button to return to main menu, inside the mobile navbar sidebar secondary menu (notably used to display the docs sidebar)"
+  },
+  "theme.docs.sidebar.toggleSidebarButtonAriaLabel": {
+    "message": "Toggle navigation bar",
+    "description": "The ARIA label for hamburger menu button of mobile navigation"
+  },
+  "theme.navbar.mobileDropdown.collapseButton.expandAriaLabel": {
+    "message": "Expand the dropdown",
+    "description": "The ARIA label of the button to expand the mobile dropdown navbar item"
+  },
+  "theme.navbar.mobileDropdown.collapseButton.collapseAriaLabel": {
+    "message": "Collapse the dropdown",
+    "description": "The ARIA label of the button to collapse the mobile dropdown navbar item"
+  },
+  "theme.docs.sidebar.expandButtonTitle": {
+    "message": "Expand sidebar",
+    "description": "The ARIA label and title attribute for expand button of doc sidebar"
+  },
+  "theme.docs.sidebar.expandButtonAriaLabel": {
+    "message": "Expand sidebar",
+    "description": "The ARIA label and title attribute for expand button of doc sidebar"
+  },
+  "theme.SearchBar.noResultsText": {
+    "message": "No results"
+  },
+  "theme.SearchBar.seeAllOutsideContext": {
+    "message": "See all results outside \"{context}\""
+  },
+  "theme.SearchBar.searchInContext": {
+    "message": "See all results within \"{context}\""
+  },
+  "theme.SearchBar.seeAll": {
+    "message": "See all results"
+  },
+  "theme.SearchBar.label": {
+    "message": "Search",
+    "description": "The ARIA label and placeholder for search button"
+  },
+  "theme.SearchPage.existingResultsTitle": {
+    "message": "Search results for \"{query}\"",
+    "description": "The search page title for non-empty query"
+  },
+  "theme.SearchPage.emptyResultsTitle": {
+    "message": "Search the documentation",
+    "description": "The search page title for empty query"
+  },
+  "theme.SearchPage.searchContext.everywhere": {
+    "message": "Everywhere"
+  },
+  "theme.SearchPage.documentsFound.plurals": {
+    "message": "1 document found|{count} documents found",
+    "description": "Pluralized label for \"{count} documents found\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  },
+  "theme.SearchPage.noResultsText": {
+    "message": "No documents were found",
+    "description": "The paragraph for empty search result"
+  },
+  "theme.blog.post.plurals": {
+    "message": "One post|{count} posts",
+    "description": "Pluralized label for \"{count} posts\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  },
+  "theme.blog.tagTitle": {
+    "message": "{nPosts} tagged with \"{tagName}\"",
+    "description": "The title of the page for a blog tag"
+  },
+  "theme.blog.author.pageTitle": {
+    "message": "{authorName} - {nPosts}",
+    "description": "The title of the page for a blog author"
+  },
+  "theme.blog.authorsList.pageTitle": {
+    "message": "Authors",
+    "description": "The title of the authors page"
+  },
+  "theme.blog.authorsList.viewAll": {
+    "message": "View all authors",
+    "description": "The label of the link targeting the blog authors page"
+  },
+  "theme.blog.author.noPosts": {
+    "message": "This author has not written any posts yet.",
+    "description": "The text for authors with 0 blog post"
+  },
+  "theme.contentVisibility.unlistedBanner.title": {
+    "message": "Unlisted page",
+    "description": "The unlisted content banner title"
+  },
+  "theme.contentVisibility.unlistedBanner.message": {
+    "message": "This page is unlisted. Search engines will not index it, and only users having a direct link can access it.",
+    "description": "The unlisted content banner message"
+  },
+  "theme.contentVisibility.draftBanner.title": {
+    "message": "Draft page",
+    "description": "The draft content banner title"
+  },
+  "theme.contentVisibility.draftBanner.message": {
+    "message": "This page is a draft. It will only be visible in dev and be excluded from the production build.",
+    "description": "The draft content banner message"
+  },
+  "theme.docs.DocCard.categoryDescription.plurals": {
+    "message": "1 item|{count} items",
+    "description": "The default description for a category card in the generated index about how many items this category includes"
+  },
+  "theme.ErrorPageContent.tryAgain": {
+    "message": "Try again",
+    "description": "The label of the button to try again rendering when the React error boundary captures an error"
+  },
+  "theme.common.skipToMainContent": {
+    "message": "Skip to main content",
+    "description": "The skip to content label used for accessibility, allowing to rapidly navigate to main content with keyboard tab/enter navigation"
+  },
+  "theme.tags.tagsPageTitle": {
+    "message": "Tags",
+    "description": "The title of the tag list page"
+  },
+  "diagram.slateRounds.step1.title": {
+    "message": "The sender builds a partial slate",
+    "description": "Slate exchange diagram, step 1 heading"
+  },
+  "diagram.slateRounds.step1.body": {
+    "message": "init_send_tx selects inputs and writes the first round. tx_lock_outputs then reserves those inputs locally, before the receiver has done anything.",
+    "description": "Slate exchange diagram, step 1 detail. Keep init_send_tx and tx_lock_outputs as written."
+  },
+  "diagram.slateRounds.step2.title": {
+    "message": "The slate travels to the receiver",
+    "description": "Slate exchange diagram, step 2 heading"
+  },
+  "diagram.slateRounds.step2.body": {
+    "message": "A file you move, an HTTP request, or a message queued by a relay. The transport is the part that fails in practice.",
+    "description": "Slate exchange diagram, step 2 detail"
+  },
+  "diagram.slateRounds.step3.title": {
+    "message": "The receiver completes their half",
+    "description": "Slate exchange diagram, step 3 heading"
+  },
+  "diagram.slateRounds.step3.body": {
+    "message": "receive_tx adds an output, its range proof and a partial signature, so the slate now carries two participants.",
+    "description": "Slate exchange diagram, step 3 detail. Keep receive_tx as written."
+  },
+  "diagram.slateRounds.step4.title": {
+    "message": "The slate comes back the same way",
+    "description": "Slate exchange diagram, step 4 heading"
+  },
+  "diagram.slateRounds.step4.body": {
+    "message": "Over epicbox this arrives asynchronously, which is why the sender also needs a listener running.",
+    "description": "Slate exchange diagram, step 4 detail"
+  },
+  "diagram.slateRounds.step5.title": {
+    "message": "The sender finalises and posts",
+    "description": "Slate exchange diagram, step 5 heading"
+  },
+  "diagram.slateRounds.step5.body": {
+    "message": "finalize_tx completes the aggregate signature and post_tx broadcasts it. Only now does a node see a transaction at all.",
+    "description": "Slate exchange diagram, step 5 detail. Keep finalize_tx and post_tx as written."
+  },
+  "diagram.slateRounds.caption": {
+    "message": "One transfer, two rounds. Nothing reaches the chain until step 05.",
+    "description": "Caption under the slate exchange diagram"
+  },
+  "diagram.slateRounds.senderWallet": {
+    "message": "Sender wallet",
+    "description": "Slate diagram, label on the sending party box"
+  },
+  "diagram.slateRounds.holdsInputs": {
+    "message": "holds the inputs",
+    "description": "Slate diagram, what the sender does. Keep it to three words or so."
+  },
+  "diagram.slateRounds.signsTwice": {
+    "message": "signs twice",
+    "description": "Slate diagram, what the sender does. Two words if possible."
+  },
+  "diagram.slateRounds.receiverWallet": {
+    "message": "Receiver wallet",
+    "description": "Slate diagram, label on the receiving party box"
+  },
+  "diagram.slateRounds.addsOutput": {
+    "message": "adds one output",
+    "description": "Slate diagram, what the receiver does. Keep it short."
+  },
+  "diagram.slateRounds.signsOnce": {
+    "message": "signs once",
+    "description": "Slate diagram, what the receiver does. Two words if possible."
+  },
+  "diagram.slateRounds.roundOne": {
+    "message": "round 1, one signature",
+    "description": "Slate diagram, label on the first transport arrow"
+  },
+  "diagram.slateRounds.roundTwo": {
+    "message": "round 2, both signatures",
+    "description": "Slate diagram, label on the return transport arrow"
+  },
+  "diagram.slateRounds.transports": {
+    "message": "file, http or epicbox",
+    "description": "Slate diagram, the three transports. These are transport names; keep them as written."
+  },
+  "diagram.slateRounds.node": {
+    "message": "Node",
+    "description": "Slate diagram, label on the node box. One word."
+  },
+  "diagram.slateRounds.mempoolThenBlock": {
+    "message": "mempool, then a block",
+    "description": "Slate diagram, what happens after posting. Keep mempool as written."
+  },
+  "diagram.handshake.step1.title": {
+    "message": "Generate a keypair",
+    "description": "Owner API handshake diagram, step 1 heading"
+  },
+  "diagram.handshake.step1.body": {
+    "message": "A secp256k1 keypair in your client, used once per session.",
+    "description": "Owner API handshake diagram, step 1 detail. Keep secp256k1 as written."
+  },
+  "diagram.handshake.step2.body": {
+    "message": "Send your compressed public key. The wallet replies with its own. This is the only unencrypted call.",
+    "description": "Owner API handshake diagram, step 2 detail"
+  },
+  "diagram.handshake.step3.title": {
+    "message": "Derive the shared secret",
+    "description": "Owner API handshake diagram, step 3 heading"
+  },
+  "diagram.handshake.step3.body": {
+    "message": "Multiply the wallet key by your scalar and keep the raw x coordinate, 32 bytes, unhashed. Hashing it is the most common implementation mistake.",
+    "description": "Owner API handshake diagram, step 3 detail"
+  },
+  "diagram.handshake.step4.title": {
+    "message": "open_wallet, encrypted",
+    "description": "Owner API handshake diagram, step 4 heading. open_wallet is a method name; keep it."
+  },
+  "diagram.handshake.step4.body": {
+    "message": "The first call inside encrypted_request_v3. It needs the wallet password and returns a token.",
+    "description": "Owner API handshake diagram, step 4 detail. Keep encrypted_request_v3 as written."
+  },
+  "diagram.handshake.step5.title": {
+    "message": "Every later call",
+    "description": "Owner API handshake diagram, step 5 heading"
+  },
+  "diagram.handshake.step5.body": {
+    "message": "AES-256-GCM with a fresh 12-byte nonce, the 16-byte tag appended to the ciphertext, and the token in the params.",
+    "description": "Owner API handshake diagram, step 5 detail. Keep AES-256-GCM and params as written."
+  },
+  "diagram.handshake.caption": {
+    "message": "The handshake, once per session. Everything after step 03 is encrypted.",
+    "description": "Caption under the Owner API handshake diagram"
+  },
+  "diagram.handshake.yourClient": {
+    "message": "Your client",
+    "description": "Handshake diagram, label on the caller lane"
+  },
+  "diagram.handshake.walletPublicKey": {
+    "message": "the wallet's public key",
+    "description": "Handshake diagram, what the wallet sends back"
+  },
+  "diagram.handshake.deriveSecret": {
+    "message": "derive the shared secret",
+    "description": "Handshake diagram, the local step the client performs"
+  },
+  "diagram.handshake.encryptedRequest": {
+    "message": "encrypted_request_v3, carrying open_wallet",
+    "description": "Handshake diagram, the first encrypted call. Both names are identifiers; keep them."
+  },
+  "diagram.handshake.tokenEncrypted": {
+    "message": "token, encrypted",
+    "description": "Handshake diagram, what comes back from open_wallet. Two or three words."
+  },
+  "unverified.ariaLabel": {
+    "message": "Unverified claim",
+    "description": "Accessible name of the box marking a claim that has not been confirmed"
+  },
+  "unverified.label": {
+    "message": "Unverified",
+    "description": "Badge on the unverified-claim box. One word."
+  },
+  "unverified.toConfirm": {
+    "message": "To confirm:",
+    "description": "Lead-in before what would settle an unverified claim"
+  },
+  "toc.navAriaLabel": {
+    "message": "On this page",
+    "description": "Accessible name of the table of contents landmark"
+  },
+  "toc.heading": {
+    "message": "On this page",
+    "description": "Visible heading above the table of contents"
+  },
+  "toc.sectionCount.one": {
+    "message": "section",
+    "description": "Noun after the table-of-contents count, when there is exactly one"
+  },
+  "toc.sectionCount.other": {
+    "message": "sections",
+    "description": "Noun after the table-of-contents count, when there is more than one"
+  }
+}

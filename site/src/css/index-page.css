@@ -183,26 +183,28 @@
   background: rgba(16, 16, 20, 0.7);
   border-color: var(--epic-line, var(--ifm-toc-border-color));
 }
+/* Corner ticks. Only the two sides each one draws are declared, never as a `border` shorthand on the
+   shared rule: cssnano reorders the shorthand after the longhands in the production build, which
+   shipped these as closed squares. The reasoning is recorded once, on `.epic-ticked` in custom.css. */
 .ixPanel::before,
 .ixPanel::after {
   content: '';
   position: absolute;
   width: 9px;
   height: 9px;
-  border: 1px solid var(--ifm-color-primary);
   pointer-events: none;
 }
 .ixPanel::before {
   top: -1px;
   left: -1px;
-  border-right: none;
-  border-bottom: none;
+  border-top: 1px solid var(--ifm-color-primary);
+  border-left: 1px solid var(--ifm-color-primary);
 }
 .ixPanel::after {
   bottom: -1px;
   right: -1px;
-  border-left: none;
-  border-top: none;
+  border-bottom: 1px solid var(--ifm-color-primary);
+  border-right: 1px solid var(--ifm-color-primary);
 }
 [data-theme='dark'] .ixPanel::before,
 [data-theme='dark'] .ixPanel::after {
@@ -499,27 +501,27 @@
   background: var(--ifm-background-surface-color);
   overflow-x: auto;
 }
-/* Corner ticks. Only two corners, which reads as a measured enclosure rather than a frame. */
+/* Corner ticks. Only two corners, which reads as a measured enclosure rather than a frame. Per-side
+   longhands only, never a `border` shorthand: see `.epic-ticked` in custom.css for why. */
 .ixCode::before,
 .ixCode::after {
   content: '';
   position: absolute;
   width: 8px;
   height: 8px;
-  border: 1px solid var(--ifm-color-primary);
   pointer-events: none;
 }
 .ixCode::before {
   top: -1px;
   left: -1px;
-  border-right: none;
-  border-bottom: none;
+  border-top: 1px solid var(--ifm-color-primary);
+  border-left: 1px solid var(--ifm-color-primary);
 }
 .ixCode::after {
   bottom: -1px;
   right: -1px;
-  border-left: none;
-  border-top: none;
+  border-bottom: 1px solid var(--ifm-color-primary);
+  border-right: 1px solid var(--ifm-color-primary);
 }
 [data-theme='dark'] .ixCode {
   background: #0b0b0e;
@@ -1243,6 +1245,46 @@
   width: calc(100% - var(--epic-page-inset));
   margin-inline: var(--epic-page-inset) auto;
   padding-inline: 0 var(--ifm-spacing-horizontal, 1rem);
+}
+
+/* Above 1450px the page body centres on --epic-page-shell, so a wide window no longer leaves 640px
+   of dead space on the right. The breakpoint and the shell token are in custom.css under "The
+   centred shell above 1450px"; this is the page half, and the only half, because the navbar stays
+   on the window gutters.
+
+   `max-width: none` is needed because these are Infima `.container` elements, and its own cap
+   would otherwise hold them at --epic-content-max and defeat the centring. `padding-inline` ends
+   at 0 rather than a gutter: at these widths the centring already keeps the box off the window
+   edge, and a gutter here would only pull the right edge 16px inside the box that defines it.
+
+   The version rail is deliberately absent from this block. Its base rule pads it by
+   --epic-page-inset, which is the navbar's first label, and it has to stay there: the rail reads as
+   the bottom line of the chrome rather than the top of the page, so it follows the navbar and not
+   the body. */
+@media (min-width: 1450px) {
+  .ixMastIn,
+  .ixMain {
+    width: var(--epic-page-shell);
+    max-width: none;
+    margin-inline: auto;
+    padding-inline: var(--epic-page-shell-inset) 0;
+  }
+}
+
+/* The quick-start panel takes another 4rem once the shell is at full size. It grows leftward, not
+   rightward: its right edge is the body's right edge and stays there, so the extra width comes off
+   the title track, which has more measure than the title uses. 27rem clipped the release-asset curl
+   badly, 32rem still clips it, and this is not an attempt to fit a 100-character line — it is the
+   balance between the two halves of the masthead.
+
+   Keyed on the `page` container, which is .main-wrapper and therefore tracks the window rather than
+   the capped body. A media query would do the same job here; the container query is used because
+   every other column rule in this file is one, and the assistant panel narrows .main-wrapper without
+   narrowing the window. */
+@container page (min-width: 1700px) {
+  .ixMastGrid {
+    grid-template-columns: minmax(0, 1fr) 36rem;
+  }
 }
 
 @media (max-width: 996px) {

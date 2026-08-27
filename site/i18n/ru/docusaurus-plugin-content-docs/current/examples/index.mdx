@@ -1,0 +1,105 @@
+---
+title: Примеры кода
+sidebar_label: Обзор
+description: "Рабочие примеры клиента Epic Cash на Python и bash: запросы к узлу и полный рабочий процесс транзакций кошелька."
+---
+
+# Примеры кода
+
+Готовые к запуску примеры для рабочих процессов, которые нужны большинству интеграций, — в виде
+командной строки и на Python.
+
+<CardGrid>
+  <Card title="Запросы к узлу" to="/examples/node-api">
+    Высота блока цепочки, блоки, мемпул и пиры. Без процедуры аутентификации — хорошая отправная
+    точка.
+  </Card>
+  <Card title="Кошелёк: подключение и чтение" to="/examples/wallet-connect">
+    Зашифрованное рукопожатие, открытие кошелька и чтение баланса.
+  </Card>
+  <Card title="Wallet: отправка и получение" to="/examples/send-receive">
+    Полный перевод, получение, отмена и доказательства платежа.
+  </Card>
+</CardGrid>
+
+## Выбор целевого интерфейса {/* #which-surface-to-target */}
+
+| Задача | Поверхность | Учётные данные |
+| --- | --- | --- |
+| Статус узла, пиры | Node API `/v2/owner` | Базовый, секрет создаётся автоматически |
+| Блоки, заголовки, ядра (kernels), мемпул | Node `/v2/foreign` | Нет |
+| Опубликовать сырую транзакцию | Node `/v2/foreign` | Нет |
+| Всё, что связано с ключами или балансом | Wallet Owner API `/v3/owner` | ECDH-хендшейк и токен кошелька |
+| Получить перевод | Wallet Foreign API или `epic-wallet listen` | Нет |
+
+Методы JSON-RPC узла разделены по двум путям: `/v2/owner` — администрирование, а все операции чтения
+цепочки — на `/v2/foreign`. См. [API узла](/api/node#which-json-rpc-method-lives-where).
+
+## Предварительные требования {/* #prerequisites */}
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+`curl` и `jq`.
+
+```bash
+sudo apt install curl jq      # Debian и Ubuntu
+```
+
+```powershell
+winget install jqlang.jq      # Windows, где curl уже установлен
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+Python <Ver k="python" /> или новее.
+
+```bash
+pip install requests coincurve pycryptodome
+```
+
+`coincurve` предоставляет secp256k1, а `pycryptodome` — AES-GCM; оба используются для Owner API кошелька. Для
+запросов к узлу достаточно `requests`.
+
+</TabItem>
+</Tabs>
+
+## Соглашения в примерах {/* #conventions-in-these-examples */}
+
+- Запускайте команды из каталога `examples` репозитория — именно там находятся модули Python.
+  import each other from.
+- Узел доступен на порту <Ver k="ports.nodeApi" />, Owner API кошелька — на <Ver k="ports.walletOwner" />, Foreign API кошелька — на <Ver k="ports.walletForeign" />. Каждый
+  клиент принимает `NODE_URL`, `EPIC_OWNER_URL` и `EPIC_FOREIGN_URL`, так что можно указать другой адрес.
+- Суммы — целые числа, в единицах <Ver k="smallestUnit" />. 1 EPIC равен <Ver k="epicBase" />.
+- Секреты читаются из файлов, пароль кошелька — из `EPIC_WALLET_PASSWORD`.
+
+## Конверт ответа {/* #the-response-envelope */}
+
+Каждый метод Epic JSON-RPC возвращает HTTP 200 с ответом JSON-RPC `result`, внутри которого находится
+второй конверт. Успешная операция содержит `Ok`:
+
+```json
+{"id": 1, "jsonrpc": "2.0", "result": {"Ok": {"...": "the actual data"}}}
+```
+
+Неуспешная содержит `Err` на том же месте:
+
+```json
+{"id": 1, "jsonrpc": "2.0", "result": {"Err": {"NotEnoughFunds": {"available": 0, "needed": 100000000}}}}
+```
+
+Напишите один вспомогательный метод разворачивания и используйте его везде. `_unwrap` в клиенте кошелька
+на странице [подключения и чтения](/examples/wallet-connect) выбрасывает исключение при `Err` и возвращает значение при
+`Ok`; все вызовы в этом клиенте проходят через него.
+
+Поле за полем конверт описан в [обзоре API](/api#the-response-envelope).
+
+## Расположение референсных клиентов {/* #where-the-reference-clients-live */}
+
+Репозиторий кошелька поставляется с клиентом на Python, который выполняет то же рукопожатие: <Src repo="wallet" path="doc/samples/python/secure_api_example.py" />.
+
+Сигнатуры методов определены в <Src repo="wallet" path="api/src/owner_rpc_s.rs" />; в комментарии к документации почти каждого метода приведены
+готовые примеры JSON-запроса и ответа.
+
+<JourneyNav stage="integrate" />

@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
+import Translate, {translate} from '@docusaurus/Translate';
 import {SlateExchange} from '@site/src/components/SlateExchange';
 import {versions, releases} from '@site/src/data/versions';
 import {developerJourney} from '@site/src/data/developerJourney';
@@ -56,7 +57,11 @@ function Masthead() {
         {/* No inline style here: alignment is index-page.css's job, and an inline
             justify-content beat the stylesheet and kept the rail centred. */}
         <div className="container">
-          <div className="ixVersionPills" aria-label="Software versions">
+          <div className="ixVersionPills" aria-label={translate({
+            id: 'homepage.masthead.versionsAriaLabel',
+            message: 'Software versions',
+            description: 'Aria label for the version pills strip in the masthead',
+          })}>
             <a className="ixPill" href={releases.node.url} target="_blank" rel="noopener noreferrer">
               node {versions.node}
             </a>
@@ -77,24 +82,24 @@ function Masthead() {
         <div className="ixMastGrid">
           <div>
             <p className="ixEyebrow">Epic Cash</p>
-            <h1 className="ixTitle">Developer&apos;s Hub</h1>
+            <h1 className="ixTitle"><Translate id="homepage.masthead.title" description="Main heading on the homepage">Developer&apos;s Hub</Translate></h1>
             <p className="ixLede ixTyped">
               {/* The animated copies are aria-hidden, so the accessible text is a real node
                   rather than an aria-label. aria-label on a <p> with no role is invalid and
                   axe flags it on all 8 landing-page variants. */}
-              <span className="epicSrOnly">Documentation, Guidelines and Code Examples.</span>
+              <span className="epicSrOnly"><Translate id="homepage.masthead.tagline" description="Tagline shown in the masthead (accessible text and animated text)">Documentation, Guidelines and Code Examples.</Translate></span>
               <span className="ixTypedDesktop" aria-hidden="true">
-                Documentation, Guidelines and Code Examples.
+                <Translate id="homepage.masthead.tagline">Documentation, Guidelines and Code Examples.</Translate>
               </span>
               <span className="ixTypedMobile" aria-hidden="true">
-                <span className="ixTypedSegment ixTypedSegment--1">Documentation, Guidelines{' '}</span>
-                <span className="ixTypedSegment ixTypedSegment--2">and Code Examples.</span>
+                <span className="ixTypedSegment ixTypedSegment--1"><Translate id="homepage.masthead.taglineMobileLine1" description="First line of the tagline on mobile">Documentation, Guidelines</Translate>{' '}</span>
+                <span className="ixTypedSegment ixTypedSegment--2"><Translate id="homepage.masthead.taglineMobileLine2" description="Second line of the tagline on mobile">and Code Examples.</Translate></span>
               </span>
             </p>
             <div className="ixExplorerStrip">
-              <span className="ixPill ixPill--data"><PillIcon name="pow" />Proof of Work</span>
-              <span className="ixPill ixPill--data"><PillIcon name="opensource" />Open Source</span>
-              <span className="ixPill ixPill--data"><PillIcon name="private" />Private</span>
+              <span className="ixPill ixPill--data"><PillIcon name="pow" /><Translate id="homepage.masthead.pill.pow" description="Proof of Work pill in masthead">Proof of Work</Translate></span>
+              <span className="ixPill ixPill--data"><PillIcon name="opensource" /><Translate id="homepage.masthead.pill.opensource" description="Open Source pill in masthead">Open Source</Translate></span>
+              <span className="ixPill ixPill--data"><PillIcon name="private" /><Translate id="homepage.masthead.pill.private" description="Private pill in masthead">Private</Translate></span>
             </div>
           </div>
 
@@ -131,81 +136,84 @@ function Masthead() {
 const nodeAsset = (key) => releases.node.assets.find((a) => a.key === key).file;
 const walletAsset = (key) => releases.wallet.assets.find((a) => a.key === key).file;
 
-const QUICK_START = [
-  {
-    id: 'node',
-    label: 'Node',
-    title: 'Run a node',
-    links: [
-      {to: '/guides/mainnet-setup', label: 'Node and wallet setup'},
-      {to: '/downloads', label: 'Checksums and other builds'},
-    ],
-    platforms: [
-      {
-        id: 'linux',
-        label: 'Linux',
-        note: 'Linux x86-64.',
-        commands: [
-          `curl -LO ${releases.node.download}/${nodeAsset('linux')}`,
-          `tar xzf ${nodeAsset('linux')}`,
-          `./${releases.node.unpacksTo.linux}/epic`,
-        ],
-      },
-      {
-        id: 'mac',
-        label: 'macOS',
-        note: 'Apple silicon. Gatekeeper blocks an unsigned binary until you allow it.',
-        commands: [
-          `curl -LO ${releases.node.download}/${nodeAsset('mac')}`,
-          `unzip ${nodeAsset('mac')}`,
-          `./${releases.node.unpacksTo.mac}/epic`,
-        ],
-      },
-      {
-        id: 'windows',
-        label: 'Windows',
-        note: 'x86-64, PowerShell.',
-        commands: [
-          `Invoke-WebRequest ${releases.node.download}/${nodeAsset('windows')} -OutFile epic.zip`,
-          'Expand-Archive epic.zip -DestinationPath epic',
-          '.\\epic\\epic.exe',
-        ],
-      },
-    ],
-  },
-  {
-    id: 'wallet',
-    label: 'Wallet',
-    title: 'Create a wallet',
-    links: [
-      {to: '/guides/wallet-operations', label: 'Wallet operations'},
-      {to: '/downloads', label: 'Checksums and other builds'},
-    ],
-    platforms: [
-      {
-        id: 'linux',
-        label: 'Linux',
-        note: 'Linux x86-64.',
-        commands: [
-          `curl -LO ${releases.wallet.download}/${walletAsset('linux')}`,
-          `unzip ${walletAsset('linux')}`,
-          './epic-wallet init',
-        ],
-      },
-      {
-        id: 'windows',
-        label: 'Windows',
-        note: 'x86-64, PowerShell.',
-        commands: [
-          `Invoke-WebRequest ${releases.wallet.download}/${walletAsset('windows')} -OutFile epic-wallet.exe`,
-          '.\\epic-wallet.exe init',
-        ],
-      },
-    ],
-  },
-];
+function quickStartData() {
+  return [
+    {
+      id: 'node',
+      label: translate({id: 'homepage.quickstart.nodeLabel', message: 'Node', description: 'Node tab label in quick start'}),
+      title: translate({id: 'homepage.quickstart.nodeTitle', message: 'Run a node', description: 'Node quick start title'}),
+      links: [
+        {to: '/guides/mainnet-setup', label: translate({id: 'homepage.quickstart.nodeSetupLink', message: 'Node and wallet setup', description: 'Link to mainnet setup guide'})},
+        {to: '/downloads', label: translate({id: 'homepage.quickstart.checksums', message: 'Checksums and other builds', description: 'Link to downloads page'})},
+      ],
+      platforms: [
+        {
+          id: 'linux',
+          label: 'Linux',
+          note: translate({id: 'homepage.quickstart.nodeLinuxNote', message: 'Linux x86-64.', description: 'Platform note for node Linux'}),
+          commands: [
+            `curl -LO ${releases.node.download}/${nodeAsset('linux')}`,
+            `tar xzf ${nodeAsset('linux')}`,
+            `./${releases.node.unpacksTo.linux}/epic`,
+          ],
+        },
+        {
+          id: 'mac',
+          label: 'macOS',
+          note: translate({id: 'homepage.quickstart.nodeMacNote', message: 'Apple silicon. Gatekeeper blocks an unsigned binary until you allow it.', description: 'Platform note for node macOS'}),
+          commands: [
+            `curl -LO ${releases.node.download}/${nodeAsset('mac')}`,
+            `unzip ${nodeAsset('mac')}`,
+            `./${releases.node.unpacksTo.mac}/epic`,
+          ],
+        },
+        {
+          id: 'windows',
+          label: 'Windows',
+          note: translate({id: 'homepage.quickstart.nodeWinNote', message: 'x86-64, PowerShell.', description: 'Platform note for node Windows'}),
+          commands: [
+            `Invoke-WebRequest ${releases.node.download}/${nodeAsset('windows')} -OutFile epic.zip`,
+            'Expand-Archive epic.zip -DestinationPath epic',
+            '.\\epic\\epic.exe',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'wallet',
+      label: translate({id: 'homepage.quickstart.walletLabel', message: 'Wallet', description: 'Wallet tab label in quick start'}),
+      title: translate({id: 'homepage.quickstart.walletTitle', message: 'Create a wallet', description: 'Wallet quick start title'}),
+      links: [
+        {to: '/guides/wallet-operations', label: translate({id: 'homepage.quickstart.walletOpsLink', message: 'Wallet operations', description: 'Link to wallet operations guide'})},
+        {to: '/downloads', label: translate({id: 'homepage.quickstart.checksums', message: 'Checksums and other builds', description: 'Link to downloads page'})},
+      ],
+      platforms: [
+        {
+          id: 'linux',
+          label: 'Linux',
+          note: translate({id: 'homepage.quickstart.walletLinuxNote', message: 'Linux x86-64.', description: 'Platform note for wallet Linux'}),
+          commands: [
+            `curl -LO ${releases.wallet.download}/${walletAsset('linux')}`,
+            `unzip ${walletAsset('linux')}`,
+            './epic-wallet init',
+          ],
+        },
+        {
+          id: 'windows',
+          label: 'Windows',
+          note: translate({id: 'homepage.quickstart.walletWinNote', message: 'x86-64, PowerShell.', description: 'Platform note for wallet Windows'}),
+          commands: [
+            `Invoke-WebRequest ${releases.wallet.download}/${walletAsset('windows')} -OutFile epic-wallet.exe`,
+            '.\\epic-wallet.exe init',
+          ],
+        },
+      ],
+    },
+  ];
+}
 
 function QuickStartPanel() {
+  const QUICK_START = quickStartData();
   const [productId, setProductId] = useState('node');
   const [platformId, setPlatformId] = useState('linux');
 
@@ -233,12 +241,16 @@ function QuickStartPanel() {
         {/* Says "Quick start" rather than the product name: the tabs below already name the
             binary, and a reader needs to know what the panel is before what it runs. */}
         <p className="ixPanelHead ixSnippetTitle" id="ixQuickStartHead">
-          Quick start
+          <Translate id="homepage.quickstart.heading" description="Quick start panel heading">Quick start</Translate>
         </p>
         {/* Native buttons, one tab stop each. The roving-tabindex pattern is reserved for the
             API console's tablist, and keyboard.mjs reports anything else held out of the tab
             sequence, so a plain pressed-state group is the right control here. */}
-        <div className="ixSnippetTabs" role="group" aria-label="Software">
+        <div className="ixSnippetTabs" role="group" aria-label={translate({
+          id: 'homepage.quickstart.softwareAriaLabel',
+          message: 'Software',
+          description: 'Aria label for the node/wallet tab group',
+        })}>
           {QUICK_START.map((entry) => (
             <button
               key={entry.id}
@@ -252,7 +264,11 @@ function QuickStartPanel() {
         </div>
       </div>
 
-      <div className="ixSnippetTabs ixSnippetPlatforms" role="group" aria-label="Platform">
+      <div className="ixSnippetTabs ixSnippetPlatforms" role="group" aria-label={translate({
+        id: 'homepage.quickstart.platformAriaLabel',
+        message: 'Platform',
+        description: 'Aria label for the platform tab group',
+      })}>
         {product.platforms.map((entry) => (
           <button
             key={entry.id}
@@ -267,7 +283,9 @@ function QuickStartPanel() {
             the foot it added a full-width button under three lines of commands, which at 375px
             made the panel's chrome taller than its content. */}
         <button type="button" className="ixSnippetCopy" onClick={copy}>
-          {copied ? 'Copied' : 'Copy'}
+          {copied
+            ? <Translate id="homepage.quickstart.copied" description="Copy button label after copying">Copied</Translate>
+            : <Translate id="homepage.quickstart.copy" description="Copy button label">Copy</Translate>}
         </button>
       </div>
 
@@ -305,7 +323,7 @@ function QuickStartPanel() {
 function QuickStart() {
   return (
     <section className="ixSection">
-      <h2 className="ixKicker">The developer journey</h2>
+      <h2 className="ixKicker"><Translate id="homepage.journey.kicker" description="Section kicker above the developer journey">The developer journey</Translate></h2>
         <div className="ixJourneyLayout">
           <JourneyInvite />
         </div>
@@ -316,40 +334,42 @@ function QuickStart() {
 function TheModel() {
   return (
     <section className="ixSection">
-      <p className="ixKicker">If you have worked with other blockchains</p>
-      <h2 className="ixHeading">Four things that work differently here</h2>
+      <p className="ixKicker"><Translate id="homepage.model.kicker" description="Kicker text above the four differences section">If you have worked with other blockchains</Translate></p>
+      <h2 className="ixHeading"><Translate id="homepage.model.heading" description="Heading for the four differences section">Four things that work differently here</Translate></h2>
 
       <div className="ixModel">
         <ol className="ixModelList">
           <li>
             <strong>
               <Link to="/concepts/mimblewimble#there-are-no-addresses">
-                There are no addresses in the ledger.
+                <Translate id="homepage.model.noAddresses.title" description="Bold title for no-addresses point">There are no addresses in the ledger.</Translate>
               </Link>
             </strong>{' '}
-            An epicbox address routes a message between wallets. No output is paid to it, so there
-            is no balance to query and no history to read.
+            <Translate id="homepage.model.noAddresses.body" description="Explanation of epicbox address routing">An epicbox address routes a message between wallets. No output is paid to it, so there is no balance to query and no history to read.</Translate>
           </li>
           <li>
             <strong>
-              <Link to="/concepts/interactive-transactions">A transfer needs both parties.</Link>
+              <Link to="/concepts/interactive-transactions">
+                <Translate id="homepage.model.interactive.title" description="Bold title for interactive transfers point">A transfer needs both parties.</Translate>
+              </Link>
             </strong>{' '}
-            The sender builds a partial transaction called a slate, the receiver adds their half,
-            the sender finalises. Delivery, not consensus, is where transfers fail.
+            <Translate id="homepage.model.interactive.body" description="Explanation of slate exchange">The sender builds a partial transaction called a slate, the receiver adds their half, the sender finalises. Delivery, not consensus, is where transfers fail.</Translate>
           </li>
           <li>
             <strong>
-              <Link to="/concepts/outputs-and-locking">Sending reserves your outputs.</Link>
+              <Link to="/concepts/outputs-and-locking">
+                <Translate id="homepage.model.locking.title" description="Bold title for output locking point">Sending reserves your outputs.</Translate>
+              </Link>
             </strong>{' '}
-            They stay unavailable until the transfer confirms or you cancel it. Nothing releases them on
-            a timer.
+            <Translate id="homepage.model.locking.body" description="Explanation of output reservation">They stay unavailable until the transfer confirms or you cancel it. Nothing releases them on a timer.</Translate>
           </li>
           <li>
             <strong>
-              <Link to="/guides/backup-and-restore">A seed phrase restores funds, not history.</Link>
+              <Link to="/guides/backup-and-restore">
+                <Translate id="homepage.model.restore.title" description="Bold title for seed restore point">A seed phrase restores funds, not history.</Translate>
+              </Link>
             </strong>{' '}
-            There is no public record to rebuild from, so a recovered wallet has a correct balance and an
-            empty transaction log.
+            <Translate id="homepage.model.restore.body" description="Explanation of seed restore behaviour">There is no public record to rebuild from, so a recovered wallet has a correct balance and an empty transaction log.</Translate>
           </li>
         </ol>
 
@@ -361,73 +381,76 @@ function TheModel() {
   );
 }
 
-const INDEX = [
-  {
-    label: 'Concepts',
-    links: [
-      ['The MimbleWimble model', '/concepts/mimblewimble'],
-      ['Interactive transactions', '/concepts/interactive-transactions'],
-      ['Outputs and locking', '/concepts/outputs-and-locking'],
-      ['Addresses', '/concepts/addresses'],
-      ['Transports', '/concepts/transports'],
-      ['Payment proofs', '/concepts/payment-proofs'],
-    ],
-  },
-  {
-    label: 'Guides',
-    links: [
-      ['Build the binaries', '/guides/build'],
-      ['Run a local network', '/guides/local-network'],
-      ['Your first transfer', '/guides/first-transfer'],
-      ['Node and wallet setup', '/guides/mainnet-setup'],
-      ['Wallet operations', '/guides/wallet-operations'],
-      ['Back up and restore', '/guides/backup-and-restore'],
-      ['Diagnose a stuck transaction', '/guides/stuck-transactions'],
-    ],
-  },
-  {
-    label: 'API reference',
-    links: [
-      ['Overview', '/api/'],
-      ['Node API', '/api/node'],
-      ['Wallet Owner API', '/api/wallet-owner'],
-      ['Epicbox relay protocol', '/api/epicbox'],
-      ['Authentication and TLS', '/api/authentication'],
-    ],
-  },
-  {
-    label: 'Code examples',
-    links: [
-      ['Overview and setup', '/examples/'],
-      ['Node queries', '/examples/node-api'],
-      ['Wallet: connect and read', '/examples/wallet-connect'],
-      ['Wallet: send and receive', '/examples/send-receive'],
-    ],
-  },
-  {
-    label: 'Configuration and CLI',
-    links: [
-      ['CLI', '/reference/cli'],
-      ['epic-server.toml', '/reference/node-config'],
-      ['epic-wallet.toml', '/reference/wallet-config'],
-      ['Downloads', '/downloads'],
-    ],
-  },
-  {
-    label: 'Mining and consensus',
-    links: [
-      ['Proof of work', '/mining/proof-of-work'],
-      ['Emission and the levy', '/mining/emission'],
-      ['Stratum', '/mining/stratum'],
-      ['Migrating from 3.x', '/whats-new-in-v4'],
-    ],
-  },
-];
+function indexData() {
+  return [
+    {
+      label: translate({id: 'homepage.index.concepts', message: 'Concepts', description: 'Concepts section label in index'}),
+      links: [
+        [translate({id: 'homepage.index.concepts.mimblewimble', message: 'The MimbleWimble model'}), '/concepts/mimblewimble'],
+        [translate({id: 'homepage.index.concepts.interactive', message: 'Interactive transactions'}), '/concepts/interactive-transactions'],
+        [translate({id: 'homepage.index.concepts.outputs', message: 'Outputs and locking'}), '/concepts/outputs-and-locking'],
+        [translate({id: 'homepage.index.concepts.addresses', message: 'Addresses'}), '/concepts/addresses'],
+        [translate({id: 'homepage.index.concepts.transports', message: 'Transports'}), '/concepts/transports'],
+        [translate({id: 'homepage.index.concepts.proofs', message: 'Payment proofs'}), '/concepts/payment-proofs'],
+      ],
+    },
+    {
+      label: translate({id: 'homepage.index.guides', message: 'Guides', description: 'Guides section label in index'}),
+      links: [
+        [translate({id: 'homepage.index.guides.build', message: 'Build the binaries'}), '/guides/build'],
+        [translate({id: 'homepage.index.guides.localNetwork', message: 'Run a local network'}), '/guides/local-network'],
+        [translate({id: 'homepage.index.guides.firstTransfer', message: 'Your first transfer'}), '/guides/first-transfer'],
+        [translate({id: 'homepage.index.guides.mainnetSetup', message: 'Node and wallet setup'}), '/guides/mainnet-setup'],
+        [translate({id: 'homepage.index.guides.walletOps', message: 'Wallet operations'}), '/guides/wallet-operations'],
+        [translate({id: 'homepage.index.guides.backup', message: 'Back up and restore'}), '/guides/backup-and-restore'],
+        [translate({id: 'homepage.index.guides.stuck', message: 'Diagnose a stuck transaction'}), '/guides/stuck-transactions'],
+      ],
+    },
+    {
+      label: translate({id: 'homepage.index.api', message: 'API reference', description: 'API reference section label in index'}),
+      links: [
+        [translate({id: 'homepage.index.api.overview', message: 'Overview'}), '/api/'],
+        [translate({id: 'homepage.index.api.node', message: 'Node API'}), '/api/node'],
+        [translate({id: 'homepage.index.api.walletOwner', message: 'Wallet Owner API'}), '/api/wallet-owner'],
+        [translate({id: 'homepage.index.api.epicbox', message: 'Epicbox relay protocol'}), '/api/epicbox'],
+        [translate({id: 'homepage.index.api.auth', message: 'Authentication and TLS'}), '/api/authentication'],
+      ],
+    },
+    {
+      label: translate({id: 'homepage.index.examples', message: 'Code examples', description: 'Code examples section label in index'}),
+      links: [
+        [translate({id: 'homepage.index.examples.overview', message: 'Overview and setup'}), '/examples/'],
+        [translate({id: 'homepage.index.examples.node', message: 'Node queries'}), '/examples/node-api'],
+        [translate({id: 'homepage.index.examples.walletConnect', message: 'Wallet: connect and read'}), '/examples/wallet-connect'],
+        [translate({id: 'homepage.index.examples.sendReceive', message: 'Wallet: send and receive'}), '/examples/send-receive'],
+      ],
+    },
+    {
+      label: translate({id: 'homepage.index.config', message: 'Configuration and CLI', description: 'Config section label in index'}),
+      links: [
+        [translate({id: 'homepage.index.config.cli', message: 'CLI'}), '/reference/cli'],
+        ['epic-server.toml', '/reference/node-config'],
+        ['epic-wallet.toml', '/reference/wallet-config'],
+        [translate({id: 'homepage.index.config.downloads', message: 'Downloads'}), '/downloads'],
+      ],
+    },
+    {
+      label: translate({id: 'homepage.index.mining', message: 'Mining and consensus', description: 'Mining section label in index'}),
+      links: [
+        [translate({id: 'homepage.index.mining.pow', message: 'Proof of work'}), '/mining/proof-of-work'],
+        [translate({id: 'homepage.index.mining.emission', message: 'Emission and the levy'}), '/mining/emission'],
+        ['Stratum', '/mining/stratum'],
+        [translate({id: 'homepage.index.mining.migrating', message: 'Migrating from 3.x'}), '/whats-new-in-v4'],
+      ],
+    },
+  ];
+}
 
 function DocIndex() {
+  const INDEX = indexData();
   return (
     <section className="ixSection ixSectionLast">
-      <h2 className="ixKicker">Everything else</h2>
+      <h2 className="ixKicker"><Translate id="homepage.index.kicker" description="Kicker above the doc index section">Everything else</Translate></h2>
       <div className="ixIndex">
         {INDEX.map((group) => (
           <nav className="ixGroup" key={group.label} aria-label={group.label}>
@@ -450,8 +473,8 @@ export default function Home() {
   return (
     <Layout
       wrapperClassName="epic-narrative"
-      title="Epic Cash Developer Documentation"
-      description="Developer documentation for Epic Cash: node and wallet APIs, the epicbox relay protocol, consensus, mining and integration.">
+      title={translate({id: 'homepage.layout.title', message: 'Epic Cash Developer Documentation', description: 'Page title for the homepage'})}
+      description={translate({id: 'homepage.layout.description', message: 'Developer documentation for Epic Cash: node and wallet APIs, the epicbox relay protocol, consensus, mining and integration.', description: 'Meta description for the homepage'})}>
       <Masthead />
       <main className="container ixMain">
         <TheModel />

@@ -137,16 +137,23 @@
    control sat 4px from the window edge. Measured at 1280, 1440 and 1532: control right and panel
    right now agree exactly. Do not reinstate it. */
 
-/* Below the desktop navbar breakpoint the label and the shortcut both go: the
-   row is tight, and a shortcut is no use on a touch keyboard anyway. The mark
-   plus the accessible name still say what the button does. */
+/* Two tiers, not one. The keyboard shortcut goes at the desktop breakpoint, because the row is tight
+   below it and a shortcut is no use on a touch keyboard. The label survives further down: between
+   601px and 996px the navbar keeps language, theme and a readable search control, and a button
+   reading "Ask or search" is the whole reason that tier is worth having. Only under 601px does the
+   control become the mark alone, where its accessible name carries the meaning. */
 @media (max-width: 996px) {
   .epicAsk-control {
     width: auto;
   }
 
-  .epicAsk-controlLabel,
   .epicAsk-hint {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .epicAsk-controlLabel {
     display: none;
   }
 }

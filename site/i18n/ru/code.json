@@ -1,364 +1,1134 @@
 {
-  "theme.ErrorPageContent.title": {
-    "message": "На странице произошёл сбой.",
-    "description": "The title of the fallback page when the page crashed"
+  "journey.overview.heading": {
+    "message": "Маршрут",
+    "description": "Heading for the journey overview on the start page"
   },
-  "theme.BackToTopButton.buttonAriaLabel": {
-    "message": "Прокрутка к началу",
-    "description": "The ARIA label for the back to top button"
+  "journey.overview.ofRouteRead": {
+    "message": "маршрута пройдено",
+    "description": "Label next to the overall progress percentage"
   },
-  "theme.blog.archive.title": {
-    "message": "Архив",
-    "description": "The page & hero title of the blog archive page"
+  "journey.overview.continue": {
+    "message": "Продолжить: {title}",
+    "description": "Continue button label with stage title"
   },
-  "theme.blog.archive.description": {
-    "message": "Архив",
-    "description": "The page & hero description of the blog archive page"
+  "journey.overview.begin": {
+    "message": "Начать: {title}",
+    "description": "Begin button label with first stage title"
   },
-  "theme.blog.paginator.navAriaLabel": {
-    "message": "Навигация по странице списка блогов",
-    "description": "The ARIA label for the blog pagination"
+  "journey.overview.resetProgress": {
+    "message": "Сбросить прогресс",
+    "description": "Reset progress button label"
   },
-  "theme.blog.paginator.newerEntries": {
-    "message": "Следующие записи",
-    "description": "The label used to navigate to the newer blog posts page (previous page)"
+  "journey.overview.footNote": {
+    "message": "Считается по глубине прочтения каждой страницы, хранится в этом браузере.",
+    "description": "Note explaining how progress tracking works"
   },
-  "theme.blog.paginator.olderEntries": {
-    "message": "Предыдущие записи",
-    "description": "The label used to navigate to the older blog posts page (next page)"
+  "journey.nav.ariaLabel": {
+    "message": "Путь разработчика",
+    "description": "Aria label for the journey navigation"
   },
-  "theme.blog.post.paginator.navAriaLabel": {
-    "message": "Навигация по странице поста блога",
-    "description": "The ARIA label for the blog posts pagination"
+  "journey.nav.label": {
+    "message": "Путь разработчика",
+    "description": "Label identifying this as the developer journey"
   },
-  "theme.blog.post.paginator.newerPost": {
-    "message": "Следующий пост",
-    "description": "The blog post button label to navigate to the newer/previous post"
+  "journey.nav.previous": {
+    "message": "Назад: {title}",
+    "description": "Previous stage link label"
   },
-  "theme.blog.post.paginator.olderPost": {
-    "message": "Предыдущий пост",
-    "description": "The blog post button label to navigate to the older/next post"
+  "journey.nav.overview": {
+    "message": "Обзор маршрута",
+    "description": "Link back to journey overview"
   },
-  "theme.tags.tagsPageLink": {
-    "message": "Посмотреть все теги",
-    "description": "The label of the link targeting the tag list page"
+  "journey.nav.next": {
+    "message": "Далее: {title}",
+    "description": "Next stage link label"
   },
-  "theme.colorToggle.ariaLabel.mode.system": {
-    "message": "system mode",
-    "description": "The name for the system color mode"
+  "journey.nav.browseApi": {
+    "message": "Открыть справочник API",
+    "description": "Link to API reference after the last stage"
   },
-  "theme.colorToggle.ariaLabel.mode.light": {
-    "message": "Светлый режим",
-    "description": "The name for the light color mode"
+  "journey.lifecycle.prepare.title": {
+    "message": "Подготовка"
   },
-  "theme.colorToggle.ariaLabel.mode.dark": {
-    "message": "Тёмный режим",
-    "description": "The name for the dark color mode"
+  "journey.lifecycle.prepare.summary": {
+    "message": "Узел, доступный обоим кошелькам, и отправитель с доступными к трате выходами (outputs). Необходимость присутствия получателя онлайн зависит от транспорта."
   },
-  "theme.colorToggle.ariaLabel": {
-    "message": "Переключение между темным и светлым режимом (сейчас используется {mode})",
-    "description": "The ARIA label for the color mode toggle"
+  "journey.lifecycle.draft.title": {
+    "message": "Черновик и блокировка"
   },
-  "theme.docs.breadcrumbs.navAriaLabel": {
-    "message": "Навигационная цепочка текущей страницы",
-    "description": "The ARIA label for the breadcrumbs"
+  "journey.lifecycle.draft.summary": {
+    "message": "Отправитель собирает частичный слейт (slate) и резервирует выбранные выходы локально. На цепочке ещё ничего нет, и только отмена снимает резервирование."
   },
-  "theme.docs.paginator.navAriaLabel": {
-    "message": "Страница документа",
-    "description": "The ARIA label for the docs pagination"
+  "journey.lifecycle.deliver.title": {
+    "message": "Доставка"
   },
-  "theme.docs.paginator.previous": {
-    "message": "Предыдущая страница",
-    "description": "The label used to navigate to the previous doc"
+  "journey.lifecycle.deliver.summary": {
+    "message": "Слейт достигает получателя в виде файла, HTTP-запроса или сообщения в очереди релея. Именно этот шаг чаще всего завершается неудачей на практике."
   },
-  "theme.docs.paginator.next": {
-    "message": "Следующая страница",
-    "description": "The label used to navigate to the next doc"
+  "journey.lifecycle.cosign.title": {
+    "message": "Совместная подпись"
   },
-  "theme.docs.tagDocListPageTitle.nDocsTagged": {
-    "message": "Одна страница|{count} страницы|{count} страниц",
-    "description": "Pluralized label for \"{count} docs tagged\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  "journey.lifecycle.cosign.summary": {
+    "message": "Получатель добавляет выход (output), его доказательство диапазона (range proof) и частичную подпись, затем возвращает слейт тем же способом, которым получил."
   },
-  "theme.docs.tagDocListPageTitle": {
-    "message": "{nDocsTagged} с тегом \"{tagName}\"",
-    "description": "The title of the page for a docs tag"
+  "journey.lifecycle.post.title": {
+    "message": "Опубликовать или отменить"
   },
-  "theme.docs.versionBadge.label": {
-    "message": "Версия: {versionLabel}"
+  "journey.lifecycle.post.summary": {
+    "message": "Отправитель завершает агрегированную подпись и публикует транзакцию. Если обмен не может быть завершён, отмените его явно, чтобы освободить зарезервированные выходы."
   },
-  "theme.docs.versions.unreleasedVersionLabel": {
-    "message": "Это документация для будущей версии {siteTitle} {versionLabel}.",
-    "description": "The label used to tell the user that he's browsing an unreleased doc version"
+  "journey.lifecycle.heading": {
+    "message": "Что на самом деле делает перевод",
+    "description": "Heading for the slate lifecycle section"
   },
-  "theme.docs.versions.unmaintainedVersionLabel": {
-    "message": "Это документация {siteTitle} для версии {versionLabel}, которая уже не поддерживается.",
-    "description": "The label used to tell the user that he's browsing an unmaintained doc version"
+  "journey.lifecycle.ariaLabel": {
+    "message": "Этапы жизненного цикла слейта",
+    "description": "Aria label for the lifecycle stage buttons"
   },
-  "theme.docs.versions.latestVersionSuggestionLabel": {
-    "message": "Актуальная документация находится на странице {latestVersionLink} ({versionLabel}).",
-    "description": "The label used to tell the user to check the latest version"
+  "journey.lifecycle.stageAriaLabel": {
+    "message": "Этап {number}: {title}",
+    "description": "Aria label for individual lifecycle stage button"
   },
-  "theme.docs.versions.latestVersionLinkLabel": {
-    "message": "последней версии",
-    "description": "The label used for the latest version suggestion link label"
+  "journey.invite.heading": {
+    "message": "Изучить Epic за восемь этапов",
+    "description": "Journey section heading on landing page"
   },
-  "theme.common.editThisPage": {
-    "message": "Отредактировать эту страницу",
-    "description": "The link label to edit the current page"
+  "journey.invite.lede": {
+    "message": "От принципов работы реестра до управления кошельком из кода. Каждый этап — одна страница.",
+    "description": "Journey section sub-heading on landing page"
   },
-  "theme.common.headingLinkTitle": {
-    "message": "Прямая ссылка на {heading}",
-    "description": "Title for link to heading"
+  "journey.invite.completenessAriaLabel": {
+    "message": "Завершённость пути",
+    "description": "Aria label for journey progress dial"
   },
-  "theme.lastUpdated.atDate": {
-    "message": " {date}",
-    "description": "The words used to describe on which date a page has been last updated"
+  "journey.invite.read": {
+    "message": "прочитано",
+    "description": "Label below the progress percentage"
   },
-  "theme.lastUpdated.byUser": {
-    "message": " от {user}",
-    "description": "The words used to describe by who the page has been last updated"
+  "journey.invite.continue": {
+    "message": "Продолжить: {title}",
+    "description": "Continue button when journey is in progress"
   },
-  "theme.lastUpdated.lastUpdatedAtBy": {
-    "message": "Последнее обновление{atDate}{byUser}",
-    "description": "The sentence used to display when a page has been last updated, and by who"
+  "journey.invite.startAt01": {
+    "message": "Начать с этапа 01",
+    "description": "Start button when journey has not begun"
   },
-  "theme.navbar.mobileVersionsDropdown.label": {
-    "message": "Версии",
-    "description": "The label for the navbar versions dropdown on mobile view"
+  "journey.invite.progressNote": {
+    "message": "Прогресс определяется тем, насколько далеко вы прочитали, и сохраняется в этом браузере.",
+    "description": "Note about how progress is tracked"
   },
-  "theme.NotFound.title": {
-    "message": "Страница не найдена",
-    "description": "The title of the 404 page"
+  "slateExchange.scenario.completes": {
+    "message": "Завершается успешно",
+    "description": "Scenario label: successful direct transfer"
   },
-  "theme.tags.tagsListLabel": {
-    "message": "Теги:",
-    "description": "The label alongside a tag list"
+  "slateExchange.completes.step1": {
+    "message": "Отправитель запрашивает у узла вершину цепочки, собирает слейт (slate) и резервирует входы, которые будет тратить."
   },
-  "theme.admonition.caution": {
-    "message": "предупреждение",
-    "description": "The default label used for the Caution admonition (:::caution)"
+  "slateExchange.completes.step2": {
+    "message": "Отправитель отправляет слейт напрямую слушателю получателя."
   },
-  "theme.admonition.danger": {
-    "message": "осторожно",
-    "description": "The default label used for the Danger admonition (:::danger)"
+  "slateExchange.completes.step3": {
+    "message": "Получатель добавляет свою половину и подписывает."
   },
-  "theme.admonition.info": {
-    "message": "к сведению",
-    "description": "The default label used for the Info admonition (:::info)"
+  "slateExchange.completes.step4": {
+    "message": "Подписанный слейт возвращается в том же ответе."
   },
-  "theme.admonition.note": {
-    "message": "примечание",
-    "description": "The default label used for the Note admonition (:::note)"
+  "slateExchange.completes.step5": {
+    "message": "Отправитель финализирует его и публикует в узел, который транслирует его в сеть."
   },
-  "theme.admonition.tip": {
-    "message": "подсказка",
-    "description": "The default label used for the Tip admonition (:::tip)"
+  "slateExchange.scenario.receiverAway": {
+    "message": "Получатель недоступен",
+    "description": "Scenario label: receiver offline"
   },
-  "theme.admonition.warning": {
-    "message": "warning",
-    "description": "The default label used for the Warning admonition (:::warning)"
+  "slateExchange.receiverAway.step1": {
+    "message": "Отправитель собирает слейт и резервирует входы, которые будет тратить."
   },
-  "theme.AnnouncementBar.closeButtonAriaLabel": {
-    "message": "Закрыть",
-    "description": "The ARIA label for close button of announcement bar"
+  "slateExchange.receiverAway.step2": {
+    "message": "На адресе получателя ничего не слушает, поэтому запрос завершается ошибкой."
   },
-  "theme.blog.sidebar.navAriaLabel": {
-    "message": "Навигация по последним постам в блоге",
-    "description": "The ARIA label for recent posts in the blog sidebar"
+  "slateExchange.receiverAway.step3": {
+    "message": "Подписана только одна половина, финализировать нечего."
   },
-  "theme.DocSidebarItem.expandCategoryAriaLabel": {
-    "message": "Expand sidebar category '{label}'",
-    "description": "The ARIA label to expand the sidebar category"
+  "slateExchange.receiverAway.step4": {
+    "message": "Зарезервированные входы остаются зарезервированными. Отмена транзакции возвращает их."
   },
-  "theme.DocSidebarItem.collapseCategoryAriaLabel": {
-    "message": "Collapse sidebar category '{label}'",
-    "description": "The ARIA label to collapse the sidebar category"
+  "slateExchange.scenario.senderAway": {
+    "message": "Отправитель недоступен",
+    "description": "Scenario label: sender offline"
   },
-  "theme.IconExternalLink.ariaLabel": {
-    "message": "(opens in new tab)",
-    "description": "The ARIA label for the external link icon"
+  "slateExchange.senderAway.step1": {
+    "message": "Отправитель собирает слейт и резервирует входы, которые будет тратить."
   },
-  "theme.NavBar.navAriaLabel": {
-    "message": "Main",
-    "description": "The ARIA label for the main navigation"
+  "slateExchange.senderAway.step2": {
+    "message": "Отправитель отправляет слейт напрямую слушателю получателя."
   },
-  "theme.navbar.mobileLanguageDropdown.label": {
-    "message": "Языки",
-    "description": "The label for the mobile language switcher dropdown"
+  "slateExchange.senderAway.step3": {
+    "message": "Получатель добавляет свою половину и подписывает."
   },
-  "theme.NotFound.p1": {
-    "message": "К сожалению, мы не смогли найти запрашиваемую вами страницу.",
-    "description": "The first paragraph of the 404 page"
+  "slateExchange.senderAway.step4": {
+    "message": "Отправитель исчез, поэтому подписанному слейту некуда вернуться. Ничто не удерживает его для последующей обработки."
   },
-  "theme.NotFound.p2": {
-    "message": "Пожалуйста, обратитесь к владельцу сайта, с которого вы перешли на эту ссылку, чтобы сообщить ему, что ссылка не работает.",
-    "description": "The 2nd paragraph of the 404 page"
+  "slateExchange.senderAway.step5": {
+    "message": "Ничто не финализируется, и зарезервированные входы остаются зарезервированными до отмены транзакции."
   },
-  "theme.TOCCollapsible.toggleButtonLabel": {
-    "message": "Содержание этой страницы",
-    "description": "The label used by the button on the collapsible TOC component"
+  "slateExchange.scenario.noNode": {
+    "message": "Узел недоступен",
+    "description": "Scenario label: node offline"
   },
-  "theme.blog.post.readMore": {
-    "message": "Читать дальше",
-    "description": "The label used in blog post item excerpts to link to full blog posts"
+  "slateExchange.noNode.step1": {
+    "message": "Кошелёк читает цепочку и публикует через узел, поэтому отправка сначала обращается к нему."
   },
-  "theme.blog.post.readMoreLabel": {
-    "message": "Подробнее о {title}",
-    "description": "The ARIA label for the link to full blog posts from excerpts"
+  "slateExchange.noNode.step2": {
+    "message": "Если ни один узел недоступен, отправка останавливается до создания слейта, и входы не резервируются."
   },
-  "theme.blog.post.readingTime.plurals": {
-    "message": "{readingTime} мин. чтения|{readingTime} мин. чтения|{readingTime} мин. чтения",
-    "description": "Pluralized label for \"{readingTime} min read\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  "slateExchange.noNode.step3": {
+    "message": "Укажите кошельку доступный узел и повторите отправку."
   },
-  "theme.CodeBlock.wordWrapToggle": {
-    "message": "Переключить перенос по строкам",
-    "description": "The title attribute for toggle word wrapping button of code block lines"
+  "slateExchange.epicbox.step1": {
+    "message": "Отправитель шифрует слейт и публикует его в релей."
   },
-  "theme.CodeBlock.copy": {
-    "message": "Скопировать",
-    "description": "The copy button label on code blocks"
+  "slateExchange.epicbox.step2": {
+    "message": "Релей удерживает его до подключения кошелька получателя. Двум кошелькам не нужно быть онлайн одновременно."
   },
-  "theme.CodeBlock.copied": {
+  "slateExchange.epicbox.step3": {
+    "message": "Получатель забирает его, добавляет свою половину и подписывает."
+  },
+  "slateExchange.epicbox.step4": {
+    "message": "Подписанный слейт возвращается в релей, который удерживает его до возвращения отправителя."
+  },
+  "slateExchange.epicbox.step5": {
+    "message": "Отправитель возвращается онлайн и забирает подписанный слейт из релея."
+  },
+  "slateExchange.epicbox.step6": {
+    "message": "Отправитель финализирует его и публикует в узел, который транслирует его в сеть."
+  },
+  "slateExchange.epicbox.step7": {
+    "message": "Подтверждения погребают выход (output), и получатель может его потратить."
+  },
+  "slateExchange.label.sender": {
+    "message": "Отправитель",
+    "description": "Label for the sender in the SVG diagram"
+  },
+  "slateExchange.label.receiver": {
+    "message": "Получатель",
+    "description": "Label for the receiver in the SVG diagram"
+  },
+  "slateExchange.label.epicboxRelay": {
+    "message": "Epicbox релей",
+    "description": "Label for the epicbox relay in the SVG diagram"
+  },
+  "slateExchange.label.holdingSlate": {
+    "message": "удерживает слейт",
+    "description": "Relay sub-label when holding"
+  },
+  "slateExchange.label.idle": {
+    "message": "простаивает",
+    "description": "Relay sub-label when idle"
+  },
+  "slateExchange.label.inputsReserved": {
+    "message": "входы зарезервированы",
+    "description": "Sender sub-label when inputs are reserved"
+  },
+  "slateExchange.label.play": {
+    "message": "Воспроизвести",
+    "description": "Play button label"
+  },
+  "slateExchange.label.pause": {
+    "message": "Пауза",
+    "description": "Pause button label"
+  },
+  "slateExchange.label.transferOutcome": {
+    "message": "Исход перевода",
+    "description": "Aria label for the scenario dot tabs"
+  },
+  "slateExchange.status.online": {
+    "message": "онлайн",
+    "description": "Online status shown in the SVG diagram"
+  },
+  "slateExchange.status.offline": {
+    "message": "офлайн",
+    "description": "Offline status shown in the SVG diagram"
+  },
+  "slateExchange.label.node": {
+    "message": "Узел",
+    "description": "Node label in the SVG diagram"
+  },
+  "slateExchange.liveStep": {
+    "message": "{scenario}. Шаг {current} из {total}. {step}",
+    "description": "Live announcement for the active transfer-diagram step"
+  },
+  "journey.fundamentals.title": {
+    "message": "Понять реестр"
+  },
+  "journey.exchange.title": {
+    "message": "Понять биржу"
+  },
+  "journey.build.title": {
+    "message": "Собрать бинарники"
+  },
+  "journey.localNetwork.title": {
+    "message": "Запустить приватную цепочку"
+  },
+  "journey.transfer.title": {
+    "message": "Выполнить перевод"
+  },
+  "journey.mainnet.title": {
+    "message": "Подключиться к mainnet"
+  },
+  "journey.operate.title": {
+    "message": "Управлять кошельком"
+  },
+  "journey.integrate.title": {
+    "message": "Собрать интеграцию"
+  },
+  "journey.fundamentals.outcome": {
+    "message": "Вы понимаете, почему у Epic нет адресов получателя в цепочке и публичной истории транзакций."
+  },
+  "journey.exchange.outcome": {
+    "message": "Вы можете описать слейт (slate), его два раунда и причины, по которым доставка может завершиться неудачей без потери средств."
+  },
+  "journey.build.outcome": {
+    "message": "У вас есть рабочие бинарники epic, epic-wallet и epic-miner для вашей платформы."
+  },
+  "journey.localNetwork.outcome": {
+    "message": "Узел производит блоки в usernet, и один из двух ваших кошельков содержит монеты, доступные к трате."
+  },
+  "journey.transfer.outcome": {
+    "message": "Вы перемещали монеты между собственными кошельками и видели, что меняет каждый транспорт."
+  },
+  "journey.mainnet.outcome": {
+    "message": "Синхронизированный узел mainnet и кошелёк с резервной копией при наличии реальных средств."
+  },
+  "journey.operate.outcome": {
+    "message": "Вы умеете получать, отправлять, читать отчёты кошелька, восстанавливать его и устранять застрявший перевод."
+  },
+  "journey.integrate.outcome": {
+    "message": "Вы можете работать с API узла и кошелька и обрабатывать конверт ответа Ok/Err в Epic."
+  },
+  "homepage.masthead.versionsAriaLabel": {
+    "message": "Версии программного обеспечения",
+    "description": "Aria label for the version pills strip in the masthead"
+  },
+  "homepage.masthead.title": {
+    "message": "Центр разработчика",
+    "description": "Main heading on the homepage"
+  },
+  "homepage.masthead.tagline": {
+    "message": "Документация, руководства и примеры кода."
+  },
+  "homepage.masthead.taglineMobileLine1": {
+    "message": "Документация, руководства",
+    "description": "First line of the tagline on mobile"
+  },
+  "homepage.masthead.taglineMobileLine2": {
+    "message": "и примеры кода.",
+    "description": "Second line of the tagline on mobile"
+  },
+  "homepage.masthead.pill.pow": {
+    "message": "Доказательство работы",
+    "description": "Proof of Work pill in masthead"
+  },
+  "homepage.masthead.pill.opensource": {
+    "message": "Открытый исходный код",
+    "description": "Open Source pill in masthead"
+  },
+  "homepage.masthead.pill.private": {
+    "message": "Приватность",
+    "description": "Private pill in masthead"
+  },
+  "homepage.quickstart.nodeLabel": {
+    "message": "Узел",
+    "description": "Node tab label in quick start"
+  },
+  "homepage.quickstart.nodeTitle": {
+    "message": "Запустить узел",
+    "description": "Node quick start title"
+  },
+  "homepage.quickstart.nodeSetupLink": {
+    "message": "Настройка узла и кошелька",
+    "description": "Link to mainnet setup guide"
+  },
+  "homepage.quickstart.checksums": {
+    "message": "Контрольные суммы и другие сборки",
+    "description": "Link to downloads page"
+  },
+  "homepage.quickstart.nodeLinuxNote": {
+    "message": "Linux x86-64.",
+    "description": "Platform note for node Linux"
+  },
+  "homepage.quickstart.nodeMacNote": {
+    "message": "Apple silicon. Gatekeeper блокирует неподписанный бинарник, пока вы не разрешите его запуск.",
+    "description": "Platform note for node macOS"
+  },
+  "homepage.quickstart.nodeWinNote": {
+    "message": "x86-64, PowerShell.",
+    "description": "Platform note for node Windows"
+  },
+  "homepage.quickstart.walletLabel": {
+    "message": "Кошелёк",
+    "description": "Wallet tab label in quick start"
+  },
+  "homepage.quickstart.walletTitle": {
+    "message": "Создать кошелёк",
+    "description": "Wallet quick start title"
+  },
+  "homepage.quickstart.walletOpsLink": {
+    "message": "Операции с кошельком",
+    "description": "Link to wallet operations guide"
+  },
+  "homepage.quickstart.walletLinuxNote": {
+    "message": "Linux x86-64.",
+    "description": "Platform note for wallet Linux"
+  },
+  "homepage.quickstart.walletWinNote": {
+    "message": "x86-64, PowerShell.",
+    "description": "Platform note for wallet Windows"
+  },
+  "homepage.quickstart.heading": {
+    "message": "Быстрый старт",
+    "description": "Quick start panel heading"
+  },
+  "homepage.quickstart.softwareAriaLabel": {
+    "message": "Программное обеспечение",
+    "description": "Aria label for the node/wallet tab group"
+  },
+  "homepage.quickstart.platformAriaLabel": {
+    "message": "Платформа",
+    "description": "Aria label for the platform tab group"
+  },
+  "homepage.quickstart.copied": {
     "message": "Скопировано",
-    "description": "The copied button label on code blocks"
+    "description": "Copy button label after copying"
   },
-  "theme.CodeBlock.copyButtonAriaLabel": {
-    "message": "Скопировать в буфер обмена",
-    "description": "The ARIA label for copy code blocks button"
+  "homepage.quickstart.copy": {
+    "message": "Копировать",
+    "description": "Copy button label"
   },
-  "theme.docs.breadcrumbs.home": {
-    "message": "Главная страница",
-    "description": "The ARIA label for the home page in the breadcrumbs"
+  "homepage.journey.kicker": {
+    "message": "Путь разработчика",
+    "description": "Section kicker above the developer journey"
   },
-  "theme.docs.sidebar.collapseButtonTitle": {
-    "message": "Свернуть сайдбар",
-    "description": "The title attribute for collapse button of doc sidebar"
+  "homepage.model.kicker": {
+    "message": "Если вы работали с другими блокчейнами",
+    "description": "Kicker text above the four differences section"
   },
-  "theme.docs.sidebar.collapseButtonAriaLabel": {
-    "message": "Свернуть сайдбар",
-    "description": "The title attribute for collapse button of doc sidebar"
+  "homepage.model.heading": {
+    "message": "Четыре вещи, которые здесь работают иначе",
+    "description": "Heading for the four differences section"
   },
-  "theme.docs.sidebar.navAriaLabel": {
-    "message": "Docs sidebar",
-    "description": "The ARIA label for the sidebar navigation"
+  "homepage.model.noAddresses.title": {
+    "message": "В реестре нет адресов.",
+    "description": "Bold title for no-addresses point"
   },
-  "theme.docs.sidebar.closeSidebarButtonAriaLabel": {
-    "message": "Закрыть панель навигации",
-    "description": "The ARIA label for close button of mobile sidebar"
+  "homepage.model.noAddresses.body": {
+    "message": "Адрес epicbox маршрутизирует сообщение между кошельками. Ни один выход (output) не привязан к нему, поэтому нет баланса для запроса и истории для чтения.",
+    "description": "Explanation of epicbox address routing"
   },
-  "theme.navbar.mobileSidebarSecondaryMenu.backButtonLabel": {
-    "message": "← Перейти к главному меню",
-    "description": "The label of the back button to return to main menu, inside the mobile navbar sidebar secondary menu (notably used to display the docs sidebar)"
+  "homepage.model.interactive.title": {
+    "message": "Перевод требует участия обеих сторон.",
+    "description": "Bold title for interactive transfers point"
   },
-  "theme.docs.sidebar.toggleSidebarButtonAriaLabel": {
-    "message": "Переключить навигационную панель",
-    "description": "The ARIA label for hamburger menu button of mobile navigation"
+  "homepage.model.interactive.body": {
+    "message": "Отправитель собирает частичную транзакцию — слейт (slate), получатель добавляет свою половину, отправитель финализирует. Переводы срываются на этапе доставки, а не консенсуса.",
+    "description": "Explanation of slate exchange"
   },
-  "theme.docs.sidebar.expandButtonTitle": {
-    "message": "Развернуть сайдбар",
-    "description": "The ARIA label and title attribute for expand button of doc sidebar"
+  "homepage.model.locking.title": {
+    "message": "При отправке выходы резервируются.",
+    "description": "Bold title for output locking point"
   },
-  "theme.docs.sidebar.expandButtonAriaLabel": {
-    "message": "Развернуть сайдбар",
-    "description": "The ARIA label and title attribute for expand button of doc sidebar"
+  "homepage.model.locking.body": {
+    "message": "Они остаются недоступными до подтверждения перевода или его отмены. Таймер их не освобождает.",
+    "description": "Explanation of output reservation"
   },
-  "theme.navbar.mobileDropdown.collapseButton.expandAriaLabel": {
-    "message": "Expand the dropdown",
-    "description": "The ARIA label of the button to expand the mobile dropdown navbar item"
+  "homepage.model.restore.title": {
+    "message": "Сид-фраза восстанавливает средства, но не историю.",
+    "description": "Bold title for seed restore point"
   },
-  "theme.navbar.mobileDropdown.collapseButton.collapseAriaLabel": {
-    "message": "Collapse the dropdown",
-    "description": "The ARIA label of the button to collapse the mobile dropdown navbar item"
+  "homepage.model.restore.body": {
+    "message": "Публичных записей для восстановления нет, поэтому восстановленный кошелёк имеет корректный баланс и пустой журнал транзакций.",
+    "description": "Explanation of seed restore behaviour"
+  },
+  "homepage.index.concepts": {
+    "message": "Концепции",
+    "description": "Concepts section label in index"
+  },
+  "homepage.index.concepts.mimblewimble": {
+    "message": "Модель MimbleWimble"
+  },
+  "homepage.index.concepts.interactive": {
+    "message": "Интерактивные транзакции"
+  },
+  "homepage.index.concepts.outputs": {
+    "message": "Выходы и блокировка"
+  },
+  "homepage.index.concepts.addresses": {
+    "message": "Адреса"
+  },
+  "homepage.index.concepts.transports": {
+    "message": "Транспорты"
+  },
+  "homepage.index.concepts.proofs": {
+    "message": "Доказательства платежа"
+  },
+  "homepage.index.guides": {
+    "message": "Руководства",
+    "description": "Guides section label in index"
+  },
+  "homepage.index.guides.build": {
+    "message": "Собрать бинарники"
+  },
+  "homepage.index.guides.localNetwork": {
+    "message": "Запустить локальную сеть"
+  },
+  "homepage.index.guides.firstTransfer": {
+    "message": "Первый перевод"
+  },
+  "homepage.index.guides.mainnetSetup": {
+    "message": "Настройка узла и кошелька"
+  },
+  "homepage.index.guides.walletOps": {
+    "message": "Операции с кошельком"
+  },
+  "homepage.index.guides.backup": {
+    "message": "Резервное копирование и восстановление"
+  },
+  "homepage.index.guides.stuck": {
+    "message": "Диагностировать застрявшую транзакцию"
+  },
+  "homepage.index.api": {
+    "message": "Справочник API",
+    "description": "API reference section label in index"
+  },
+  "homepage.index.api.overview": {
+    "message": "Обзор"
+  },
+  "homepage.index.api.node": {
+    "message": "Node API"
+  },
+  "homepage.index.api.walletOwner": {
+    "message": "Wallet Owner API"
+  },
+  "homepage.index.api.epicbox": {
+    "message": "Протокол релея Epicbox"
+  },
+  "homepage.index.api.auth": {
+    "message": "Аутентификация и TLS"
+  },
+  "homepage.index.examples": {
+    "message": "Примеры кода",
+    "description": "Code examples section label in index"
+  },
+  "homepage.index.examples.overview": {
+    "message": "Обзор и настройка"
+  },
+  "homepage.index.examples.node": {
+    "message": "Запросы к узлу"
+  },
+  "homepage.index.examples.walletConnect": {
+    "message": "Wallet: подключение и чтение"
+  },
+  "homepage.index.examples.sendReceive": {
+    "message": "Кошелёк: отправить и получить"
+  },
+  "homepage.index.config": {
+    "message": "Конфигурация и CLI",
+    "description": "Config section label in index"
+  },
+  "homepage.index.config.cli": {
+    "message": "CLI"
+  },
+  "homepage.index.config.downloads": {
+    "message": "Загрузки"
+  },
+  "homepage.index.mining": {
+    "message": "Майнинг и консенсус",
+    "description": "Mining section label in index"
+  },
+  "homepage.index.mining.pow": {
+    "message": "Доказательство работы"
+  },
+  "homepage.index.mining.emission": {
+    "message": "Эмиссия и сбор"
+  },
+  "homepage.index.mining.migrating": {
+    "message": "Миграция с 3.x"
+  },
+  "homepage.index.kicker": {
+    "message": "Всё остальное",
+    "description": "Kicker above the doc index section"
+  },
+  "homepage.layout.title": {
+    "message": "Документация для разработчиков Epic Cash",
+    "description": "Page title for the homepage"
+  },
+  "homepage.layout.description": {
+    "message": "Документация для разработчиков Epic Cash: API узла и кошелька, протокол релея epicbox, консенсус, майнинг и интеграция.",
+    "description": "Meta description for the homepage"
+  },
+  "assistant.host.resizePanel": {
+    "message": "Изменить размер панели ассистента"
+  },
+  "assistant.host.loading": {
+    "message": "Загрузка ассистента"
+  },
+  "assistant.modal.label": {
+    "message": "Задать вопрос или найти в документации"
+  },
+  "assistant.modal.inputLabel": {
+    "message": "Задать вопрос или найти в документации"
+  },
+  "assistant.modal.placeholder": {
+    "message": "Спросить или найти…"
+  },
+  "assistant.modal.clear": {
+    "message": "Очистить поле"
+  },
+  "assistant.modal.optionsWithQuery": {
+    "message": "Спросить ассистента или открыть страницу"
+  },
+  "assistant.modal.suggestedQuestions": {
+    "message": "Предлагаемые вопросы"
+  },
+  "assistant.modal.askAi": {
+    "message": "Спросить AI: {question}"
+  },
+  "assistant.modal.askAiNote": {
+    "message": "Ответы из этой документации с использованными разделами"
+  },
+  "assistant.modal.searchMissing": {
+    "message": "Индекс поиска не загружен — доступен только ассистент."
+  },
+  "assistant.modal.devIndexMissing": {
+    "message": "Поиск по ключевым словам требует индекса. Выполните npm run build, затем перезагрузите страницу."
+  },
+  "assistant.modal.noMatches": {
+    "message": "Страниц по этому запросу не найдено. Спросите ассистента."
+  },
+  "assistant.modal.seeAll": {
+    "message": "Все результаты для «{query}»"
+  },
+  "assistant.modal.devIndexStale": {
+    "message": "Dev: индекс из последней сборки."
+  },
+  "assistant.shortcut.move": {
+    "message": "переместить"
+  },
+  "assistant.shortcut.open": {
+    "message": "открыть"
+  },
+  "assistant.shortcut.askDirectly": {
+    "message": "спросить напрямую"
+  },
+  "assistant.shortcut.close": {
+    "message": "закрыть"
+  },
+  "assistant.shortcut.send": {
+    "message": "отправить"
+  },
+  "assistant.shortcut.newline": {
+    "message": "новая строка"
+  },
+  "assistant.page.copiedAnnouncement": {
+    "message": "Страница скопирована как Markdown"
+  },
+  "assistant.page.copyFailedAnnouncement": {
+    "message": "Не удалось скопировать страницу"
+  },
+  "assistant.page.ask": {
+    "message": "Спросить об этой странице"
+  },
+  "assistant.page.copied": {
+    "message": "Скопировано"
+  },
+  "assistant.page.copyFailed": {
+    "message": "Ошибка копирования"
+  },
+  "assistant.page.copy": {
+    "message": "Копировать страницу"
+  },
+  "assistant.markdown.externalLink": {
+    "message": "(открывается в новой вкладке)"
+  },
+  "assistant.markdown.codeText": {
+    "message": "текст"
+  },
+  "assistant.markdown.copyAfterAnswer": {
+    "message": "Копирование доступно после завершения ответа"
+  },
+  "assistant.markdown.copyCodeLabel": {
+    "message": "Копировать {language} в буфер обмена"
+  },
+  "assistant.markdown.copy": {
+    "message": "Копировать"
+  },
+  "assistant.markdown.copied": {
+    "message": "Скопировано"
+  },
+  "assistant.error.rate": {
+    "message": "Достигнут лимит вопросов. Повторите через несколько минут."
+  },
+  "assistant.error.network": {
+    "message": "Соединение потеряно."
+  },
+  "assistant.error.unavailable": {
+    "message": "AI-ассистент недоступен."
+  },
+  "assistant.error.label": {
+    "message": "Ошибка"
+  },
+  "assistant.error.tryAgain": {
+    "message": "Повторить"
+  },
+  "assistant.notice.lengthLimit": {
+    "message": "Превышен лимит в {count} символов. Сократите текст."
+  },
+  "assistant.notice.sessionLimit": {
+    "message": "Достигнут лимит вопросов для этой сессии. Перезагрузите страницу, чтобы начать новую, или воспользуйтесь строкой поиска."
+  },
+  "assistant.notice.budgetDegraded": {
+    "message": "Ассистент исчерпал дневной бюджет, поэтому вместо ответа показаны ближайшие разделы документации."
+  },
+  "assistant.notice.budgetUnavailable": {
+    "message": "Ассистент недоступен до конца дня. Строка поиска охватывает ту же документацию."
+  },
+  "assistant.notice.label": {
+    "message": "Уведомление"
+  },
+  "assistant.notice.sectionLink": {
+    "message": "Раздел документации {number}"
+  },
+  "assistant.announce.working": {
+    "message": "Формирование ответа"
+  },
+  "assistant.announce.limit": {
+    "message": "Лимит вопросов для сессии исчерпан"
+  },
+  "assistant.announce.degraded": {
+    "message": "Ассистент превысил дневной бюджет, показаны разделы документации"
+  },
+  "assistant.announce.unavailable": {
+    "message": "Ассистент недоступен"
+  },
+  "assistant.announce.stopped": {
+    "message": "Ответ прерван"
+  },
+  "assistant.announce.failed": {
+    "message": "Не удалось сгенерировать ответ"
+  },
+  "assistant.announce.connectionLost": {
+    "message": "Соединение потеряно"
+  },
+  "assistant.announce.complete": {
+    "message": "Ответ завершён"
+  },
+  "assistant.announce.completeSource": {
+    "message": "Ответ завершён, 1 источник"
+  },
+  "assistant.announce.completeSources": {
+    "message": "Ответ завершён, источников: {count}"
+  },
+  "assistant.panel.dialogLabel": {
+    "message": "Ассистент документации Epic"
+  },
+  "assistant.panel.title": {
+    "message": "Ассистент документации"
+  },
+  "assistant.panel.scopeLive": {
+    "message": "Отвечает на основе документации для разработчиков Epic, может проверять активную цепочку и репозитории EpicCash. Может ошибаться — проверяйте связанный раздел."
+  },
+  "assistant.panel.scopeDocs": {
+    "message": "Отвечает на основе документации для разработчиков Epic и знает, на какой странице вы находитесь. Может ошибаться — проверяйте связанный раздел."
+  },
+  "assistant.panel.close": {
+    "message": "Закрыть ассистент"
+  },
+  "assistant.panel.conversation": {
+    "message": "Диалог с ассистентом документации"
+  },
+  "assistant.panel.emptyLead": {
+    "message": "Спросите об узле, кошельке, epicbox, майнинге или API."
+  },
+  "assistant.panel.youAsked": {
+    "message": "Вы спросили:"
+  },
+  "assistant.panel.assistantAnswered": {
+    "message": "Ассистент ответил:"
+  },
+  "assistant.panel.reading": {
+    "message": "Чтение документации"
+  },
+  "assistant.panel.liveDataLabel": {
+    "message": "Для этого ответа проверены актуальные данные"
+  },
+  "assistant.panel.activityUnavailable": {
+    "message": "(недоступно)"
+  },
+  "assistant.panel.stopped": {
+    "message": "Остановлено. Полученное — выше."
+  },
+  "assistant.panel.sourcesLabel": {
+    "message": "Источники для этого ответа"
+  },
+  "assistant.panel.sources": {
+    "message": "Источники"
+  },
+  "assistant.panel.followups": {
+    "message": "Предложения для продолжения"
+  },
+  "assistant.panel.composerLabel": {
+    "message": "Задайте вопрос по документации для разработчиков Epic Cash"
+  },
+  "assistant.panel.composerPlaceholder": {
+    "message": "Спросите об Epic…"
+  },
+  "assistant.panel.composerHint": {
+    "message": "Enter — отправить, Shift+Enter — новая строка, Escape — закрыть."
+  },
+  "assistant.panel.stopGenerating": {
+    "message": "Остановить генерацию"
+  },
+  "assistant.panel.stop": {
+    "message": "Стоп"
+  },
+  "assistant.panel.sendQuestion": {
+    "message": "Отправить вопрос"
+  },
+  "assistant.panel.ask": {
+    "message": "Спросить"
+  },
+  "assistant.panel.modelLabel": {
+    "message": "Модель, отвечающая на ваши вопросы"
+  },
+  "assistant.panel.questionLeft": {
+    "message": "Остался 1 вопрос"
+  },
+  "assistant.panel.questionsLeft": {
+    "message": "Осталось вопросов: {count}"
+  },
+  "assistant.panel.footLive": {
+    "message": "Ответы могут быть неверными — проверяйте по ссылке на страницу."
+  },
+  "assistant.panel.footDocs": {
+    "message": "Ответы генерируются и могут быть неверными. Проверяйте по связанной странице."
+  },
+  "assistant.model.opus-4-6.note": {
+    "message": "Медленнее. Лучше для написания кода."
+  },
+  "assistant.model.sonnet-4-6.note": {
+    "message": "Быстро. Лучше для поиска."
+  },
+  "assistant.tool.epic_chain_status": {
+    "message": "Проверка живой цепочки Epic"
+  },
+  "assistant.tool.epic_chain_window": {
+    "message": "Измерение текущей сложности сети"
+  },
+  "assistant.tool.epic_block": {
+    "message": "Поиск блока Epic"
+  },
+  "assistant.tool.epic_mempool": {
+    "message": "Проверка пула транзакций"
+  },
+  "assistant.tool.epic_node_peers": {
+    "message": "Проверка версий узла у пиров"
+  },
+  "assistant.tool.epic_github_releases": {
+    "message": "Проверка релизов EpicCash"
+  },
+  "assistant.tool.epic_github_activity": {
+    "message": "Проверка последней активности разработки EpicCash"
+  },
+  "assistant.tool.epic_github_repo": {
+    "message": "Проверка репозитория EpicCash"
+  },
+  "assistant.tool.default": {
+    "message": "Проверка живых данных"
+  },
+  "assistant.suggestion.wrongAddress": {
+    "message": "Почему неверный адрес не может привести к потере средств?"
+  },
+  "assistant.suggestion.bothOnline": {
+    "message": "Почему перевод Epic требует, чтобы обе стороны были онлайн?"
+  },
+  "assistant.suggestion.slate": {
+    "message": "Что такое слейт (slate) и что в нём содержится?"
+  },
+  "assistant.suggestion.slateTransport": {
+    "message": "Что может передавать слейт между двумя кошельками?"
+  },
+  "assistant.suggestion.hiddenAmounts": {
+    "message": "Как MimbleWimble скрывает суммы?"
+  },
+  "assistant.suggestion.lockedBalance": {
+    "message": "Почему баланс заблокирован после неудачной отправки?"
+  },
+  "assistant.suggestion.privateChain": {
+    "message": "Как запустить приватную цепочку на одной машине?"
+  },
+  "assistant.suggestion.usernetMining": {
+    "message": "Какая конфигурация заставляет цепочку usernet реально майнить?"
+  },
+  "assistant.suggestion.buildWindows": {
+    "message": "Как собрать узел на Windows?"
+  },
+  "assistant.suggestion.mainnetSetup": {
+    "message": "Как настроить узел и кошелёк на mainnet?"
+  },
+  "assistant.suggestion.firstTransfer": {
+    "message": "Как выполнить первый перевод?"
+  },
+  "assistant.suggestion.backup": {
+    "message": "Как создать резервную копию кошелька и что восстановление не восстанавливает?"
+  },
+  "assistant.suggestion.stuck": {
+    "message": "Транзакция застряла неподтверждённой. Что делать?"
+  },
+  "assistant.suggestion.twoWallets": {
+    "message": "Как запустить два кошелька на одной машине?"
+  },
+  "assistant.suggestion.ownerApiPython": {
+    "message": "Как открыть кошелёк через Owner API из Python?"
+  },
+  "assistant.suggestion.spendingMethods": {
+    "message": "Какие методы Owner API могут тратить средства?"
+  },
+  "assistant.suggestion.sendSequence": {
+    "message": "Какова полная последовательность вызовов для отправки транзакции?"
+  },
+  "assistant.suggestion.encryptedHandshake": {
+    "message": "Как работает рукопожатие зашифрованного Owner API?"
+  },
+  "assistant.suggestion.credentials": {
+    "message": "Какие учётные данные требуются каждому интерфейсу API?"
+  },
+  "assistant.suggestion.balance": {
+    "message": "Как читать баланс кошелька и что означают цифры?"
+  },
+  "assistant.suggestion.nodeSync": {
+    "message": "Как проверить, синхронизирован ли узел?"
+  },
+  "assistant.suggestion.algorithms": {
+    "message": "Какие алгоритмы доказательства работы использует Epic?"
+  },
+  "assistant.suggestion.reward": {
+    "message": "Какова награда за блок и как работает сбор?"
+  },
+  "assistant.suggestion.minerNode": {
+    "message": "Как направить майнер на свой узел?"
+  },
+  "assistant.suggestion.exchange": {
+    "message": "Что нужно для интеграции Epic на биржу?"
+  },
+  "assistant.suggestion.paymentProof": {
+    "message": "Как доказать, что платёж был совершён?"
+  },
+  "assistant.suggestion.ports": {
+    "message": "Какие порты открывает каждый компонент?"
+  },
+  "assistant.suggestion.v4Changes": {
+    "message": "Что изменилось между 3.x и 4.0?"
+  },
+  "assistant.suggestion.download": {
+    "message": "Где скачать кошелёк и как его верифицировать?"
+  },
+  "theme.colorToggle.title": {
+    "message": "Переключить на {mode}",
+    "description": "Tooltip for the color mode toggle"
+  },
+  "search.askOrSearch": {
+    "message": "Спросить или найти…",
+    "description": "Visible label for the combined assistant and search control"
+  },
+  "search.askOrSearchAriaLabel": {
+    "message": "Задать вопрос или найти в документации, сочетание клавиш {modifier} плюс K",
+    "description": "Accessible label for the combined assistant and search control"
   },
   "theme.SearchBar.noResultsText": {
-    "message": "No results"
+    "message": "Нет результатов"
   },
   "theme.SearchBar.seeAllOutsideContext": {
-    "message": "See all results outside \"{context}\""
+    "message": "Все результаты вне «{context}»"
   },
   "theme.SearchBar.searchInContext": {
-    "message": "See all results within \"{context}\""
-  },
-  "theme.SearchBar.seeAll": {
-    "message": "See all results"
-  },
-  "theme.SearchBar.label": {
-    "message": "Search",
-    "description": "The ARIA label and placeholder for search button"
-  },
-  "theme.SearchPage.existingResultsTitle": {
-    "message": "Search results for \"{query}\"",
-    "description": "The search page title for non-empty query"
-  },
-  "theme.SearchPage.emptyResultsTitle": {
-    "message": "Search the documentation",
-    "description": "The search page title for empty query"
+    "message": "Все результаты в «{context}»"
   },
   "theme.SearchPage.searchContext.everywhere": {
-    "message": "Everywhere"
+    "message": "Везде"
   },
-  "theme.SearchPage.documentsFound.plurals": {
-    "message": "1 document found|{count} documents found",
-    "description": "Pluralized label for \"{count} documents found\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  "diagram.slateRounds.step1.title": {
+    "message": "Отправитель собирает частичный слейт (slate)",
+    "description": "Slate exchange diagram, step 1 heading"
   },
-  "theme.SearchPage.noResultsText": {
-    "message": "No documents were found",
-    "description": "The paragraph for empty search result"
+  "diagram.slateRounds.step1.body": {
+    "message": "init_send_tx выбирает входы (inputs) и записывает первый раунд. tx_lock_outputs затем резервирует эти входы локально, до того как получатель что-либо сделал.",
+    "description": "Slate exchange diagram, step 1 detail. Keep init_send_tx and tx_lock_outputs as written."
   },
-  "theme.blog.post.plurals": {
-    "message": "{count} запись|{count} записи|{count} записей",
-    "description": "Pluralized label for \"{count} posts\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  "diagram.slateRounds.step2.title": {
+    "message": "Слейт передаётся получателю",
+    "description": "Slate exchange diagram, step 2 heading"
   },
-  "theme.blog.tagTitle": {
-    "message": "{nPosts} с тегом \"{tagName}\"",
-    "description": "The title of the page for a blog tag"
+  "diagram.slateRounds.step2.body": {
+    "message": "Файл, HTTP-запрос или сообщение в очереди релея. Транспорт — та часть, которая на практике даёт сбой.",
+    "description": "Slate exchange diagram, step 2 detail"
   },
-  "theme.blog.author.pageTitle": {
-    "message": "{authorName} - {nPosts}",
-    "description": "The title of the page for a blog author"
+  "diagram.slateRounds.step3.title": {
+    "message": "Получатель завершает свою половину",
+    "description": "Slate exchange diagram, step 3 heading"
   },
-  "theme.blog.authorsList.pageTitle": {
-    "message": "Authors",
-    "description": "The title of the authors page"
+  "diagram.slateRounds.step3.body": {
+    "message": "receive_tx добавляет выход (output), его доказательство диапазона (range proof) и частичную подпись, после чего слейт содержит двух участников.",
+    "description": "Slate exchange diagram, step 3 detail. Keep receive_tx as written."
   },
-  "theme.blog.authorsList.viewAll": {
-    "message": "View All Authors",
-    "description": "The label of the link targeting the blog authors page"
+  "diagram.slateRounds.step4.title": {
+    "message": "Слейт возвращается тем же путём",
+    "description": "Slate exchange diagram, step 4 heading"
   },
-  "theme.blog.author.noPosts": {
-    "message": "This author has not written any posts yet.",
-    "description": "The text for authors with 0 blog post"
+  "diagram.slateRounds.step4.body": {
+    "message": "Через epicbox это приходит асинхронно, поэтому у отправителя тоже должен быть запущен слушатель.",
+    "description": "Slate exchange diagram, step 4 detail"
   },
-  "theme.contentVisibility.unlistedBanner.title": {
-    "message": "Unlisted page",
-    "description": "The unlisted content banner title"
+  "diagram.slateRounds.step5.title": {
+    "message": "Отправитель финализирует и публикует",
+    "description": "Slate exchange diagram, step 5 heading"
   },
-  "theme.contentVisibility.unlistedBanner.message": {
-    "message": "This page is unlisted. Search engines will not index it, and only users having a direct link can access it.",
-    "description": "The unlisted content banner message"
+  "diagram.slateRounds.step5.body": {
+    "message": "finalize_tx завершает агрегированную подпись, а post_tx транслирует её в сеть. Только теперь узел видит транзакцию.",
+    "description": "Slate exchange diagram, step 5 detail. Keep finalize_tx and post_tx as written."
   },
-  "theme.contentVisibility.draftBanner.title": {
-    "message": "Draft page",
-    "description": "The draft content banner title"
+  "diagram.slateRounds.caption": {
+    "message": "Один перевод, два раунда. Ничто не попадает в цепочку до шага 05.",
+    "description": "Caption under the slate exchange diagram"
   },
-  "theme.contentVisibility.draftBanner.message": {
-    "message": "This page is a draft. It will only be visible in dev and be excluded from the production build.",
-    "description": "The draft content banner message"
+  "diagram.slateRounds.senderWallet": {
+    "message": "Кошелёк отправителя",
+    "description": "Slate diagram, label on the sending party box"
   },
-  "theme.docs.DocCard.categoryDescription.plurals": {
-    "message": "{count} элемент|{count} элемента|{count} элементов",
-    "description": "The default description for a category card in the generated index about how many items this category includes"
+  "diagram.slateRounds.holdsInputs": {
+    "message": "держит входы",
+    "description": "Slate diagram, what the sender does. Keep it to three words or so."
   },
-  "theme.ErrorPageContent.tryAgain": {
-    "message": "Попробуйте ещё раз",
-    "description": "The label of the button to try again rendering when the React error boundary captures an error"
+  "diagram.slateRounds.signsTwice": {
+    "message": "подписывает дважды",
+    "description": "Slate diagram, what the sender does. Two words if possible."
   },
-  "theme.common.skipToMainContent": {
-    "message": "Перейти к основному содержимому",
-    "description": "The skip to content label used for accessibility, allowing to rapidly navigate to main content with keyboard tab/enter navigation"
+  "diagram.slateRounds.receiverWallet": {
+    "message": "Кошелёк получателя",
+    "description": "Slate diagram, label on the receiving party box"
   },
-  "theme.tags.tagsPageTitle": {
-    "message": "Теги",
-    "description": "The title of the tag list page"
+  "diagram.slateRounds.addsOutput": {
+    "message": "добавляет один выход",
+    "description": "Slate diagram, what the receiver does. Keep it short."
+  },
+  "diagram.slateRounds.signsOnce": {
+    "message": "подписывает один раз",
+    "description": "Slate diagram, what the receiver does. Two words if possible."
+  },
+  "diagram.slateRounds.roundOne": {
+    "message": "раунд 1, одна подпись",
+    "description": "Slate diagram, label on the first transport arrow"
+  },
+  "diagram.slateRounds.roundTwo": {
+    "message": "раунд 2, обе подписи",
+    "description": "Slate diagram, label on the return transport arrow"
+  },
+  "diagram.slateRounds.transports": {
+    "message": "file, http or epicbox",
+    "description": "Slate diagram, the three transports. These are transport names; keep them as written."
+  },
+  "diagram.slateRounds.node": {
+    "message": "Узел",
+    "description": "Slate diagram, label on the node box. One word."
+  },
+  "diagram.slateRounds.mempoolThenBlock": {
+    "message": "mempool, затем блок",
+    "description": "Slate diagram, what happens after posting. Keep mempool as written."
+  },
+  "diagram.handshake.step1.title": {
+    "message": "Сгенерировать пару ключей",
+    "description": "Owner API handshake diagram, step 1 heading"
+  },
+  "diagram.handshake.step1.body": {
+    "message": "Пара ключей secp256k1 на стороне клиента, используется один раз за сессию.",
+    "description": "Owner API handshake diagram, step 1 detail. Keep secp256k1 as written."
+  },
+  "diagram.handshake.step2.body": {
+    "message": "Отправьте свой сжатый публичный ключ. Кошелёк отвечает своим. Это единственный незашифрованный вызов.",
+    "description": "Owner API handshake diagram, step 2 detail"
+  },
+  "diagram.handshake.step3.title": {
+    "message": "Получить общий секрет",
+    "description": "Owner API handshake diagram, step 3 heading"
+  },
+  "diagram.handshake.step3.body": {
+    "message": "Умножьте ключ кошелька на свой скаляр и сохраните сырую x-координату, 32 байта, без хеширования. Хеширование — наиболее распространённая ошибка реализации.",
+    "description": "Owner API handshake diagram, step 3 detail"
+  },
+  "diagram.handshake.step4.title": {
+    "message": "open_wallet, зашифрованный",
+    "description": "Owner API handshake diagram, step 4 heading. open_wallet is a method name; keep it."
+  },
+  "diagram.handshake.step4.body": {
+    "message": "Первый вызов внутри encrypted_request_v3. Принимает пароль кошелька и возвращает токен.",
+    "description": "Owner API handshake diagram, step 4 detail. Keep encrypted_request_v3 as written."
+  },
+  "diagram.handshake.step5.title": {
+    "message": "Все последующие вызовы",
+    "description": "Owner API handshake diagram, step 5 heading"
+  },
+  "diagram.handshake.step5.body": {
+    "message": "AES-256-GCM со свежим 12-байтовым нонсом, 16-байтовый тег добавляется к шифртексту, токен передаётся в params.",
+    "description": "Owner API handshake diagram, step 5 detail. Keep AES-256-GCM and params as written."
+  },
+  "diagram.handshake.caption": {
+    "message": "Рукопожатие, один раз за сессию. Всё после шага 03 зашифровано.",
+    "description": "Caption under the Owner API handshake diagram"
+  },
+  "diagram.handshake.yourClient": {
+    "message": "Ваш клиент",
+    "description": "Handshake diagram, label on the caller lane"
+  },
+  "diagram.handshake.walletPublicKey": {
+    "message": "публичный ключ кошелька",
+    "description": "Handshake diagram, what the wallet sends back"
+  },
+  "diagram.handshake.deriveSecret": {
+    "message": "получить общий секрет",
+    "description": "Handshake diagram, the local step the client performs"
+  },
+  "diagram.handshake.encryptedRequest": {
+    "message": "encrypted_request_v3, содержащий open_wallet",
+    "description": "Handshake diagram, the first encrypted call. Both names are identifiers; keep them."
+  },
+  "diagram.handshake.tokenEncrypted": {
+    "message": "токен, зашифрованный",
+    "description": "Handshake diagram, what comes back from open_wallet. Two or three words."
+  },
+  "unverified.ariaLabel": {
+    "message": "Непроверенное утверждение",
+    "description": "Accessible name of the box marking a claim that has not been confirmed"
+  },
+  "unverified.label": {
+    "message": "Непроверено",
+    "description": "Badge on the unverified-claim box. One word."
+  },
+  "unverified.toConfirm": {
+    "message": "Для подтверждения:",
+    "description": "Lead-in before what would settle an unverified claim"
+  },
+  "toc.navAriaLabel": {
+    "message": "На этой странице",
+    "description": "Accessible name of the table of contents landmark"
+  },
+  "toc.heading": {
+    "message": "На этой странице",
+    "description": "Visible heading above the table of contents"
+  },
+  "toc.sectionCount.one": {
+    "message": "раздел",
+    "description": "Noun after the table-of-contents count, when there is exactly one"
+  },
+  "toc.sectionCount.other": {
+    "message": "разделов",
+    "description": "Noun after the table-of-contents count, when there is more than one"
   }
 }

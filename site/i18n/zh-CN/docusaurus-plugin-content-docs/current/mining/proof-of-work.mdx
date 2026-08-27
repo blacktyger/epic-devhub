@@ -1,0 +1,93 @@
+---
+title: 工作量证明
+description: Epic同时运行三种工作量证明算法，比例由共识按时代设定。本文介绍其工作原理及对矿工的意义。
+---
+
+# 工作量证明
+
+Epic在同一条链上**同时运行三种工作量证明算法**，比例由共识强制执行。每个区块声明产生它的算法。三种算法始终有效，按照规定的比例，而不是在分叉时由一种替换另一种。
+
+## 三种算法{/* #the-three-algorithms */}
+
+| 算法 | 瓶颈 | 最低难度 |
+| --- | --- | --- |
+| Cuckoo / Cuckatoo | 内存受限的图环搜索 | 3 |
+| RandomX | CPU | 4,000 |
+| ProgPow | GPU | 200,000 |
+
+Cuckoo参数：证明大小42，最小边位数19，第二工作量证明边位数31，基础边位数24。
+
+算法实现位于独立的crate中，`EpicCash/randomx-rust`和`EpicCash/progpow-rust`。
+
+每种算法的难度单独跟踪，因此`get_status`返回`tip.total_difficulty`，该对象每种算法对应一个u64，键名分别为`cuckaroo`、`cuckatoo`、`randomx`和`progpow`。
+
+区块头在`proof`中声明其算法，并在`solution`中携带解，这是一个外部标记值，其结构取决于该算法：
+
+```text title="header.proof and header.solution, field shapes"
+"proof": "Cuckoo"     "solution": {"Cuckoo": [<u64>, ...]}         42 nonces
+"proof": "RandomX"    "solution": {"RandomX": "<decimal string>"}  32-byte hash, base 10
+"proof": "ProgPow"    "solution": {"ProgPow": [<byte>, ...]}       32-byte mix, one number per byte
+"proof": "MD5"        "solution": {"MD5": "<string>"}              not scheduled on mainnet
+```
+
+Cuckatoo和Cuckaroo区块均在`proof`中报告`Cuckoo`，通过边位数加以区分。类型定义在<Src repo="node" path="api/src/types.rs" line={574} />中。
+
+## 区块策略{/* #the-block-policy */}
+
+下一个区块必须使用哪种算法由确定性策略决定。实现为每种算法维护一个计数器，选择在当前100个区块窗口中距其分配份额最远的算法，因此窗口内的混合比例是精确值而非平均值。
+
+每100个区块的分配数量：
+
+| 时代 | RandomX | ProgPow | Cuckatoo | Cuckaroo |
+| --- | --- | --- | --- | --- |
+| 第1至2时代 | 60 | 38 | 2 | 0 |
+| 第3时代起 | 48 | 48 | 4 | 0 |
+
+Cuckaroo在mainnet上分配为零。它存在于类型系统中，但不参与调度。
+
+该策略编译进节点，在mainnet上无法通过`epic-server.toml`配置。两个键可在测试网络上对其进行限制：
+
+```toml title="epic-server.toml, floonet and usernet only"
+[server]
+only_randomx = true    # 每个区块必须是RandomX
+no_progpow   = false   # 或直接从组合中移除ProgPow
+```
+
+`only_randomx = true`使单个CPU矿工能够推进私有链：在混合策略下，仅使用RandomX的矿工在每个ProgPow高度处于空闲状态。两个键均会改变区块策略，因此在一种设置下挖出的链在另一种设置下无效。更改任意一个键时，请清除`chain_data`。
+
+mainnet的分配数量位于<Src repo="node" path="core/src/core/block/feijoada.rs" line={249} />，
+<Fn repo="node" path="core/src/core/block/feijoada.rs" line={348} name="next_block_bottles" />
+推进窗口并在100个区块时重置，<Fn repo="node" path="core/src/core/block/feijoada.rs" line={427} name="choose_algo" />在<Fn repo="node" path="core/src/core/block/feijoada.rs" line={80} kind="struct" name="PolicyConfig" />上进行选择，<Fn repo="node" path="core/src/core/block/feijoada.rs" line={335} name="get_bottles_default" />返回每个窗口起始时的归零计数器。常量位于<Src repo="node" path="core/src/consensus.rs" />中。
+
+## 难度{/* #difficulty */}
+
+每种算法有其独立的难度轨道，由<Fn repo="node" path="core/src/consensus.rs" line={664} name="next_difficulty" />独立重新调整目标。调整窗口为<Ver k="difficultyWindow" />个区块（<Fn repo="node" path="core/src/consensus.rs" line={441} kind="const" name="DIFFICULTY_ADJUST_WINDOW" />），在<Ver k="blockTimeSeconds" />秒目标下为一小时，窗口仅回溯同一算法的区块，因此每条轨道只看到自身的历史记录。
+
+三条轨道共享相同的钳制因子2和阻尼因子3。
+
+## 按区块高度变化的共识{/* #consensus-changes-by-height */}
+
+两项共识变更以mainnet区块高度为键，而非以版本分叉为键：
+
+| 区块高度 | 变更 |
+| --- | --- |
+| 501,160 | 难度规则变更，RandomX和ProgPow的最低难度分别从5,000和100,000调整为4,000和200,000 |
+| 880,000 | 图权重过期因子变更，从一年的区块数改为一百年的区块数 |
+
+仅遵循已声明分叉版本的实现在两处均会产生分歧。第一个已声明的硬分叉高度为9,000,000，按<Ver k="blockTimeSeconds" />秒出块计算，距今超过十年，因此较新的头部版本只能在测试网络上达到。
+
+## 下一步 {/* #next */}
+
+矿工通过Stratum连接到端口<Ver k="ports.stratum" />，使用换行符分隔JSON的原始TCP，或通过节点的Foreign JSON-RPC接口使用`get_block_template`、`finalize_block_template`和`submit_block`。`EpicCash/epic-miner`是参考挖矿客户端。
+
+<CardGrid>
+  <Card title="Stratum" to="/mining/stratum">
+    socket协议、其方法及消息结构。
+  </Card>
+  <Card title="通过HTTP挖矿" to="/api/node#mining-over-http">
+    用于构建和提交区块的三个Foreign JSON-RPC方法。
+  </Card>
+  <Card title="发行与征税" to="/mining/emission">
+    区块的支付内容及基金会征收的费用。
+  </Card>
+</CardGrid>

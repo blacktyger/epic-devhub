@@ -1,0 +1,137 @@
+---
+title: Эмиссия и сбор
+description: Пошаговое расписание эмиссии Epic, сбор фонда, забирающий убывающую долю каждого блока, и порядок расчёта комиссий.
+---
+
+# Эмиссия и сбор
+
+Эмиссия Epic снижается по определённым эрам и в конечном счёте прекращается, а убывающий **сбор в
+пользу фонда** забирает часть каждой награды за блок.
+
+## Единицы {/* #units */}
+
+| Единица | Freemen |
+| --- | --- |
+| 1 EPIC | <Ver k="epicBase" /> (<Fn repo="node" path="core/src/consensus.rs" line={31} kind="const" name="EPIC_BASE" />) |
+| 1 милли-EPIC | 100,000 (<Fn repo="node" path="core/src/consensus.rs" line={33} kind="const" name="MILLI_EPIC" />) |
+| 1 микро-EPIC | 100 (<Fn repo="node" path="core/src/consensus.rs" line={35} kind="const" name="MICRO_EPIC" />) |
+| freeman | 1 (<Fn repo="node" path="core/src/consensus.rs" line={37} kind="const" name="FREEMAN" />) |
+
+Каждый API принимает и возвращает целые числа freemen. 0.1 EPIC — это `10000000`.
+
+## Тайминг {/* #timing */}
+
+| Параметр | Значение |
+| --- | --- |
+| Целевое время блока | <Ver k="blockTimeSeconds" /> секунд (<Fn repo="node" path="core/src/consensus.rs" line={43} kind="const" name="BLOCK_TIME_SEC" />) |
+| Блоков в час | 60 |
+| Блоков в день | 1,440 |
+| Горизонт cut-through | 10,080 блоков (<Fn repo="node" path="core/src/consensus.rs" line={363} kind="const" name="CUT_THROUGH_HORIZON" />) |
+
+Зрелость coinbase — это количество блоков, которое добытый выход (output) ожидает перед тем, как его
+можно потратить. Значение определяется активным типом цепочки:
+
+| Сеть | Зрелость Coinbase |
+| --- | --- |
+| Mainnet | <Ver k="coinbaseMaturity" /> блоков (<Fn repo="node" path="core/src/consensus.rs" line={329} kind="const" name="COINBASE_MATURITY" />, один день блоков) |
+| Floonet | 30 блоков (<Fn repo="node" path="core/src/global.rs" line={67} kind="const" name="FLOONET_COINBASE_MATURITY" />) |
+| Usernet | 3 блока (<Fn repo="node" path="core/src/global.rs" line={64} kind="const" name="USER_TESTING_COINBASE_MATURITY" />) |
+| Автоматизированное тестирование | 3 блока (<Fn repo="node" path="core/src/global.rs" line={61} kind="const" name="AUTOMATED_TESTING_COINBASE_MATURITY" />) |
+
+Выбор — <Fn repo="node" path="core/src/global.rs" line={404} name="coinbase_maturity" />.
+
+Зрелый coinbase по-прежнему подчиняется собственному порогу подтверждений кошелька, `--min_conf`, который по
+умолчанию равен 10 в каждой сети. См. [операции с кошельком](/guides/wallet-operations).
+
+## Эры вознаграждения {/* #reward-eras */}
+
+Эмиссия снижается на границах эр, а не следует плавной кривой:
+
+| Эра заканчивается | Высота | Продолжительность | Базовая награда |
+| --- | --- | --- | --- |
+| Эра 1 | 480,960 | 334 дня | 16 EPIC |
+| Эра 2 | 1,157,760 | + 470 дней | 8 EPIC |
+| Эра 3 | 2,023,200 | + 601 день | 4 EPIC |
+| Эра 4 | 3,175,200 | + 800 дней | 2 EPIC |
+| Эра 5 | 4,642,560 | + 1,019 дней | 1 EPIC |
+| Эра 6 и далее | повторяющиеся шаги | по 1,460 дней | 0.15625 EPIC, уменьшается вдвое на каждом шаге |
+
+Значения для каждой эры приведены в <Fn repo="node" path="core/src/consensus.rs" line={104} name="fast_total_supply" />. Базовая награда — это не то, что получает майнер,
+поскольку сначала из неё вычитается сбор в пользу фонда. На локальной цепочке на высотах эры 1
+добытый блок зачислял в кошелёк 14.5792 EPIC, то есть 16 EPIC за вычетом сбора 8.88% эры 1.
+
+Начиная с эры 6 базовая награда составляет 0.15625 EPIC (<Fn repo="node" path="core/src/consensus.rs" line={58} kind="const" name="BASE_REWARD_ERA_6_ONWARDS" />), а шаги продолжаются с периодом 1,460
+дней. Константы эр определены начиная с <Fn repo="node" path="core/src/consensus.rs" line={46} kind="const" name="BLOCK_ERA_1" />, а награда вычисляется функцией <Fn repo="node" path="core/src/consensus.rs" line={293} name="reward_at_height" />.
+
+:::note[Reward steps are not halvings]
+
+Переход с эры 5 на эру 6 снижает награду с 1 EPIC до 0.15625 EPIC — уменьшение в 6.4 раза, а не в 2.
+Поле `blocks_to_next_halving` в ответе `Status` узла считает блоки до следующего шага, и шаг не является халвингом. Строить
+проекцию предложения следует на основе таблицы эр.
+
+:::
+
+Награды вычисляются с целочисленной арифметикой, поэтому на поздних шагах они достигают нуля и
+эмиссия прекращается. Два поля в ответе `Status` сообщают о предложении, оба в целых EPIC, а не в
+freemen:
+
+| Поле | Значение |
+| --- | --- |
+| `supply` | <Fn repo="node" path="core/src/consensus.rs" line={104} name="fast_total_supply" /> на текущей высоте, делённое на <Ver k="epicBase" /> |
+| `max_supply` | Фиксированное число `21000000`, задано в обработчике статуса (<Src repo="node" path="api/src/handlers/server_api.rs" line={86} />) |
+
+`max_supply` — значение, которое несёт ответ статуса. Консенсусной константы с таким именем не существует, и
+ни одно из полей не участвует в валидации блоков или транзакций. Расписание эмиссии — это таблица эр
+выше.
+
+## Сбор фонда {/* #the-foundation-levy */}
+
+Часть каждой награды за блок направляется в фонд Epic, а не майнеру; доля убывает на протяжении
+девяти эр сбора:
+
+| Эра сбора | Ставка |
+| --- | --- |
+| 1 | 8.88% |
+| 2 | 7.77% |
+| 3 | 6.66% |
+| 4 | 5.55% |
+| 5 | 4.44% |
+| 6 | 3.33% |
+| 7 | 2.22% |
+| 8 | 1.11% |
+| 9 | 1.11% |
+
+Ставки — <Fn repo="node" path="core/src/consensus.rs" line={257} kind="const" name="FOUNDATION_LEVY" /> из расчёта на 10,000, применяются функцией <Fn repo="node" path="core/src/consensus.rs" line={260} name="reward_foundation_at_height" />.
+
+Первая эра сбора длится 120 дней, каждая последующая — 365 дней, всего девять эр, поэтому сбор
+заканчивается на высоте 4,377,600, и с этого момента полная награда достаётся майнеру.
+
+Платежи фонду используют заранее сгенерированные данные coinbase, поставляемые вместе с узлом, по
+одной записи на каждый день расписания сбора (<Fn repo="node" path="core/src/consensus.rs" line={199} name="foundation_height" />), поэтому coinbase фонда формируется из этих
+данных, а не майнером.
+
+## Комиссии {/* #fees */}
+
+Комиссия зависит от структуры транзакции, а не от спроса в сети:
+
+```text
+fee = max(4 × outputs + kernels − inputs, 1) × 0.001 EPIC
+```
+
+Перевод с двумя входами (inputs), двумя выходами (outputs) и одним ядром (kernel) стоит 700,000
+freemen, или 0.007 EPIC. Вес равен <Fn repo="node" path="core/src/core/transaction.rs" line={671} name="TransactionBody::weight" />, а базовая комиссия — `MILLI_EPIC`, 100,000 freemen (<Src repo="node" path="core/src/libtx/mod.rs" line={37} />).
+
+Кошелёк не задаёт базовую комиссию, поэтому рынка комиссий для торгов не существует. Вес блока
+ограничен значением <Ver k="maxBlockWeight" /> (<Fn repo="node" path="core/src/consensus.rs" line={394} kind="const" name="MAX_BLOCK_WEIGHT" />): входы имеют вес 1, выходы — 21, ядра — 3. Пул применяет собственный
+нижний порог через `accept_fee_base`, также равный 100,000 по умолчанию.
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="Доказательство работы" to="/mining/proof-of-work">
+    Три алгоритма и соотношение между ними.
+  </Card>
+  <Card title="Stratum" to="/mining/stratum">
+    Подключение майнера.
+  </Card>
+</CardGrid>

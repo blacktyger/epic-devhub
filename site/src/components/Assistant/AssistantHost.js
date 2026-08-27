@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useRef, useState, lazy, Suspense} from 'react';
 import BrowserOnly from '@docusaurus/BrowserOnly';
 import {isOpen, subscribe, toggleAssistant, closeAssistant} from './store';
+import {assistantMessage as msg} from './messages';
 import './assistant.css';
 
 /**
@@ -249,7 +250,7 @@ function Host() {
         className="epicChat-grip"
         role="separator"
         aria-orientation="vertical"
-        aria-label="Resize the assistant panel"
+        aria-label={msg.resizePanel()}
         aria-valuemin={MIN_WIDTH}
         aria-valuemax={maxWidth}
         aria-valuenow={width === null ? undefined : Math.round(width)}
@@ -261,7 +262,7 @@ function Host() {
         fallback={
           <div className="epicChat epicChat--loading" role="status" aria-live="polite">
             <p className="epicChat-thinking">
-              <span className="epicChat-shimmer">Loading the assistant</span>
+              <span className="epicChat-shimmer">{msg.loading()}</span>
             </p>
           </div>
         }>

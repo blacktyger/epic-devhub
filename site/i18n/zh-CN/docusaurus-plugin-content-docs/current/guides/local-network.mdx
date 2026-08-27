@@ -1,0 +1,229 @@
+---
+title: 运行本地网络
+description: 在一台机器上搭建完整的私有Epic网络，包含一个节点、一个矿工和两个钱包，并将真实币挖入第一个钱包。
+---
+
+# 运行本地网络
+
+本指南在一台机器上创建一个私有usernet节点、两个钱包和一个矿工，不使用mainnet。
+
+首先构建三个二进制文件：[构建二进制文件](/guides/build)。
+
+## 为何使用usernet {/* #why-usernet */}
+
+| 网络 | 参数 | P2P端口 | API端口 | 用途 |
+| --- | --- | --- | --- | --- |
+| Mainnet | 无 | <Ver k="ports.nodeP2p" /> | <Ver k="ports.nodeApi" /> | 真实值。参见[连接到mainnet](/guides/mainnet-setup) |
+| Floonet | `--floonet` | 13414 | 13413 | 无公共种子节点运行的测试网络 |
+| Usernet | `--usernet` | 23414 | 23413 | 本机上的私有链 |
+
+使用usernet。它不需要种子对等节点，在你的机器上作为私有链运行。[CLI参考](/reference/cli#networks)包含每个网络的完整偏移量。
+
+floonet的DNS种子无法解析，也没有公共节点在运行，因此floonet节点在区块高度0时找不到对等节点，除非手动配置对等节点。
+
+两个测试网络都不会自行产生区块，这正是矿工的用途。
+
+## 先规划目录结构 {/* #lay-it-out-first */}
+
+文件的存放位置比平时更重要，因为两个二进制文件都会先从**当前工作目录**解析其配置文件，然后才回退到`~/.epic/<network>`。因此，启动时所在的目录就是实例选择器，这也是一个钱包二进制文件能驱动多个钱包的原因。
+
+一种可行的目录布局：
+
+```
+epic-local/
+  .epic/user/       node data, the three binaries,
+                    epic-server.toml and epic-miner.toml
+  wallet_alice/     epic-wallet.toml and wallet_data/, no binary
+  wallet_bob/       same
+```
+
+节点和矿工可以安全地共享同一目录，因为它们的配置文件名不同。每个目录保存一个钱包，并从你要操作的钱包目录内运行共享的`epic-wallet`二进制文件。
+
+## 1. 配置并启动节点 {/* #1-configure-and-start-the-node */}
+
+在链目录内生成配置文件，使路径落在该目录下：
+
+```bash
+epic --usernet server config
+```
+
+然后做四处修改。`only_randomx`会更改共识，因此区块中的注释是指令的一部分：
+
+```toml title=".epic/user/epic-server.toml"
+[server]
+# 共识变更。如果在已有区块的链上设置此项，请先删除
+# chain_data：在旧策略下挖出的区块在此策略下无法通过验证。
+only_randomx = true
+
+[server.p2p_config]
+peer_min_preferred_outbound_count = 0
+
+[server.stratum_mining_config]
+enable_stratum_server = true
+
+[logging]
+log_to_file = true
+```
+
+每一项都是必需的。
+
+`only_randomx = true`强制执行100% RandomX策略。Epic通常为每个区块高度分配多种算法之一，而单个CPU矿工只能响应RandomX的高度。在真实网络上，其他矿工会覆盖其余算法；在你自己的链上没有其他矿工，因此不设置此项时矿工在大多数高度会处于空闲状态。参见[区块策略](/mining/proof-of-work#the-block-policy)。
+
+`peer_min_preferred_outbound_count = 0`不会写入生成的文件，需要手动添加该行。低于该阈值的节点会永远报告自身处于同步状态，而处于同步状态的节点拒绝分发挖矿任务。usernet在设计上没有对等节点，因此永远无法达到默认值4。
+
+`enable_stratum_server = true`开启挖矿端口。在所有网络上默认关闭，usernet也不例外。
+
+`log_to_file = true`，因为当挖矿出现问题时你会需要查看日志。
+
+暂时不要修改`burn_reward = false`和`wallet_listener_url`。生成的usernet配置已指向端口23415，即Alice的端口。
+
+```bash
+epic --usernet server run
+```
+
+日志中的`No peers available, can not sync`是你期望看到的状态，不是错误。它表示节点已停止等待对等节点，这正是节点能够提供挖矿任务的前提。
+
+## 2. 创建两个钱包 {/* #2-create-the-two-wallets */}
+
+各自在其目录中创建，使用`-w`使钱包创建在该目录下而非`~/.epic/user`中：
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux 和 macOS">
+
+```bash
+cd wallet_alice && epic-wallet --usernet init -w
+cd ../wallet_bob && epic-wallet --usernet init -w
+```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+Set-Location wallet_alice; epic-wallet --usernet init -w
+Set-Location ..\wallet_bob; epic-wallet --usernet init -w
+```
+
+</TabItem>
+</Tabs>
+
+`-w`不接受值。它仅在`init`上声明，因此后续命令改用`--current_dir <path>`，或者从钱包目录内运行这些命令。
+
+记录两个恢复助记词。在这里它们没有实际价值，但养成这个习惯是有意义的。
+
+同一台机器上的两个钱包会在两个端口上发生冲突，因此编辑Bob的配置：
+
+```toml title="wallet_bob/epic-wallet.toml"
+api_listen_port = 23425        # Foreign API。Alice 保留 23415
+owner_api_listen_port = 3421   # Owner API，见下文
+
+[tor]
+use_tor_listener = false
+```
+
+Foreign端口由网络决定，usernet已将其从mainnet的端口移开。Owner端口不随网络变化，在所有网络上均为<Ver k="ports.walletOwner" />，因此同一台机器上的第二个钱包无论运行哪条链都会在该端口发生冲突。按照[关闭Tor监听器](/guides/mainnet-setup#turn-off-the-tor-listener)的说明，在两个钱包中均设置`use_tor_listener = false`。两个钱包还需要在epicbox传输方式在此链上正常工作之前添加`[epicbox]`部分，[你的第一次转账](/guides/first-transfer#the-same-transfer-over-epicbox)会完成该设置。
+
+:::note[Wallets outside `~/.epic` need the node's API secret]
+
+若保留默认位置，节点和钱包会共享`~/.epic/<network>/`，并将节点API凭据解析到同一个`.api_secret`文件，因此不会有问题。由于`-w`将每个钱包放在了其他位置，每个钱包生成了自己的机密，节点会以401拒绝该凭据。参见[钱包向节点提交的凭据](/api/authentication#the-credential-the-wallet-presents-to-the-node)。
+
+有两种方法。一是将节点的`.api_secret`复制到每个钱包目录中，这样所有默认值均可正常工作，因为钱包只在该文件缺失时才会创建它。二是对于临时链，在`epic-server.toml`中注释掉`api_secret_path`，并在两个钱包配置中注释掉`node_api_secret_path`。这两个键均为可选项，缺少该键意味着没有机密，也不会走凭据路径。
+
+:::
+
+## 3. 向Alice挖矿充值 {/* #3-mine-coins-into-alice */}
+
+Stratum服务器要求钱包监听器构建每个coinbase，因此Alice必须在区块产生价值之前处于监听状态。
+
+```bash
+# 在 wallet_alice 中
+epic-wallet --usernet listen -n
+```
+
+然后从链目录启动矿工，并将`epic-miner.toml`置于其旁：
+
+```toml title=".epic/user/epic-miner.toml"
+[mining]
+algorithm = "RandomX"
+stratum_server_addr = "127.0.0.1:23416"
+miner_plugin_config = []
+
+[mining.randomx_config]
+threads = 3
+jit = true
+```
+
+即使是RandomX也需要`miner_plugin_config`，且它必须位于`[mining]`内所有子表的上方，否则TOML会将其附加到错误的表，导致矿工以`missing field 'miner_plugin_config'`退出。
+
+```bash
+epic-miner
+```
+
+成功时的输出如下：
+
+```
+INFO Mining: RandomX at 475 hps (hashes per second)
+INFO Block Found!!
+INFO Share Accepted!!
+```
+
+观察Alice的余额增长。在第1纪元，每个区块支付14.5792 EPIC，即16 EPIC基础区块奖励扣除8.88%基金会税后的金额：
+
+```bash
+epic-wallet --usernet info
+```
+
+usernet上的coinbase成熟度为3个区块（<Fn repo="node" path="core/src/global.rs" line={64} kind="const" name="USER_TESTING_COINBASE_MATURITY" />），而mainnet为<Ver k="coinbaseMaturity" />。参见[发行时序](/mining/emission#timing)。钱包自身的确认数下限是独立的，因此在`send`和`info`上传入`--min_conf 3`；参见[读取钱包已知信息](/guides/wallet-operations#read-what-the-wallet-knows)。
+
+## 4. 将挖矿与钱包解耦 {/* #4-decouple-mining-from-the-wallets */}
+
+Alice有币后，停止矿工并设置：
+
+```toml title=".epic/user/epic-server.toml"
+[server.stratum_mining_config]
+burn_reward = true
+```
+
+重启节点和矿工。奖励现在将被丢弃。在`burn_reward = false`且没有监听器运行的情况下，节点无法构建coinbase，**将完全停止出块**，这使区块生产与钱包的运行状态相耦合。Alice保留她已挖到的币。
+
+现在可以停止Alice的监听器。区块持续产生，交易持续获得确认数。
+
+## 5. 确认挖矿环境 {/* #5-confirm-the-rig */}
+
+```bash
+epic --usernet client status                        # 区块高度递增中
+epic-wallet --usernet info                          # 从各钱包目录执行
+```
+
+Alice应显示可花费余额，Bob为零。这是[首次转账](/guides/first-transfer)的初始状态。
+
+## 故障排查 {/* #if-something-goes-wrong */}
+
+| 现象 | 原因 |
+| --- | --- |
+| 矿工日志`Node is syncing - Please wait` | `peer_min_preferred_outbound_count`仍为4 |
+| 矿工日志`0 hps`和`algo from job progpow` | `only_randomx`未设置 |
+| 节点日志持续出现`Share ... submitted too late` | 同一个空闲矿工仍在针对上一高度的任务提交 |
+| 节点停止产生区块 | 无钱包监听器运行，`burn_reward = false`无法构建coinbase |
+| 节点在高度1440处循环执行`CoinbaseSumMismatch`，其API变为不可达 | 第一个基金会征收边界，即进入一天的区块后。在`burn_reward = true`下观察到。设置`enable_stratum_server = false`可恢复API并读取链，将1440视为销毁奖励链的上限 |
+| 钱包从节点收到401 | 钱包与节点的API机密不一致，参见步骤2 |
+| 余额显示但`Currently Spendable`为零 | Coinbase成熟度，或`--min_conf`默认值10 |
+| 区块被拒绝，出现`InvalidSortAlgo`，或`Block rejected`伴随`Expected RandomX got Cuckoo15` | 某处启用了`run_test_miner`。它只生成Cuckoo证明，RandomX策略会拒绝该证明 |
+| 钱包命令作用于错误的钱包 | 从该钱包目录运行，或传入`--current_dir <path>` |
+
+## 重置 {/* #reset */}
+
+删除`chain_data`以获得全新的链。钱包数据库将与其不一致，因此需删除每个`wallet_data`并重新初始化，或接受错误的余额。删除整个目录树并按本页重新构建只需几分钟。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="你的第一笔转账" to="/guides/first-transfer">
+    通过三种方式将币从Alice转给Bob。
+  </Card>
+  <Card title="工作量证明" to="/mining/proof-of-work">
+    算法策略存在的原因及混合比例的决定方式。
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="local-network" />

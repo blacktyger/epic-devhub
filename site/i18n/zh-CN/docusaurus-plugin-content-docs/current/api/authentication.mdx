@@ -1,0 +1,116 @@
+---
+title: API身份验证与TLS
+sidebar_label: 身份验证与TLS
+description: 介绍哪些Epic API端点需要凭据、哪些端点因必要而开放，以及如何在其前端部署TLS。
+---
+
+# API身份验证与TLS
+
+节点通过HTTP Basic对磁盘上的机密文件保护其面向所有者的接口。钱包Owner API v3使用通过钱包密码获取的令牌。外部接口不需要凭据，因为交互式转账需要接收方可被陌生人访问。TLS终止由运营者自行处理。
+
+## 接口概览 {/* #the-surfaces */}
+
+| 接口 | 默认端口 | 凭据 | 调用方 |
+| --- | --- | --- | --- |
+| 节点`/v1/*` | <Ver k="ports.nodeApi" /> | Basic，`api_secret_path`，覆盖整个前缀 | 本机调用 |
+| 节点`/v2/owner` | <Ver k="ports.nodeApi" /> | Basic，`api_secret_path` | 本机调用 |
+| 节点`/v2/foreign` | <Ver k="ports.nodeApi" /> | 可选 Basic，`foreign_api_secret_path` | 任何读取链数据的客户端 |
+| 钱包 Owner `/v3/owner` | <Ver k="ports.walletOwner" /> | 来自`open_wallet`的令牌，位于加密信封内 | 本机调用 |
+| 钱包 Owner `/v2/owner` | <Ver k="ports.walletOwner" /> | 无。已由`/v3/owner`取代 | 无。将监听器绑定到回环地址 |
+| 钱包 Foreign `/v2/foreign` | <Ver k="ports.walletForeign" /> | 无 | 向你付款的对手方 |
+
+钱包的Foreign API接收一个slate，返回一个部分签名的slate，为配置为向该钱包支付的矿工构建coinbase，并报告其版本。在代理处限制对其的访问。
+
+节点的`/v1`凭据覆盖整个前缀，包括在`/v2/foreign`上开放的链读取操作。参见[v1 REST接口](/api/node#the-v1-rest-surface)。
+
+`api_secret_path`在每个二进制文件的配置中指向不同的文件。两个节点接口均读取节点的配置文件，即`.api_secret`。
+
+## 钱包的Owner访问权限 {/* #owner-access-on-the-wallet */}
+
+`/v3/owner`通过令牌而非HTTP凭据进行访问控制。v3 trait中的每个方法都需要一个令牌（<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={78} />），获取令牌需要完成ECDH握手，然后使用钱包密码调用`open_wallet`。密码是访问控制的关键。参见[加密握手](/api/wallet-owner#the-encrypted-handshake)。
+
+第一次调用建立共享密钥，不携带任何凭据：
+
+```bash
+curl -s \
+  -d '{"jsonrpc":"2.0","method":"init_secure_api","params":{"ecdh_pubkey":"<your compressed public key, hex>"},"id":1}' \
+  http://127.0.0.1:3420/v3/owner
+```
+
+在该凭据之上，`/v3/owner`上的每个方法都需要一个`token`，令牌来自`open_wallet`，该调用需要钱包密码。`owner_api_listen_interface`默认值为`127.0.0.1`；如需远程访问，请通过隧道连接到回环地址。监听器为<Src repo="wallet" path="controller/src/controller.rs" line={123} />。
+
+完整的方法列表、加密信封以及哪些调用会转移资产，详见[钱包Owner API页面](/api/wallet-owner)。
+
+## 节点凭据 {/* #the-node-credential */}
+
+节点的`/v1`前缀和`/v2/owner`使用HTTP Basic，用户名字面量为`epic`，密码为机密文件的内容：
+
+```
+Authorization: Basic base64("epic:" + <secret file contents>)
+```
+
+节点在首次运行时创建`~/.epic/<network>/.api_secret`，并将`api_secret_path`指向该文件，因此无需配置即可使用：
+
+```bash
+curl -u epic:$(cat ~/.epic/main/.api_secret) \
+  -d '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/owner
+```
+
+机密文件包含一个20字符的随机字母数字字符串，末尾无换行符（<Src repo="node" path="config/src/config.rs" line={84} />），比较操作为常数时间（<Src repo="node" path="api/src/auth.rs" line={74} />）。realm在所有者接口上为`EpicAPI`，在外部接口上为`EpicForeignAPI`。任一二进制文件上被拒绝的调用均返回401，并附带`WWW-Authenticate`头和JSON-RPC错误体：
+
+```json
+{"jsonrpc": "2.0", "error": {"code": -32600, "message": "Unauthorized"}, "id": null}
+```
+
+- 将`api_secret_path`注释掉后，监听器在无凭据的情况下运行。
+- 空的`.api_secret`会以新值重新生成，而不是被读取为"无机密"，因此清空文件不会关闭身份验证（<Src repo="node" path="config/src/config.rs" line={96} />）。
+- `OPTIONS`在凭据检查之前透传，这使得CORS预检请求能够正常工作。
+
+## 节点Foreign接口的可选凭据 {/* #optional-credential-on-the-nodes-foreign-surface */}
+
+`foreign_api_secret_path`使节点的`/v2/foreign`也需要凭据。自行创建机密文件并提供绝对路径：
+
+```bash
+head -c 40 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 20 > ~/.epic/main/.foreign_api_secret
+```
+
+```toml
+[server]
+foreign_api_secret_path = "/home/you/.epic/main/.foreign_api_secret"
+```
+
+realm为`EpicForeignAPI`，用户名仍为`epic`。验证方式：
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:3413/v2/foreign
+# 放置机密后返回401
+```
+
+## 钱包向节点提交的凭据 {/* #the-credential-the-wallet-presents-to-the-node */}
+
+`node_api_secret_path`指向另一个方向：它是钱包调用节点时发送的内容，默认值为`<wallet dir>/.api_secret`。保持默认值时，节点和钱包共享`~/.epic/<network>/`并解析到同一文件，因此无需配置即可保持一致。如果更改节点的机密、移动任一目录或将钱包指向另一个节点，则需要更新此密钥。
+
+## TLS {/* #tls */}
+
+两个二进制文件使用相同的一对参数，默认均已注释掉：
+
+```toml
+tls_certificate_file = "/path/to/fullchain.pem"
+tls_certificate_key  = "/path/to/privkey.pem"
+```
+
+设置证书后，监听器从HTTP切换为HTTPS。仅设置证书而不设置密钥会导致启动错误。证书以PEM链格式读取；密钥可以是PKCS#1、PKCS#8或SEC1 PEM格式。无法打开、无法解析或与证书不匹配的文件会导致进程停止，而不是回退到HTTP，因此错误的密钥对会在启动时明确报错。
+
+内置的`epic client`子命令通过`http://`（<Src repo="node" path="src/bin/cmd/client.rs" line={160} />）访问节点。如需连接TLS监听器，请使用`curl`。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="epic-server.toml" to="/reference/node-config">
+    所有节点配置键。
+  </Card>
+  <Card title="epic-wallet.toml" to="/reference/wallet-config">
+    所有钱包配置键。
+  </Card>
+</CardGrid>

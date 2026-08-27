@@ -1,0 +1,109 @@
+---
+title: "Кошелёк: подключение и чтение"
+sidebar_label: "Кошелёк: подключение и чтение"
+description: Выполните зашифрованное рукопожатие Owner API v3 кошелька Epic и считайте баланс на Python.
+---
+
+# Кошелёк: подключение и чтение
+
+Каждый вызов Owner API v3 передаётся внутри зашифрованного конверта. Как только клиент получает
+общий секрет, каждый метод становится обычным вызовом JSON-RPC.
+
+Запустить API:
+
+```bash
+epic-wallet owner_api
+```
+
+## Рукопожатие {/* #the-handshake */}
+
+Клиент генерирует пару ключей secp256k1, обменивается открытыми ключами через `init_secure_api` и оборачивает
+каждый последующий запрос в `encrypted_request_v3`. Первый обёрнутый вызов — `open_wallet`, который возвращает токен,
+передаваемый во всех последующих вызовах. Каждое сообщение задокументировано в [справочнике Owner
+API](/api/wallet-owner#the-encrypted-handshake).
+
+<HandshakeTrace />
+
+## Полный клиент {/* #a-complete-client */}
+
+Требуется `requests`, `coincurve` и `pycryptodome`. Запускать из каталога `examples`.
+
+<details>
+<summary><code>python/epic_wallet.py</code>, клиент</summary>
+
+```python title="examples/python/epic_wallet.py" file=<rootDir>/examples/python/epic_wallet.py
+```
+
+</details>
+
+Использование:
+
+```python title="examples/python/balance.py" file=<rootDir>/examples/python/balance.py
+```
+
+```bash
+EPIC_WALLET_PASSWORD=... python python/balance.py
+```
+
+## Чтение баланса {/* #reading-a-balance */}
+
+`retrieve_summary_info` возвращает массив из двух элементов: признак того, были ли данные проверены по узлу, и само
+сводное значение.
+
+| Поле | Значение |
+| --- | --- |
+| `last_confirmed_height` | Высота блока, на которой актуальны данные |
+| `total` | Всё, что известно кошельку |
+| `amount_currently_spendable` | Доступно к отправке прямо сейчас |
+| `amount_awaiting_confirmation` | Получено, но недостаточно подтверждений |
+| `amount_awaiting_finalization` | Часть перевода ещё в процессе |
+| `amount_locked` | Зарезервировано как входы для начатого вами перевода |
+| `amount_immature` | Coinbase-выходы внутри окна созревания |
+
+Разрыв между `total` и `amount_currently_spendable` обусловлен [выходами (outputs) и блокировкой](/concepts/outputs-and-locking).
+
+:::note[Amounts are strings in JSON]
+
+Значения `u64` сериализуются как строки, чтобы избежать потери точности чисел в JavaScript.
+Разбирайте их как целые числа и делите на <Ver k="epicBase" /> для получения EPIC.
+
+:::
+
+## Список выходов и транзакций {/* #listing-outputs-and-transactions */}
+
+`retrieve_outputs` и `retrieve_txs` возвращают объект, содержащий `pager` вместе с записями, а не простой массив. Передавайте
+`limit`, `offset` и `sort_order`: без ограничения большой кошелёк вернёт все записи в одном ответе.
+
+```python title="examples/python/list_paged.py" file=<rootDir>/examples/python/list_paged.py
+```
+
+`every_output` в том же файле обходит весь набор постранично.
+
+```json title="result.Ok"
+{
+  "refresh_from_node": true,
+  "pager": {
+    "records_read": 20,
+    "total_records": 143,
+    "limit": 20,
+    "offset": 0,
+    "sort_order": "desc"
+  },
+  "txs": [{ "...": "TxLogEntry" }]
+}
+```
+
+`retrieve_outputs` идентичен, но с `outputs` вместо `txs`. Типы: <Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={185} kind="struct" name="RetrieveTxsResult" />,
+<Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={174} kind="struct" name="RetrieveOutputsResult" />
+и <Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={196} kind="struct" name="Pager" />.
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="Wallet: отправка и получение" to="/examples/send-receive">
+    Полный перевод, отмена и доказательства платежа.
+  </Card>
+  <Card title="Справочник Owner API" to="/api/wallet-owner">
+    Все методы <Ver k="ownerApiMethods" />, сгруппированные по назначению.
+  </Card>
+</CardGrid>

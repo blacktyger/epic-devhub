@@ -1,0 +1,118 @@
+---
+title: 发行与征税
+description: Epic的阶梯式发行计划、从每个区块中抽取递减份额的基金会征税机制，以及手续费的计算方式。
+---
+
+# 发行与征税
+
+Epic的发行量通过定义的纪元逐步递减并最终停止，递减的**基金会征收费**从每个区块奖励中抽取一部分。
+
+## 单位 {/* #units */}
+
+| 单位 | Freemen |
+| --- | --- |
+| 1 EPIC | <Ver k="epicBase" /> (<Fn repo="node" path="core/src/consensus.rs" line={31} kind="const" name="EPIC_BASE" />) |
+| 1 milli-EPIC | 100,000 (<Fn repo="node" path="core/src/consensus.rs" line={33} kind="const" name="MILLI_EPIC" />) |
+| 1 micro-EPIC | 100 (<Fn repo="node" path="core/src/consensus.rs" line={35} kind="const" name="MICRO_EPIC" />) |
+| freeman | 1 (<Fn repo="node" path="core/src/consensus.rs" line={37} kind="const" name="FREEMAN" />) |
+
+每个API均以整数freemen为单位接收和返回数值。0.1 EPIC为`10000000`。
+
+## 时间安排 {/* #timing */}
+
+| 参数 | 值 |
+| --- | --- |
+| 目标出块时间 | <Ver k="blockTimeSeconds" />秒（<Fn repo="node" path="core/src/consensus.rs" line={43} kind="const" name="BLOCK_TIME_SEC" />） |
+| 每小时区块数 | 60 |
+| 每日区块数 | 1,440 |
+| cut-through 时间跨度 | 10,080个区块（<Fn repo="node" path="core/src/consensus.rs" line={363} kind="const" name="CUT_THROUGH_HORIZON" />） |
+
+Coinbase成熟度是指挖出的输出（output）在可以被花费之前需要等待的区块数。该值取决于当前链类型：
+
+| 网络 | Coinbase 成熟度 |
+| --- | --- |
+| Mainnet | <Ver k="coinbaseMaturity" />个区块（<Fn repo="node" path="core/src/consensus.rs" line={329} kind="const" name="COINBASE_MATURITY" />，一天的区块数） |
+| Floonet | 30个区块（<Fn repo="node" path="core/src/global.rs" line={67} kind="const" name="FLOONET_COINBASE_MATURITY" />） |
+| Usernet | 3个区块（<Fn repo="node" path="core/src/global.rs" line={64} kind="const" name="USER_TESTING_COINBASE_MATURITY" />） |
+| 自动化测试 | 3个区块（<Fn repo="node" path="core/src/global.rs" line={61} kind="const" name="AUTOMATED_TESTING_COINBASE_MATURITY" />） |
+
+选择方式为<Fn repo="node" path="core/src/global.rs" line={404} name="coinbase_maturity" />。
+
+已成熟的coinbase仍受钱包自身确认数下限`--min_conf`的约束，该值在所有网络上默认为10。参见[钱包操作](/guides/wallet-operations)。
+
+## 奖励纪元 {/* #reward-eras */}
+
+发行量在纪元边界处阶梯式递减，而非遵循平滑曲线：
+
+| 纪元结束 | 区块高度 | 持续时间 | 基础奖励 |
+| --- | --- | --- | --- |
+| 纪元1 | 480,960 | 334天 | 16 EPIC |
+| 纪元2 | 1,157,760 | +470天 | 8 EPIC |
+| 纪元3 | 2,023,200 | +601天 | 4 EPIC |
+| 纪元4 | 3,175,200 | +800天 | 2 EPIC |
+| 纪元5 | 4,642,560 | +1,019天 | 1 EPIC |
+| 纪元6及以后 | 循环递减 | 每步1,460天 | 0.15625 EPIC，每步减半 |
+
+各纪元的数值见<Fn repo="node" path="core/src/consensus.rs" line={104} name="fast_total_supply" />。基础奖励并非矿工实际所得，因为基金会征收费会先从中扣除。在本地链纪元1高度处，挖出的区块向钱包记入14.5792 EPIC，即16 EPIC扣除8.88%的纪元1征收费后的结果。
+
+从纪元6起，基础奖励为0.15625 EPIC（<Fn repo="node" path="core/src/consensus.rs" line={58} kind="const" name="BASE_REWARD_ERA_6_ONWARDS" />），此后每1,460天为一个周期继续递减。纪元常量从<Fn repo="node" path="core/src/consensus.rs" line={46} kind="const" name="BLOCK_ERA_1" />起定义，奖励由<Fn repo="node" path="core/src/consensus.rs" line={293} name="reward_at_height" />计算。
+
+:::note[Reward steps are not halvings]
+
+纪元5到6的过渡将奖励从1 EPIC降至0.15625 EPIC，降幅为6.4倍而非2倍。节点`Status`响应中的`blocks_to_next_halving`字段记录距下一次递减的区块数，且每次递减并非减半。请根据纪元计划构建供应量预测。
+
+:::
+
+奖励使用整数运算计算，因此后续步骤最终归零，发行停止。`Status`响应中的两个字段报告供应量，均以整数EPIC而非freemen为单位：
+
+| 字段 | 值 |
+| --- | --- |
+| `supply` | 当前区块高度的<Fn repo="node" path="core/src/consensus.rs" line={104} name="fast_total_supply" />，除以<Ver k="epicBase" /> |
+| `max_supply` | 固定数值`21000000`，在状态处理器（<Src repo="node" path="api/src/handlers/server_api.rs" line={86} />）中设定 |
+
+`max_supply`是状态响应携带的一个值。不存在该名称的共识常量，两个字段均不参与区块或交易验证。发行计划即上述纪元表。
+
+## 基金会征税 {/* #the-foundation-levy */}
+
+每个区块奖励的一部分归属于Epic基金会而非矿工，该比例在九个征收纪元中逐步递减：
+
+| 征税时期 | 费率 |
+| --- | --- |
+| 1 | 8.88% |
+| 2 | 7.77% |
+| 3 | 6.66% |
+| 4 | 5.55% |
+| 5 | 4.44% |
+| 6 | 3.33% |
+| 7 | 2.22% |
+| 8 | 1.11% |
+| 9 | 1.11% |
+
+费率为<Fn repo="node" path="core/src/consensus.rs" line={257} kind="const" name="FOUNDATION_LEVY" />，以10,000为分母，由<Fn repo="node" path="core/src/consensus.rs" line={260} name="reward_foundation_at_height" />应用。
+
+第一个征收纪元持续120天，此后每个纪元持续365天，共九个纪元，因此征收费在区块高度4,377,600处结束，此后全部奖励归矿工所有。
+
+基金会支付使用随节点预先生成的coinbase数据，征收计划中每天对应一条记录（<Fn repo="node" path="core/src/consensus.rs" line={199} name="foundation_height" />），因此基金会coinbase由该数据构建，而非由矿工构建。
+
+## 手续费 {/* #fees */}
+
+手续费取决于交易的结构，而非网络需求：
+
+```text
+fee = max(4 × outputs + kernels − inputs, 1) × 0.001 EPIC
+```
+
+一笔两输入、两输出、单内核（kernel）的转账手续费为700,000 freemen，即0.007 EPIC。权重为<Fn repo="node" path="core/src/core/transaction.rs" line={671} name="TransactionBody::weight" />，基础手续费为`MILLI_EPIC`，即100,000 freemen（<Src repo="node" path="core/src/libtx/mod.rs" line={37} />）。
+
+钱包不提供基础手续费，因此不存在可竞价的手续费市场。区块权重上限为<Ver k="maxBlockWeight" />（<Fn repo="node" path="core/src/consensus.rs" line={394} kind="const" name="MAX_BLOCK_WEIGHT" />），其中输入（input）权重为1，输出（output）权重为21，内核（kernel）权重为3。矿池通过`accept_fee_base`设置自身的手续费下限，默认同为100,000。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="工作量证明" to="/mining/proof-of-work">
+    三种算法及其比例关系。
+  </Card>
+  <Card title="Stratum" to="/mining/stratum">
+    连接矿工。
+  </Card>
+</CardGrid>

@@ -8,39 +8,39 @@
     "description": "The title of the footer links column with title=Code in the footer"
   },
   "link.title.Community": {
-    "message": "Community",
+    "message": "Сообщество",
     "description": "The title of the footer links column with title=Community in the footer"
   },
   "link.item.label.Start here": {
-    "message": "Start here",
+    "message": "Начало работы",
     "description": "The label of footer link with label=Start here linking to /start"
   },
   "link.item.label.Concepts": {
-    "message": "Concepts",
+    "message": "Концепции",
     "description": "The label of footer link with label=Concepts linking to /concepts/mimblewimble"
   },
   "link.item.label.Config and CLI": {
-    "message": "Config and CLI",
+    "message": "Конфигурация и CLI",
     "description": "The label of footer link with label=Config and CLI linking to /reference/cli"
   },
   "link.item.label.API reference": {
-    "message": "API reference",
+    "message": "Справочник API",
     "description": "The label of footer link with label=API reference linking to /api/"
   },
   "link.item.label.Code examples": {
-    "message": "Code examples",
+    "message": "Примеры кода",
     "description": "The label of footer link with label=Code examples linking to /examples/"
   },
   "link.item.label.Node": {
-    "message": "Node",
+    "message": "Узел",
     "description": "The label of footer link with label=Node linking to https://github.com/EpicCash/epic"
   },
   "link.item.label.Wallet": {
-    "message": "Wallet",
+    "message": "Кошелёк",
     "description": "The label of footer link with label=Wallet linking to https://github.com/EpicCash/epic-wallet"
   },
   "link.item.label.Epicbox relay": {
-    "message": "Epicbox relay",
+    "message": "Epicbox релей",
     "description": "The label of footer link with label=Epicbox relay linking to https://github.com/EpicCash/epic-epicbox-docker"
   },
   "link.item.label.Telegram": {
@@ -56,11 +56,7 @@
     "description": "The label of footer link with label=epiccash.com linking to https://epiccash.com"
   },
   "link.item.label.Block explorer": {
-    "message": "Block explorer",
+    "message": "Обозреватель блоков",
     "description": "The label of footer link with label=Block explorer linking to https://explorer.epicmine.io"
-  },
-  "copyright": {
-    "message": "<span class=\"epicFooterMeta\"><span>node <b>4.0.3</b></span><span>wallet <b>4.0.0</b></span><span>epicbox <b>3.0.0</b></span><span>checked <b>2026-08-23</b></span></span><span class=\"epicFooterBy\">created by btlabs</span>",
-    "description": "The footer copyright"
   }
 }

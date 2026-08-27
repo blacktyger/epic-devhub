@@ -1,8 +1,11 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useLocation} from '@docusaurus/router';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Markdown from './Markdown';
 import {ask, sessionLimits, modelChoices, selectedModel, selectModel, liveDataAvailable, prepare} from './transport';
 import {consumeIntent, subscribeSeed} from './store';
+import {assistantMessage as msg} from './messages';
+import {canonicalPagePath, localiseDocHref} from './locale';
 import {pickSuggestions} from './suggestions';
 import {createPacer} from './reveal';
 
@@ -41,17 +44,17 @@ const STATUS_CLEAR_MS = 100;
  * Two kinds keep their own line because the reader can act on them: a rate limit is temporary and
  * says so, and a dropped connection is worth retrying.
  */
-const ERROR_TEXT = {
-  rate: 'That is the question limit for now. Try again in a few minutes.',
-  network: 'Connection lost.',
-};
-
 function readerError(error) {
-  return ERROR_TEXT[error?.kind] ?? 'AI assistant currently unavailable.';
+  if (error?.kind === 'rate') return msg.errorRate();
+  if (error?.kind === 'network') return msg.errorNetwork();
+  return msg.errorUnavailable();
 }
 
 export default function Panel({onClose}) {
   const {pathname} = useLocation();
+  const {i18n} = useDocusaurusContext();
+  const locale = i18n.currentLocale;
+  const pagePath = useMemo(() => canonicalPagePath(pathname, locale), [pathname, locale]);
 
   const [turns, setTurns] = useState([]); // {id, role, text, citations, sources, state, error}
   const [draft, setDraft] = useState('');
@@ -108,8 +111,8 @@ export default function Panel({onClose}) {
   // After mount, never during render. A random pick while rendering differs between the server build
   // and the client and shows up as a hydration mismatch.
   useEffect(() => {
-    setSuggestions(pickSuggestions(pathname, 3, dismissed));
-  }, [pathname, dismissed]);
+    setSuggestions(pickSuggestions(pagePath, 3, dismissed));
+  }, [pagePath, dismissed]);
 
   /* ---------------------------------------------------------------- focus on open */
 
@@ -201,7 +204,7 @@ export default function Panel({onClose}) {
     const limits = sessionLimits();
     const cap = limits?.maxQuestionChars ?? 2000;
     if (text.length > cap) {
-      setNotice({kind: 'length', message: `That is longer than the ${cap} character limit. Try trimming it.`});
+      setNotice({kind: 'length', message: msg.lengthLimit(cap)});
       return;
     }
 
@@ -223,7 +226,7 @@ export default function Panel({onClose}) {
       {id: botId, role: 'assistant', text: '', citations: [], sources: [], activity: [], state: 'working'},
     ]);
     setStatus('working');
-    announce('Working on an answer');
+    announce(msg.announceWorking());
     pinTurnToTop(userId);
 
     const controller = new AbortController();
@@ -260,6 +263,8 @@ export default function Panel({onClose}) {
       await ask({
         question: text,
         history,
+        locale,
+        pagePath,
         signal: controller.signal,
         onEvent: ({type, data}) => {
           switch (type) {
@@ -290,12 +295,12 @@ export default function Panel({onClose}) {
                   activity: [
                     ...(t.activity ?? []),
                     ...(data.calls ?? []).map((c) => ({
-                      name: c.name, group: c.group, label: c.label, state: 'running',
+                      name: c.name, group: c.group, label: msg.toolActivity(c.name), state: 'running',
                     })),
                   ],
                 }));
-                const first = data.calls?.[0]?.label;
-                if (first) announce(first);
+                const first = data.calls?.[0]?.name;
+                if (first) announce(msg.toolActivity(first));
               } else {
                 patch2(setTurns, botId, (t) => ({
                   activity: (t.activity ?? []).map((a) => {
@@ -314,34 +319,34 @@ export default function Panel({onClose}) {
             case 'limit':
               pacer.flush();
               patch({state: 'done'});
-              setNotice({kind: 'limit', message: data.message});
-              announce('Question limit reached for this session');
+              setNotice({kind: 'limit', message: msg.sessionLimit()});
+              announce(msg.announceLimit());
               break;
             case 'degraded':
               pacer.flush();
               patch({state: 'done'});
-              setNotice({kind: 'degraded', message: data.message, sections: data.sections ?? []});
-              announce('The assistant is over budget for today, showing documentation sections instead');
+              setNotice({kind: 'degraded', message: msg.budgetDegraded(), sections: data.sections ?? []});
+              announce(msg.announceDegraded());
               break;
             case 'unavailable':
               pacer.flush();
               patch({state: 'done'});
-              setNotice({kind: 'unavailable', message: data.message});
-              announce('The assistant is unavailable');
+              setNotice({kind: 'unavailable', message: msg.budgetUnavailable()});
+              announce(msg.announceUnavailable());
               break;
             case 'aborted':
               // The reader asked it to stop, so what already arrived appears at once rather than
               // continuing to type after the request is gone.
               pacer.flush();
               patch({state: 'stopped'});
-              announce('Answer stopped');
+              announce(msg.announceStopped());
               break;
             case 'error':
               pacer.flush();
               patch({state: 'error', error: data});
               // The reader gets one sentence; whoever is debugging gets the real message.
               console.warn('[epic assistant]', data?.kind ?? 'error', data?.message ?? '');
-              announce('Could not generate an answer');
+              announce(msg.announceFailed());
               break;
             default:
               break;
@@ -358,8 +363,8 @@ export default function Panel({onClose}) {
         if (completion.remaining) setRemaining(completion.remaining);
         announce(
           completion.citations
-            ? `Answer complete, ${completion.citations} source${completion.citations === 1 ? '' : 's'}`
-            : 'Answer complete',
+            ? msg.announceCompleteSources(completion.citations)
+            : msg.announceComplete(),
         );
       }
     } catch (err) {
@@ -372,14 +377,14 @@ export default function Panel({onClose}) {
           ? {state: 'stopped'}
           : {state: 'error', error: {kind: 'network', message: 'Connection lost.', retryable: true}},
       );
-      announce(aborted ? 'Answer stopped' : 'Connection lost');
+      announce(aborted ? msg.announceStopped() : msg.announceConnectionLost());
     } finally {
       pacerRef.current = null;
       abortRef.current = null;
       setStatus('idle');
-      setSuggestions(pickSuggestions(pathname, 3, dismissed));
+      setSuggestions(pickSuggestions(pagePath, 3, dismissed));
     }
-  }, [status, turns, dismissed, pathname, announce, pinTurnToTop, followIfAtEdge, reducedMotion]);
+  }, [status, turns, dismissed, pagePath, locale, announce, pinTurnToTop, followIfAtEdge, reducedMotion]);
 
   /* ---------------------------------------------------------------- opening intent */
 
@@ -426,22 +431,20 @@ export default function Panel({onClose}) {
     <div
       className="epicChat"
       role="dialog"
-      aria-label="Epic documentation assistant"
+      aria-label={msg.dialogLabel()}
       data-reduced-motion={reducedMotion ? 'true' : undefined}>
       <header className="epicChat-head">
         <div>
-          <h2 className="epicChat-title">Docs assistant</h2>
+          <h2 className="epicChat-title">{msg.title()}</h2>
           <p className="epicChat-scope">
-            {liveDataAvailable()
-              ? 'Answers from the Epic developer documentation, and it can check the live chain and the EpicCash repositories. It can be wrong, so check the linked section.'
-              : 'Answers from the Epic developer documentation, and it knows which page you are on. It can be wrong, so check the linked section.'}
+            {liveDataAvailable() ? msg.scopeLive() : msg.scopeDocs()}
           </p>
         </div>
         <button
           type="button"
           className="epicChat-close"
           onClick={onClose}
-          aria-label="Close the assistant">
+          aria-label={msg.close()}>
           <span aria-hidden="true">×</span>
         </button>
       </header>
@@ -458,11 +461,11 @@ export default function Panel({onClose}) {
         onScroll={onScroll}
         role="log"
         aria-live="off"
-        aria-label="Conversation with the documentation assistant"
+        aria-label={msg.conversation()}
         tabIndex={0}>
         {empty && (
           <div className="epicChat-empty">
-            <p className="epicChat-emptyLead">Ask about the node, the wallet, epicbox, mining or the APIs.</p>
+            <p className="epicChat-emptyLead">{msg.emptyLead()}</p>
             <ul className="epicChat-pills">
               {suggestions.map((s) => (
                 <li key={s}>
@@ -482,7 +485,7 @@ export default function Panel({onClose}) {
             className={`epicChat-turn epicChat-turn--${turn.role}`}
             aria-labelledby={`${turn.id}-who`}>
             <h3 id={`${turn.id}-who`} className="epicChat-srOnly">
-              {turn.role === 'user' ? 'You asked:' : 'Assistant answered:'}
+              {turn.role === 'user' ? msg.youAsked() : msg.assistantAnswered()}
             </h3>
 
             {turn.role === 'user' ? (
@@ -491,12 +494,12 @@ export default function Panel({onClose}) {
               <div className="epicChat-answer">
                 {turn.state === 'working' && !turn.text && !turn.activity?.length && (
                   <p className="epicChat-thinking">
-                    <span className="epicChat-shimmer">Reading the documentation</span>
+                    <span className="epicChat-shimmer">{msg.reading()}</span>
                   </p>
                 )}
 
                 {turn.activity?.length > 0 && (
-                  <ul className="epicChat-activity" aria-label="Live data checked for this answer">
+                  <ul className="epicChat-activity" aria-label={msg.liveDataLabel()}>
                     {turn.activity.map((a, i) => (
                       <li
                         key={`${a.name}-${i}`}
@@ -507,7 +510,7 @@ export default function Panel({onClose}) {
                         <span className={a.state === 'running' ? 'epicChat-shimmer' : undefined}>
                           {a.label}
                         </span>
-                        {a.state === 'failed' && <span className="epicChat-activityFail"> (unavailable)</span>}
+                        {a.state === 'failed' && <span className="epicChat-activityFail">{msg.activityUnavailable()}</span>}
                       </li>
                     ))}
                   </ul>
@@ -522,11 +525,11 @@ export default function Panel({onClose}) {
                 {turn.state === 'streaming' && <span className="epicChat-caret" aria-hidden="true" />}
 
                 {turn.state === 'stopped' && (
-                  <p className="epicChat-meta">Stopped. What arrived is above.</p>
+                  <p className="epicChat-meta">{msg.stopped()}</p>
                 )}
 
                 {turn.state === 'error' && (
-                  <p className="epicChat-error" role="group" aria-label="Error">
+                  <p className="epicChat-error" role="group" aria-label={msg.errorLabel()}>
                     {readerError(turn.error)}{' '}
                     {turn.error?.retryable && (
                       <button
@@ -536,22 +539,22 @@ export default function Panel({onClose}) {
                           const question = turns.find((t) => t.id === `u${Number(turn.id.slice(1)) - 1}`)?.text;
                           if (question) send(question);
                         }}>
-                        Try again
+                        {msg.tryAgain()}
                       </button>
                     )}
                   </p>
                 )}
 
                 {turn.state === 'done' && turn.citations?.length > 0 && (
-                  <nav className="epicChat-sources" aria-label="Sources for this answer">
-                    <h4 className="epicChat-sourcesTitle">Sources</h4>
+                  <nav className="epicChat-sources" aria-label={msg.sourcesLabel()}>
+                    <h4 className="epicChat-sourcesTitle">{msg.sources()}</h4>
                     <ul>
                       {turn.citations.map((c) => (
                         <li key={c.url}>
                           <a
-                            href={c.url.replace('https://devdocs.epiccash.com', '') || '/'}
+                            href={localiseDocHref(c.url, locale)}
                             className="epicChat-source">
-                            {c.breadcrumb ?? c.title}
+                            {c.label ?? c.breadcrumb ?? c.title}
                           </a>
                         </li>
                       ))}
@@ -564,14 +567,14 @@ export default function Panel({onClose}) {
         ))}
 
         {notice && (
-          <div className={`epicChat-notice epicChat-notice--${notice.kind}`} role="group" aria-label="Notice">
+          <div className={`epicChat-notice epicChat-notice--${notice.kind}`} role="group" aria-label={msg.noticeLabel()}>
             <p>{notice.message}</p>
             {notice.sections?.length > 0 && (
               <ul>
-                {notice.sections.map((s) => (
+                {notice.sections.map((s, index) => (
                   <li key={s.url}>
-                    <a href={s.url.replace('https://devdocs.epiccash.com', '') || '/'}>
-                      {s.breadcrumb ?? s.title}
+                    <a href={localiseDocHref(s.url, locale)}>
+                      {locale === 'en' ? (s.breadcrumb ?? s.title) : msg.sectionLink(index + 1)}
                     </a>
                   </li>
                 ))}
@@ -581,7 +584,7 @@ export default function Panel({onClose}) {
         )}
 
         {!empty && status === 'idle' && suggestions.length > 0 && !notice && (
-          <ul className="epicChat-pills epicChat-pills--followup" aria-label="Follow-up suggestions">
+          <ul className="epicChat-pills epicChat-pills--followup" aria-label={msg.followups()}>
             {suggestions.slice(0, 2).map((s) => (
               <li key={s}>
                 <button type="button" className="epicChat-pill" onClick={() => send(s)}>
@@ -595,7 +598,7 @@ export default function Panel({onClose}) {
 
       <form className="epicChat-composer" onSubmit={onSubmit}>
         <label htmlFor="epicChat-input" className="epicChat-srOnly">
-          Ask a question about the Epic Cash developer documentation
+          {msg.composerLabel()}
         </label>
         <textarea
           id="epicChat-input"
@@ -605,25 +608,25 @@ export default function Panel({onClose}) {
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Ask about Epic…"
+          placeholder={msg.composerPlaceholder()}
           aria-describedby="epicChat-hint"
           maxLength={limits?.maxQuestionChars ?? 2000}
           disabled={notice?.kind === 'unavailable'}
         />
         <p id="epicChat-hint" className="epicChat-srOnly">
-          Press Enter to send, Shift plus Enter for a new line, Escape to close.
+          {msg.composerHint()}
         </p>
         {busy ? (
-          <button type="button" className="epicChat-send" onClick={stop} aria-label="Stop generating">
-            Stop
+          <button type="button" className="epicChat-send" onClick={stop} aria-label={msg.stopGenerating()}>
+            {msg.stop()}
           </button>
         ) : (
           <button
             type="submit"
             className="epicChat-send"
             disabled={!draft.trim() || notice?.kind === 'unavailable'}
-            aria-label="Send question">
-            Ask
+            aria-label={msg.sendQuestion()}>
+            {msg.ask()}
           </button>
         )}
       </form>
@@ -634,13 +637,13 @@ export default function Panel({onClose}) {
       */}
       <p className="epicShortcuts epicChat-shortcuts" aria-hidden="true">
         <span>
-          <b>⏎</b> send
+          <b>⏎</b> {msg.shortcutSend()}
         </span>
         <span>
-          <b>⇧⏎</b> newline
+          <b>⇧⏎</b> {msg.shortcutNewline()}
         </span>
         <span>
-          <b>esc</b> close
+          <b>esc</b> {msg.shortcutClose()}
         </span>
       </p>
 
@@ -661,7 +664,7 @@ export default function Panel({onClose}) {
         {models?.choices?.length > 1 && (
           <div className="epicChat-modelPick">
             <label htmlFor="epicChat-model" className="epicChat-srOnly">
-              Which model answers your questions
+              {msg.modelLabel()}
             </label>
             <select
               id="epicChat-model"
@@ -679,17 +682,17 @@ export default function Panel({onClose}) {
               ))}
             </select>
             <span className="epicChat-modelNote">
-              {models.choices.find((m) => m.id === (model ?? models.default))?.note ?? ''}
+              {msg.modelNote(model ?? models.default)}
             </span>
           </div>
         )}
 
         <p className="epicChat-foot">
           {remaining
-            ? `${remaining.requests} question${remaining.requests === 1 ? '' : 's'} left`
+            ? msg.questionsLeft(remaining.requests)
             : liveDataAvailable()
-              ? 'Can check the live chain and GitHub. Answers can be wrong, so verify against the linked page.'
-              : 'Answers are generated and can be wrong. Verify against the linked page.'}
+              ? msg.footLive()
+              : msg.footDocs()}
         </p>
       </div>
     </div>

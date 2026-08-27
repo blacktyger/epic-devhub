@@ -1,0 +1,141 @@
+---
+title: Stratum
+description: Epic节点的Stratum挖矿服务器，涵盖传输方式、方法、消息结构以及如何连接矿工。
+---
+
+# Stratum
+
+节点内置了一个供矿工使用的Stratum服务器。它监听`127.0.0.1`端口<Ver k="ports.stratum" />，与其他节点端口一样按网络类型偏移，且仅在`enable_stratum_server = true`时运行。该键在所有网络上的默认值为`false`，因此生成的`epic-server.toml`在矿工连接之前必须手动编辑，包括usernet。参见[端口表](/reference/cli#ports)和[`epic-server.toml`](/reference/node-config)。
+
+传输方式为原始TCP，承载以换行符分隔的JSON。每条JSON-RPC消息为一行，以换行符结尾，不含HTTP头、路径或状态码。
+
+## 方法与错误码 {/* #methods-and-error-codes */}
+
+共分发五个方法。其他任何方法均返回`-32601`。
+
+| 方法 | 参数 | 成功时的结果 |
+| --- | --- | --- |
+| `login` | `login`、`pass`、`agent`，均为必填 | `"ok"`。记录矿工名称和代理（<Src repo="node" path="servers/src/mining/stratumserver.rs" line={928} />） |
+| `getjobtemplate` | `algorithm` | 任务模板对象 |
+| `submit` | `height`, `job_id`, `nonce`, `pow` | `"ok"`，若该份额为区块则返回`"blockfound - <block hash>"` |
+| `keepalive` | 无 | `"ok"` |
+| `status` | 无 | 调用矿工的`id`、`height`、`difficulty`、`accepted`、`rejected`、`stale` |
+
+服务器发送的错误码：
+
+| 代码 | 消息 |
+| --- | --- |
+| `-32000` | 节点正在同步，请等待 |
+| `-32501` | 份额因难度过低被拒绝 |
+| `-32502` | 解验证失败 |
+| `-32503` | 解提交过晚 |
+| `-32600` | 无效请求 |
+| `-32601` | 方法未找到 |
+| `32603` | 内部错误 |
+
+## 请求工作 {/* #requesting-work */}
+
+`getjobtemplate`需要一个`algorithm`参数，用于指定你打算挖矿的三种工作量证明算法中的哪一种。Epic同时运行全部三种算法，因此任务是针对特定算法的。
+
+回复中的`algorithm`是该区块高度下策略所要求的算法，不一定是你所请求的算法，因此矿工需要为每种打算挖矿的算法分别运行一个工作进程。`only_randomx`可将私有链上的策略限定为单一算法。参见[区块策略](/mining/proof-of-work#the-block-policy)。
+
+节点在达到`peer_min_preferred_outbound_count`个出站对等节点之前会返回`-32000 Node is syncing - Please wait`。对于usernet（按设计没有对等节点），请将该键设置为`0`。参见[运行本地网络](/guides/local-network#why-usernet)。
+
+任务模板字段（<Src repo="node" path="servers/src/mining/stratumserver.rs" line={176} />）：
+
+| 字段 | 类型 |
+| --- | --- |
+| `height` | u64 |
+| `job_id` | u64，任务所基于的区块版本索引 |
+| `pre_pow` | 序列化后的区块头（含nonce前字段）的十六进制字符串 |
+| `algorithm` | `cuckoo`、`randomx`或`progpow` |
+| `difficulty` | `[algorithm_name, minimum_share_difficulty]`对的数组 |
+| `block_difficulty` | `[algorithm_name, current_block_difficulty]`对的数组 |
+| `epochs` | `[start_height, end_height, seed_hash]`三元组的数组，用于RandomX种子选择 |
+
+两个难度列表均按Cuckatoo、RandomX、ProgPow的顺序排列。
+
+## 提交份额 {/* #submitting-shares */}
+
+`submit`接受`height`、`job_id`、`nonce`（数字形式）和`pow`。`pow`是一个外部标记枚举，因此它是一个单键对象，其值为元组（<Src repo="node" path="servers/src/mining/stratumserver.rs" line={161} />）：
+
+| 算法 | `pow` |
+| --- | --- |
+| Cuckoo与Cuckatoo | `{"Cuckoo": [edge_bits, [nonces]]}`，先为边位数，后跟42个nonce |
+| RandomX | `{"RandomX": [32 bytes]}` |
+| ProgPow | `{"ProgPow": [32 bytes]}` |
+
+难度达到`block_difficulty`的份额将作为区块处理，结果显示为`blockfound - <block hash>`。仅达到`difficulty`的份额被计数，结果为`"ok"`。
+
+## 消息参考 {/* #message-reference */}
+
+序列化由<Src repo="node" path="servers/src/mining/stratumserver.rs" />中的结构体定义。
+
+### 请求 {/* #requests */}
+
+`id`为整数或字符串，`jsonrpc`为`"2.0"`，`params`为该方法的参数对象或null（<Src repo="node" path="servers/src/mining/stratumserver.rs" line={64} />）。
+
+```json title="client -> server, one line each"
+{"id":"1","jsonrpc":"2.0","method":"getjobtemplate","params":{"algorithm":"randomx"}}
+{"id":"2","jsonrpc":"2.0","method":"keepalive","params":null}
+{"id":"3","jsonrpc":"2.0","method":"status","params":null}
+```
+
+```json title="client -> server, a RandomX share, one line"
+{"id":"4","jsonrpc":"2.0","method":"submit","params":{
+  "height":1000001,
+  "job_id":7,
+  "nonce":13476209874311234567,
+  "pow":{"RandomX":[10,27,44,3,255,18,9,72,64,31,88,120,4,17,203,55,
+                    91,6,142,77,38,199,15,60,231,2,113,49,86,170,25,8]}
+}}
+```
+
+```json title="client -> server, a Cuckatoo share, nonce list abbreviated to 3 of 42, one line"
+{"id":"5","jsonrpc":"2.0","method":"submit","params":{
+  "height":1000001,"job_id":7,"nonce":42,
+  "pow":{"Cuckoo":[31,[1042,20984,31006]]}
+}}
+```
+
+### 响应 {/* #replies */}
+
+每条回复包含相同的四个键，并回显产生该回复的方法（<Src repo="node" path="servers/src/mining/stratumserver.rs" line={73} />）。`result`和`error`均存在，其中一个为null。
+
+```text title="server -> client, envelope"
+{"id": <same as the request>, "jsonrpc": "2.0", "method": <the method called>,
+ "result": <method result> | null, "error": {"code": <int>, "message": <string>} | null}
+```
+
+`result`在`login`和`keepalive`时为`"ok"`，在`submit`时为字符串`"blockfound - <hash>"`或`"ok"`，在`getjobtemplate`时为任务模板对象，在`status`时为工作进程状态对象。
+
+### 查看实时会话 {/* #watch-a-live-session */}
+
+一个请求，一个回复，使用`nc`：
+
+```bash
+# 首先启用服务器：stratum_mining_config.enable_stratum_server = true
+printf '{"id":"1","jsonrpc":"2.0","method":"getjobtemplate","params":{"algorithm":"randomx"}}\n' \
+  | nc 127.0.0.1 3416
+```
+
+每种算法一个任务，回复已格式化输出：
+
+```python title="examples/python/stratum_probe.py" file=<rootDir>/examples/python/stratum_probe.py
+```
+
+## 下一步 {/* #next */}
+
+`EpicCash/epic-miner`是参考矿工。节点的Foreign JSON-RPC接口通过`get_block_template`、`finalize_block_template`和`submit_block`以HTTP方式提供相同的工作。
+
+<CardGrid>
+  <Card title="通过HTTP挖矿" to="/api/node#mining-over-http">
+    用于构建和提交区块的三个Foreign JSON-RPC方法。
+  </Card>
+  <Card title="工作量证明" to="/mining/proof-of-work">
+    三种算法及其相互比例。
+  </Card>
+  <Card title="发行" to="/mining/emission">
+    区块的支付金额。
+  </Card>
+</CardGrid>

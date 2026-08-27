@@ -1,0 +1,236 @@
+---
+title: Ваш первый перевод
+description: "Выполните интерактивный перевод Epic в локальной цепочке: шаг за шагом по слейту через файловый транспорт, затем тот же перевод через HTTP и epicbox."
+---
+
+# Ваш первый перевод
+
+Выполните один перевод между двумя кошельками в приватной сети usernet, затем повторите его через
+HTTP и epicbox. Меняется только транспорт.
+
+Вам потребуется стенд из [запуска локальной сети](/guides/local-network): узел, производящий блоки, два кошелька и
+доступный к трате баланс у Alice. Убедитесь в этом перед началом:
+
+```bash
+cd wallet_alice
+epic-wallet --usernet info
+```
+
+В сети usernet зрелость coinbase составляет 3 блока, тогда как `--min_conf` кошелька по умолчанию равно 10,
+поэтому команда траты требует `--min_conf 3`. См. [что знает кошелёк](/guides/wallet-operations#read-what-the-wallet-knows).
+
+<SlateLifecycle />
+
+## Файловый транспорт, шаг за шагом {/* #the-file-transport-one-stage-at-a-time */}
+
+Файловый транспорт не зависит от сети и не требует третьей стороны. Слейт (slate) — это файл,
+который вы самостоятельно переносите между двумя кошельками, что делает каждый этап проверяемым, а
+каждый сбой — локальным. Именно поэтому он рассматривается первым.
+
+### 1. Алиса собирает первый раунд {/* #1-alice-builds-the-first-round */}
+
+```bash
+cd wallet_alice
+epic-wallet --usernet send -m file -d ../slate.tx --min_conf 3 1
+```
+
+Произошло два события: частичный слейт был записан в `../slate.tx`, а входы Alice были зарезервированы. См.
+[что резервирует выходы](/concepts/outputs-and-locking#what-reserves-outputs).
+
+```bash
+epic-wallet --usernet info
+epic-wallet --usernet txs
+```
+
+Должна появиться запись `Sent (Created)` со значением `Confirmed?` false, а доступный к трате баланс уменьшится более
+чем на 1 EPIC, поскольку выход сдачи тоже неподтверждён.
+
+Откройте `../slate.tx` в редакторе. Это JSON. Найдите `amount`, `fee`, `id` и `participant_data`. В `participant_data` есть одна запись —
+Alice, по которой можно определить, что слейт исходящий и незавершённый.
+
+### 2. Боб получает {/* #2-bob-receives */}
+
+```bash
+cd ../wallet_bob
+epic-wallet --usernet receive -m file -i ../slate.tx
+```
+
+Bob добавил свой выход (output), его доказательство диапазона (range proof) и свою частичную
+подпись:
+
+```
+INFO Response file ../slate.tx.response generated, and can be sent back to the
+     transaction originator.
+```
+
+**Имя файла ответа — это входной путь с добавленным `.response`.** `slate.tx` становится `slate.tx.response`, а не соседним
+файлом с другим расширением.
+
+Откройте его. `participant_data` теперь содержит две записи, поэтому слейт можно финализировать.
+
+### 3. Алиса финализирует и публикует {/* #3-alice-finalises-and-posts */}
+
+```bash
+cd ../wallet_alice
+epic-wallet --usernet finalize -m file -i ../slate.tx.response
+```
+
+`finalize` завершает агрегированную подпись и публикует транзакцию:
+
+```
+INFO Transaction with slate_id 91b35693-... found in mempool and marked as TxSentMempool.
+```
+
+Команда может зависнуть на этом месте. Она опрашивает мемпул узла, чтобы подтвердить получение
+транзакции; см. [отправка зависает](/guides/stuck-transactions#case-3-the-send-appears-to-hang).
+
+### 4. Подтверждение {/* #4-confirm */}
+
+После включения в блок:
+
+```bash
+epic-wallet --usernet info   # Алиса: на 1 EPIC меньше плюс комиссия
+cd ../wallet_bob
+epic-wallet --usernet info   # Боб: на 1 EPIC больше
+```
+
+Транзакция Alice уходит из `Sent (Created)`, а её зарезервированные входы теперь потрачены. В наблюдаемом
+прогоне этого сценария с 5 EPIC Alice перешла с 204.10880000 на 199.10080000, то есть комиссия
+составила 0.00800000. Комиссии зависят от количества входов и выходов, а не являются фиксированной
+ставкой.
+
+## Тот же перевод через HTTP {/* #the-same-transfer-over-http */}
+
+Одна команда, поскольку отправитель синхронно выполняет оба раунда через слушатель (listener)
+[Foreign API](/api/wallet-foreign) Bob'а.
+
+```bash
+# боб, в своём каталоге. 23425 — api_listen_port, заданный при настройке
+epic-wallet --usernet listen -n
+
+# alice
+epic-wallet --usernet send -m http -d http://127.0.0.1:23425 --min_conf 3 7
+```
+
+Создание, обмен, финализация и публикация — всё происходит внутри одного `send`. Если Bob не слушает в
+момент отправки, очереди нет и повторить попытку не к чему, поэтому отправка завершается ошибкой, а
+входы Alice остаются зарезервированными до тех пор, пока она не отменит транзакцию.
+
+## Тот же перевод через epicbox {/* #the-same-transfer-over-epicbox */}
+
+Тоже одна команда, но подписка нужна **обоим** кошелькам. Подписанный слейт возвращается через релей
+(relay) асинхронно, а не в виде ответа, поэтому финализацию выполняет собственный слушатель
+отправителя.
+
+Направьте оба кошелька на релей, который вы запускаете самостоятельно. По умолчанию кошелёк
+использует <Ver k="epicboxDomain" /> на порту <Ver k="ports.epicbox" /> — это публичный релей mainnet, а кошелёк usernet генерирует адреса в
+формате mainnet, поскольку байты версии адреса разветвляются только для floonet.
+
+```toml title="wallet_alice/epic-wallet.toml and wallet_bob/epic-wallet.toml"
+[epicbox]
+epicbox_domain = "127.0.0.1"
+epicbox_port = 3423
+epicbox_protocol_unsecure = true
+```
+
+`epicbox_protocol_unsecure = true` заставляет кошелёк подключаться через `ws://` вместо `wss://` (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={158} />) — именно это обслуживает
+локальный релей без TLS перед ним. Релей сравнивает домен назначения и порт в каждом слейте со своей
+конфигурацией перед сохранением, поэтому запустите его с `EPICBOX_DOMAIN=127.0.0.1` и `EPICBOX_PORT=3423` для соответствия. В разделе
+[запустить релей](/api/epicbox#run-a-relay) описано развёртывание.
+
+```bash
+# адрес боба
+epic-wallet --usernet address
+
+# боб и алиса, каждый в своём каталоге
+epic-wallet --usernet listen -m epicbox -n
+
+# alice
+epic-wallet --usernet send -m epicbox -d <bob-address> --min_conf 3 3
+```
+
+`<bob-address>` — это то, что напечатал `address`: 52 символа base58, `@`, затем домен релея.
+
+Наблюдаемый цикл занял около 1.5 секунды:
+
+```
+14:27:31.926  bob    INFO Receive new transaction (foreign::receive_tx)
+14:27:32.569  alice  INFO Finalize transaction (owner::finalize_tx)
+14:27:33.164  alice  INFO Transaction with slate_id a6318e1c-... found in mempool, TxSentMempool
+14:27:33.164  alice  INFO Slate [a6318e1c-...] finalized successfully
+```
+
+Релей не взаимодействует с цепочкой. Он выполняет функцию хранения и пересылки JSON слейта с ключом
+по адресу, а публикацию выполняет ваш собственный узел — именно поэтому приватная цепочка может
+использовать собственный релей.
+
+Процесс `send` выводит это при завершении, после того как перевод завершён, закрывая собственную
+кратковременную подписку:
+
+```
+ERROR Error reading message Io(Os { code: 10053, kind: ConnectionAborted ... })
+```
+
+:::warning[Keep a test chain off a public relay]
+
+Адреса usernet неотличимы от адресов mainnet, поэтому кошелёк usernet, подписанный на публичный
+релей, занимает адрес mainnet. Реальный отправитель, доставляющий на него средства, формирует слейт,
+который кошелёк usernet не может опубликовать, и их выходы остаются зарезервированными до тех пор,
+пока они не отменят транзакцию.
+
+:::
+
+## Различия между тремя способами {/* #what-differs-between-the-three */}
+
+| Транспорт | Команды | Кто слушает | Записывает контрагента | Доказательства платежа |
+| --- | --- | --- | --- | --- |
+| `file` | 3 | никто | No | Передаётся |
+| `http` | 1 | получатель | No | Передаётся |
+| `epicbox` | 1 | **оба** | Да | Не передаётся |
+
+`txs` заполняет столбец `From/To Address` только для epicbox, поэтому при использовании файлового транспорта и
+HTTP журнал транзакций не содержит информации о том, кто вам заплатил. Epicbox использует slate V2,
+который не может содержать доказательство платежа; см. [транспорты](/concepts/transports#comparison) и [доказательства
+платежа](/concepts/payment-proofs#choose-the-transport-accordingly).
+
+## Если что-то пошло не так {/* #if-something-goes-wrong */}
+
+**Баланс Алисы уменьшился, но перевод не завершён.** Её входы всё ещё зарезервированы:
+
+```bash
+epic-wallet --usernet txs          # запомните id
+epic-wallet --usernet cancel -i <id>
+```
+
+`cancel` имеет предусловия; см. [предусловия отмены](/concepts/outputs-and-locking#cancelling-has-preconditions).
+
+**`finalize` не может найти файл.** Используйте `<input>.response` и выведите содержимое каталога, чтобы убедиться, что
+там находится на самом деле.
+
+**Ничего не подтверждается.** Проверьте, что узел запущен и майнер сообщает о принятых шарах. Строка
+`Block
+rejected` на уровне `DEBUG` означает несоответствие политики майнинга; таблица симптомов в [запустить
+локальную сеть](/guides/local-network#if-something-goes-wrong) сопоставляет сообщение с причиной.
+
+**Команда кошелька показывает неверный баланс.** Она выполнилась для `~/.epic/user`, а не для нужного вам
+кошелька. Запустите её из каталога этого кошелька или передайте `--current_dir <path>`.
+
+В остальных случаях используйте [диагностику застрявшей транзакции](/guides/stuck-transactions) как процедуру принятия
+решений.
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="Интерактивные транзакции" to="/concepts/interactive-transactions">
+    Что на самом деле происходит в этих двух раундах.
+  </Card>
+  <Card title="Выходы и блокировка" to="/concepts/outputs-and-locking">
+    Почему существует резервирование и что его снимает.
+  </Card>
+  <Card title="Wallet Owner API" to="/api/wallet-owner">
+    Выполнение всего этого программно.
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="transfer" />

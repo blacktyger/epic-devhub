@@ -1,0 +1,91 @@
+---
+title: 从3.x迁移
+description: Epic节点4.x和钱包4.x的变更内容，以及基于3.x构建的集成需要更新的内容。
+---
+
+# 从3.x迁移
+
+当前发布版本：节点**<Ver k="node" />**，钱包**<Ver k="wallet" />**，epicbox协议**<Ver k="epicboxProtocol" />**。
+
+## API变更 {/* #api-changes */}
+
+### `total_difficulty` 是一个对象 {/* #total_difficulty-is-an-object */}
+
+每种工作量证明算法的难度分别独立追踪：
+
+```json
+{
+  "total_difficulty": {
+    "cuckaroo": 0,
+    "cuckatoo": 1234,
+    "randomx": 5678,
+    "progpow": 9012
+  }
+}
+```
+
+### 区块头用两个字段描述证明 {/* #block-headers-describe-proofs-with-two-fields */}
+
+`proof`命名算法，`solution`是一个标记联合体，其结构取决于所用算法。在3.x中，单个标量字段承载解。
+
+### 钱包输出（output）和交易读取支持分页 {/* #wallet-output-and-transaction-reads-take-pagination */}
+
+`retrieve_outputs`和`retrieve_txs`接受`limit`、`offset`和`sort_order`，需显式传入。
+
+### `Status` 新增供应量字段 {/* #status-gains-supply-fields */}
+
+`supply`和`max_supply`是以freemen为单位的金额。`blocks_to_next_halving`是区块数量，位于<Src repo="node" path="api/src/types.rs" line={96} />。奖励步骤并非全部为减半；参见[发行](/mining/emission)。
+
+### 内核（kernel）以两种形式出现 {/* #kernels-appear-in-two-shapes */}
+
+`get_block`返回扁平化的内核（kernel）。`get_kernel`和`get_last_n_kernels`返回带有外部标记`features`字段的原始类型。
+
+## 命令行变更 {/* #command-line-changes */}
+
+参数已移动。当前目录的`init -h`现为`-w`，`scan -h <height>`现为`-s <height>`，节点的`taxes`参数现为`start_height`。新增钱包命令：`export_tx`、`import_tx`和`change_password`，以及转账命令上的`--slate_version`。所有命令和参数详见[配置与CLI](/reference/cli)。
+
+测试网络上的算法组合由配置键选择，而非命令行参数。参见[区块策略](/mining/proof-of-work#the-block-policy)。
+
+## 工具链与构建 {/* #toolchain-and-build */}
+
+每个代码仓库固定了其Rust版本，因此安装rustup即可，不应自行固定版本。构建还需要Rust工具链之外的系统软件包，各平台所需软件包列于[从源码构建](/guides/build)。
+
+## 存储变更 {/* #storage-changes */}
+
+钱包以WAL模式将数据存储在`db/sqlite/epic.db`的SQLite中，其Tor目录为`wallet_tor`。任何直接读取3.x钱包数据库的代码均需重写。路径和键详见[钱包配置](/reference/wallet-config)。
+
+## 新行为 {/* #new-behaviour */}
+
+### 捆绑的Tor {/* #bundled-tor */}
+
+使用`--features with-tor`构建时会下载Tor专家包，并对照已提交的摘要进行验证。发布版本构建不启用该特性。参见[本版本未涵盖的内容](/start#what-this-version-does-not-cover)。
+
+### Epicbox确认投递 {/* #epicbox-acknowledges-delivery */}
+
+协议<Ver k="epicboxProtocol" />新增了携带每条消息id的`Made`确认，因此只有在接收方确认已处理后，slate才被标记为已送达。与3.5.2之前的客户端保持兼容。参见[协议](/api/epicbox)。
+
+### 广播后的内存池（mempool）确认 {/* #mempool-confirmation-after-posting */}
+
+钱包在广播交易后监听节点的内存池（mempool），并在交易出现时记录一个独立状态。该等待过程是发送操作看起来无响应的原因，详见[发送看起来卡住了](/guides/stuck-transactions#case-3-the-send-appears-to-hang)；它还会将已广播的转账移出`cancel_tx`所接受的集合，详见[取消有前提条件](/concepts/outputs-and-locking#cancelling-has-preconditions)。
+
+### epicbox中继实现已变更 {/* #the-epicbox-relay-implementation-changed */}
+
+中继是`EpicCash/epic-epicbox-docker`，即带有Rust验证辅助模块的Node.js。其部署拓扑和存储详见[epicbox参考](/api/epicbox)。
+
+## 需在集成中检查的行为 {/* #behaviour-to-check-in-your-integration */}
+
+- **在手动发送流程中`tx_lock_outputs`是必需的**。参见[什么会预留输出](/concepts/outputs-and-locking#what-reserves-outputs)。
+- **Epicbox将所有slate转换为V2**，这会丢弃支付证明请求。参见[传输方式对比](/concepts/transports#comparison)。
+- **`change_password`会删除备份助记词**，除非传入`--remove-backup`。
+- **同步验证默认值的形式已变更。**`skip_pow_validation`和`disable_checkpoints`默认为`true`，该模式对已检查点的历史跳过工作量证明验证，同时始终对最近<Ver k="powVerificationThreshold" />个区块进行完整验证。参见[节点与钱包设置](/guides/mainnet-setup)。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="MimbleWimble 模型" to="/concepts/mimblewimble">
+    关于交易模型为何如此运作的概述。
+  </Card>
+  <Card title="Wallet Owner API" to="/api/wallet-owner">
+    大多数集成所针对的接口层。
+  </Card>
+</CardGrid>

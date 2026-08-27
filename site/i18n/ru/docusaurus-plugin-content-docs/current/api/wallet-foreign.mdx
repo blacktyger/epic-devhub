@@ -1,0 +1,47 @@
+---
+title: Wallet Foreign API
+sidebar_label: Wallet Foreign API
+description: JSON-RPC методы слушателя кошелька Epic для получения слейта (slate), финализации инвойса и наград за майнинг.
+---
+
+# Wallet Foreign API
+
+Foreign API — это сторона кошелька, которую вызывают другие участники. Отправитель публикует слейт
+(slate) на этот эндпоинт и получает обратно частично подписанный слейт, инвойс плательщика
+возвращается финализированным, а майнинговый узел запрашивает у него сборку выхода (output)
+coinbase, который зачисляет средства в этот кошелёк.
+
+- **Эндпоинт**: `http://127.0.0.1:3415/v2/foreign`, запускается с помощью `epic-wallet listen`
+- **Протокол**: JSON-RPC 2.0 поверх HTTP POST
+- **Учётные данные**: отсутствуют
+- **Привязка по умолчанию**: `api_listen_interface` — `127.0.0.1`, `api_listen_port` — <Ver k="ports.walletForeign" /> (<Src repo="wallet" path="config/src/types.rs" line={71} />)
+
+Учётные данные здесь невозможны, поскольку контрагент, завершающий перевод, — незнакомец, которому
+должен быть открыт доступ к поверхности. Привязка по умолчанию — loopback, поэтому контрагенту,
+обращающемуся к этому кошельку по HTTP, необходимо расширить интерфейс или установить перед ним
+обратный прокси; ограничить доступ можно только на уровне того, что стоит перед кошельком. Приём
+через [epicbox релей](/api/epicbox) не требует открытого входящего порта вообще.
+
+Те же шесть методов обслуживаются из owner listener, когда `owner_api_include_foreign` равно true (<Src repo="wallet" path="controller/src/controller.rs" line={151} />).
+
+<RpcGroup id="wallet-foreign" />
+
+## Источник {/* #source */}
+
+- <Src repo="wallet" path="api/src/foreign_rpc.rs" line={65} /> определяет шесть методов
+- <Src repo="wallet" path="controller/src/controller.rs" line={209} /> — автономный слушатель
+- <Src repo="wallet" path="libwallet/src/api_impl/foreign.rs" /> — реализация, лежащая в их основе
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="Интерактивные транзакции" to="/concepts/interactive-transactions">
+    Что представляют собой два раунда и какая сторона что выполняет.
+  </Card>
+  <Card title="Транспорты" to="/concepts/transports">
+    Как слейт попадает на эту поверхность в первую очередь.
+  </Card>
+  <Card title="Аутентификация и TLS" to="/api/authentication">
+    Каждая поверхность и ожидаемые ею учётные данные.
+  </Card>
+</CardGrid>

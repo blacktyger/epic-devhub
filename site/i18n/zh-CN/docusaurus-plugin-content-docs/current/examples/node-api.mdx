@@ -1,0 +1,210 @@
+---
+title: 节点查询
+description: 使用curl和Python从Epic节点读取链高度、区块、内存池（mempool）和对等节点信息。
+---
+
+# 节点查询
+
+节点通过HTTP POST使用纯JSON-RPC 2.0协议。无需握手，无需加密，owner端面的凭据已自动创建。
+
+每次调用由两个要素决定：
+
+- **使用哪个接口。** `/v2/owner`是节点管理接口。`/v2/foreign`涵盖所有链读取操作及交易提交。两者的划分详见[节点API](/api/node#which-json-rpc-method-lives-where)。
+- **双层信封结构。** 响应包含一个JSON-RPC `result`，其内部为`Ok`或`Err`。参见[响应信封](/api#the-response-envelope)。
+
+owner凭据位于`~/.epic/main/.api_secret`（其他网络对应`floo`或`user`），用户名为字面字符串`epic`。Foreign API调用无需凭据。参见[身份验证](/api/authentication)。
+
+两个客户端均支持`NODE_URL`和`EPIC_NETWORK`，因此[运行本地网络](/guides/local-network)中的本地链无需修改。在`examples`目录下运行：
+
+```bash
+NODE_URL=http://127.0.0.1:23413 EPIC_NETWORK=user python python/epic_node.py
+```
+
+## 完整客户端 {/* #a-complete-client */}
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+需要`curl`和`jq`。
+
+```bash title="examples/shell/node-status.sh" file=<rootDir>/examples/shell/node-status.sh
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+需要`requests`。
+
+```python title="examples/python/epic_node.py" file=<rootDir>/examples/python/epic_node.py
+```
+
+</TabItem>
+</Tabs>
+
+## 链状态 {/* #chain-status */}
+
+`get_status`在owner端面返回区块高度、总难度、已连接对等节点及同步状态。
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+curl -s -u "epic:$(cat ~/.epic/main/.api_secret)" \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/owner | jq '.result.Ok'
+```
+
+在Windows PowerShell上：
+
+```powershell
+$secret = (Get-Content "$HOME\.epic\main\.api_secret" -Raw).Trim()
+$auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("epic:$secret"))
+$body = '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}'
+Invoke-RestMethod -Uri 'http://127.0.0.1:3413/v2/owner' -Method Post -Body $body `
+  -ContentType 'application/json' -Headers @{ Authorization = "Basic $auth" }
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python
+status = node_rpc("get_status")
+print(status["tip"]["height"], status["sync_status"], status["connections"])
+```
+
+</TabItem>
+</Tabs>
+
+:::note[`total_difficulty` is an object, not a number]
+
+Epic运行多种工作量证明算法，因此难度按算法分别追踪。参见[工作量证明](/mining/proof-of-work)。
+
+```json
+{"total_difficulty": {"cuckaroo": 0, "cuckatoo": 1234, "randomx": 5678, "progpow": 9012}}
+```
+
+:::
+
+## 获取区块 {/* #fetch-a-block */}
+
+`get_block`位于**foreign**端面，接受位置参数`[height, hash, commit]`。传入其中一个，其余置为null。
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+curl -s -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"get_block","params":[1000000,null,null],"id":1}' \
+  http://127.0.0.1:3413/v2/foreign | jq '.result.Ok.header | {height, timestamp, proof}'
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python
+block = get_block(height=1_000_000)
+header = block["header"]
+print(f"{header['height']} via {header['proof']} at {header['timestamp']}")
+print(f"{len(block['kernels'])} kernels, {len(block['outputs'])} outputs")
+```
+
+</TabItem>
+</Tabs>
+
+内核（kernel）根据方法不同以两种形式出现。`get_block`返回扁平化形式，而`get_kernel`和`get_last_n_kernels`返回带有外部标记`features`字段的原始类型。
+
+## 监听新区块 {/* #watch-for-new-blocks */}
+
+节点API没有订阅机制，因此采用轮询方式。目标出块时间为<Ver k="blockTimeSeconds" />秒，每10到15秒轮询一次即可。在foreign端面轮询`get_tip`，无需凭据。
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash title="examples/shell/watch-blocks.sh" file=<rootDir>/examples/shell/watch-blocks.sh
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+`watch_blocks()`在`epic_node.py`中，随着链顶端推进逐个产出新区块：
+
+```python
+for block in watch_blocks():
+    header = block["header"]
+    print(f"block {header['height']} via {header['proof']}")
+```
+
+</TabItem>
+</Tabs>
+
+如需推送而非轮询，参见[epic-server.toml](/reference/node-config)中的`[server.webhook_config]`，该选项可在交易、区块头和区块事件发生时发送POST请求。
+
+## 内存池（mempool）与对等节点 {/* #mempool-and-peers */}
+
+内存池（mempool）大小和版本为foreign端面调用。对等节点列表为owner端面调用。
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+rpc() { curl -s -H 'Content-Type: application/json' -d "$1" http://127.0.0.1:3413/v2/foreign; }
+
+rpc '{"jsonrpc":"2.0","method":"get_pool_size","params":[],"id":1}' | jq '.result.Ok'
+rpc '{"jsonrpc":"2.0","method":"get_stempool_size","params":[],"id":1}' | jq '.result.Ok'
+
+curl -s -u "epic:$(cat ~/.epic/main/.api_secret)" -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"get_connected_peers","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/owner | jq '.result.Ok | length'
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python
+print("mempool:", node_rpc("get_pool_size", [], surface="foreign"))
+print("stempool:", node_rpc("get_stempool_size", [], surface="foreign"))
+print("peers:", len(node_rpc("get_connected_peers", [], surface="owner")))
+```
+
+</TabItem>
+</Tabs>
+
+### 其他所有方法 {/* #every-other-method */}
+
+<details>
+<summary>完整JSON-RPC方法列表，按接口分类</summary>
+
+`/v2/owner`，定义于<Src repo="node" path="api/src/owner_rpc.rs" line={29} />：
+
+```
+get_status          validate_chain      compact_chain
+get_peers           get_connected_peers ban_peer
+unban_peer          get_onion_addresses
+```
+
+`/v2/foreign`，定义于<Src repo="node" path="api/src/foreign_rpc.rs" line={37} />：
+
+```
+get_header          get_block           get_blocks
+get_tip             get_version         get_kernel
+get_last_n_kernels  get_outputs         get_unspent_outputs
+get_pmmr_indices    get_pool_size       get_stempool_size
+get_unconfirmed_transactions            push_transaction
+get_block_template  finalize_block_template                submit_block
+```
+
+响应类型定义于<Src repo="node" path="api/src/types.rs" />。
+
+</details>
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="钱包：连接与读取" to="/examples/wallet-connect">
+    加密握手与读取余额。
+  </Card>
+  <Card title="Node API参考" to="/api/node">
+    端面、响应结构及方法划分。
+  </Card>
+</CardGrid>

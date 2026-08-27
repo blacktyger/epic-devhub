@@ -4,6 +4,8 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import {fetchIndexesByWorker, searchByWorker} from '@theme/searchByWorker';
 import AiMark from './AiMark';
 import {openAssistant} from './store';
+import {assistantMessage as msg} from './messages';
+import {canonicalPagePath, localiseDocHref} from './locale';
 import {pickSuggestions} from './suggestions';
 import './ask-modal.css';
 
@@ -52,8 +54,9 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const DEBOUNCE_MS = 150;
 
 export default function AskModal({onClose}) {
-  const {siteConfig} = useDocusaurusContext();
+  const {siteConfig, i18n} = useDocusaurusContext();
   const baseUrl = siteConfig.baseUrl;
+  const currentLocale = i18n.currentLocale;
   const history = useHistory();
   const {pathname} = useLocation();
   const listboxId = useId();
@@ -106,8 +109,8 @@ export default function AskModal({onClose}) {
    * mismatch. `suggestions.js` explains why there is no timed rotation.
    */
   useEffect(() => {
-    setSuggestions(pickSuggestions(pathname, 3, new Set()));
-  }, [pathname]);
+    setSuggestions(pickSuggestions(canonicalPagePath(pathname, currentLocale), 3, new Set()));
+  }, [pathname, currentLocale]);
 
   /* ---------------------------------------------------------------- index */
 
@@ -287,7 +290,7 @@ export default function AskModal({onClose}) {
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Ask or search the documentation"
+        aria-label={msg.modalLabel()}
         onKeyDown={onDialogKeyDown}>
         <div className="epicAsk-inputRow">
           <AiMark className="epicAsk-inputMark" />
@@ -301,8 +304,8 @@ export default function AskModal({onClose}) {
             aria-controls={`${listboxId}-list`}
             aria-activedescendant={active ? optionId(active) : undefined}
             aria-autocomplete="list"
-            aria-label="Ask a question, or search the documentation"
-            placeholder="Ask or search…"
+            aria-label={msg.modalInputLabel()}
+            placeholder={msg.modalPlaceholder()}
             autoComplete="off"
             spellCheck="false"
             value={query}
@@ -317,7 +320,7 @@ export default function AskModal({onClose}) {
                 setQuery('');
                 inputRef.current?.focus();
               }}
-              aria-label="Clear the box">
+              aria-label={msg.modalClear()}>
               <span aria-hidden="true">×</span>
             </button>
           )}
@@ -328,7 +331,7 @@ export default function AskModal({onClose}) {
             className="epicAsk-list"
             id={`${listboxId}-list`}
             role="listbox"
-            aria-label={text ? 'Ask the assistant, or open a page' : 'Suggested questions'}>
+            aria-label={text ? msg.modalOptionsWithQuery() : msg.modalSuggestedQuestions()}>
             {options.map((option, index) => {
               const selected = index === cursor;
 
@@ -345,9 +348,9 @@ export default function AskModal({onClose}) {
                     onClick={() => activate(option)}>
                     <AiMark className="epicAsk-escalateMark" />
                     <span className="epicAsk-escalateText">
-                      <span className="epicAsk-escalateQuestion">Ask AI: {option.text}</span>
+                      <span className="epicAsk-escalateQuestion">{msg.modalAskAi(option.text)}</span>
                       <span className="epicAsk-escalateSub">
-                        Answers from these docs, with the sections it used
+                        {msg.modalAskAiNote()}
                       </span>
                     </span>
                   </li>
@@ -392,26 +395,24 @@ export default function AskModal({onClose}) {
 
         {indexState === 'missing' && (
           <p className="epicAsk-note">
-            {IS_PRODUCTION
-              ? 'The search index did not load, so only the assistant is available.'
-              : 'Keyword results need an index. Run npm run build once, then reload.'}
+            {IS_PRODUCTION ? msg.modalSearchMissing() : msg.modalDevIndexMissing()}
           </p>
         )}
 
         {indexState === 'ready' && text && hits.length === 0 && (
-          <p className="epicAsk-note">No page matches those words. Ask the assistant instead.</p>
+          <p className="epicAsk-note">{msg.modalNoMatches()}</p>
         )}
 
         {indexState === 'ready' && text && (
-          <a className="epicAsk-all" href={`${baseUrl}search?q=${encodeURIComponent(text)}`}>
-            See all results for “{text}”
+          <a className="epicAsk-all" href={localiseDocHref(`/search?q=${encodeURIComponent(text)}`, currentLocale)}>
+            {msg.modalSeeAll(text)}
           </a>
         )}
 
         {/* Development only: results come from the last production build, so a page added since then
             hot-reloads on screen but cannot appear here. Better stated than mistaken for bad ranking. */}
         {!IS_PRODUCTION && indexState === 'ready' && (
-          <p className="epicAsk-note epicAsk-note--dev">Dev: index is from the last build.</p>
+          <p className="epicAsk-note epicAsk-note--dev">{msg.modalDevIndexStale()}</p>
         )}
 
         {/*
@@ -421,16 +422,16 @@ export default function AskModal({onClose}) {
         */}
         <p className="epicShortcuts epicAsk-foot" aria-hidden="true">
           <span>
-            <b>↑↓</b> move
+            <b>↑↓</b> {msg.shortcutMove()}
           </span>
           <span>
-            <b>⏎</b> open
+            <b>⏎</b> {msg.shortcutOpen()}
           </span>
           <span>
-            <b>⌘I</b> ask directly
+            <b>⌘I</b> {msg.shortcutAskDirectly()}
           </span>
           <span>
-            <b>esc</b> close
+            <b>esc</b> {msg.shortcutClose()}
           </span>
         </p>
       </div>

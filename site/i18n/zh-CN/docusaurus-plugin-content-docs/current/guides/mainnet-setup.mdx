@@ -1,0 +1,154 @@
+---
+title: 为mainnet设置节点和钱包
+sidebar_label: 节点与钱包设置
+description: 在mainnet上运行Epic节点，创建对应钱包，了解相关端口、数据、同步设置和凭据。
+---
+
+# 为mainnet设置节点和钱包
+
+mainnet使用真实价值。本文所有内容均假设你已完成[运行本地网络](/guides/local-network)和[首次转账](/guides/first-transfer)中的操作，因为两者的操作机制完全相同，但后果截然不同。
+
+两个进程。一个节点负责验证和中继链，一个钱包负责持有密钥并向节点查询世界状态。你需要一个节点，不需要挖矿。
+
+## 1. 启动节点 {/* #1-start-the-node */}
+
+mainnet是默认网络，因此无需任何参数：
+
+```bash
+epic
+```
+
+节点在首次运行时写入`epic-server.toml`，此后从该文件读取配置。编辑该文件是更改行为的常规方式，因为大多数设置只以配置文件键的形式存在，而非命令行参数。每个键的修改都需要重启。
+
+确认节点已启动。owner接口需要身份验证，机密文件会自动为你创建：
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux 和 macOS">
+
+```bash
+curl -s -u epic:$(cat ~/.epic/main/.api_secret) -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/owner
+```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+$secret = (Get-Content "$HOME\.epic\main\.api_secret" -First 1).Trim()
+$body = '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}'
+Invoke-RestMethod -Uri 'http://127.0.0.1:3413/v2/owner' -Method Post `
+  -ContentType 'application/json' -Body $body `
+  -Authentication Basic -Credential (
+    [PSCredential]::new('epic', (ConvertTo-SecureString $secret -AsPlainText -Force))
+  ) -AllowUnencryptedAuthentication
+```
+
+</TabItem>
+</Tabs>
+
+首次同步会下载并验证整条链。预计耗时较长，并会占用实际磁盘空间。
+
+### 端口 {/* #ports */}
+
+| 端口 | 用途 | 默认绑定 |
+| --- | --- | --- |
+| <Ver k="ports.nodeApi" /> | HTTP API | `127.0.0.1` |
+| <Ver k="ports.nodeP2p" /> | P2P | 所有接口 |
+| <Ver k="ports.stratum" /> | Stratum挖矿服务器 | `127.0.0.1`，默认关闭 |
+
+只有P2P端口需要对外可达。将API保持在回环地址上，并在更改之前阅读[身份验证与TLS](/api/authentication)。所有端口和网络偏移量均在[CLI参考](/reference/cli#ports)中列出。
+
+### 同步验证设置 {/* #sync-validation-settings */}
+
+`skip_pow_validation`和`disable_checkpoints`均默认为`true`。这是同步速度优化，而非降低了默认安全性。
+
+| 区块所在位置 | 已执行的验证 |
+| --- | --- |
+| 在检查点范围内 | 区块头哈希与硬编码检查点比对。不匹配则中止同步。跳过工作量证明 |
+| 超过检查点，距链顶端超过<Ver k="powVerificationThreshold" />个区块 | 跳过工作量证明 |
+| 距链顶端<Ver k="powVerificationThreshold" />个区块以内 | **始终执行完整工作量证明，与上述设置无关** |
+
+节点内置了<Ver k="checkpointCount" />个检查点，位于<Src repo="node" path="chain/src/types.rs" line={432} />中。代码为<Fn repo="node" path="chain/src/chain.rs" line={1567} name="check_header_against_checkpoints" />，跳过决策位于<Src repo="node" path="servers/src/common/adapters.rs" line={728} />，下限为<Fn repo="node" path="servers/src/common/adapters.rs" line={45} kind="const" name="POW_VERIFICATION_THRESHOLD" />。
+
+将两者均设为`false`可自行验证所有历史工作量证明。这会导致初始同步耗时大幅增加。
+
+### 节点存储的内容 {/* #what-the-node-stores */}
+
+`chain_data`、配置文件、日志文件和API机密。`chain_data`是占用空间较大的项，且可以丢弃，删除它只需重新同步，不会有其他损失。节点不持有任何密钥，因此其数据目录中的内容无需备份。
+
+## 2. 创建钱包 {/* #2-create-the-wallet */}
+
+```bash
+epic-wallet init
+```
+
+系统会要求你设置密码，并显示一个恢复助记词。
+
+:::danger[Write the recovery phrase down before continuing]
+
+该助记词是唯一能够重建你资金的凭据。它仅在此处显示一次，之后只能通过`epic-wallet recover`查看，而该操作需要密码。
+
+:::
+
+| 命令 | 效果 |
+| --- | --- |
+| `epic-wallet init` | 在默认位置`~/.epic/main`创建钱包 |
+| `epic-wallet init -w` | 在当前目录创建。该参数不接受值 |
+| `epic-wallet init -r` | 从已有恢复助记词恢复 |
+
+如果种子文件已存在，`init -r`将拒绝运行，因此若要恢复到一个已有钱包的目录，需先将该钱包移走。参见[备份与恢复](/guides/backup-and-restore)。
+
+### 关闭Tor监听器 {/* #turn-off-the-tor-listener */}
+
+钱包默认将`use_tor_listener`设为`true`，并期望存在一个发布版本归档中未附带的Tor二进制文件，因此`epic-wallet listen`会启动一个随即失败的后台线程。有两种方式可以关闭它，其中一种是按命令生效：
+
+```toml title="epic-wallet.toml"
+[tor]
+use_tor_listener = false
+```
+
+```bash
+epic-wallet listen -n
+```
+
+`-n`仅在`listen`上声明（<Src repo="wallet" path="src/cmd/wallet_args.rs" line={123} />），因此必须在每个`listen`上重复指定。配置文件键对该钱包目录中的所有命令生效，是推荐使用的设置方式。两者均不影响节点对Tor的使用。
+
+### 钱包存储的内容 {/* #what-the-wallet-stores */}
+
+[备份与恢复](/guides/backup-and-restore#what-to-back-up)列出了钱包目录中的每个文件、其内容以及是否需要备份。恢复助记词可重建你的资金，但无法恢复历史记录。交易记录、账户标签和支付证明记录仅存在于数据库中，链上的任何内容都无法重建它们。
+
+### 钱包开放的端口 {/* #ports-the-wallet-opens */}
+
+`epic-wallet listen`在<Ver k="ports.walletForeign" />上开启Foreign API，`epic-wallet owner_api`在<Ver k="ports.walletOwner" />上开启Owner API。Foreign端口由网络决定；Owner端口在所有网络上均为<Ver k="ports.walletOwner" />，因此同一台机器上的第二个钱包无论运行哪条链都会在该端口产生冲突。覆盖`owner_api_listen_port`。完整列表参见[CLI参考](/reference/cli#ports)。
+
+## 3. 将钱包指向节点 {/* #3-point-the-wallet-at-the-node */}
+
+钱包默认连接回环地址上端口<Ver k="ports.nodeApi" />的节点，在默认目录布局下，它会将节点的API机密解析到节点创建的同一文件。无需任何配置。
+
+有两种情况需要更改。如果你移动了任一目录，请将`node_api_secret_path`设置为[钱包向节点出示的凭据](/api/authentication#the-credential-the-wallet-presents-to-the-node)。如果你想使用不同的节点，请在`epic-wallet.toml`中设置`check_node_api_http_addr`。
+
+```bash
+epic-wallet info
+```
+
+余额为零且无报错，表示钱包已成功连接节点且节点已响应。401表示两者的机密不一致。
+
+将钱包指向公共节点可以正常使用。但该节点会看到钱包查询的输出（output），且钱包不会验证所获得的链状态。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="钱包操作" to="/guides/wallet-operations">
+    接收、发送，以及读取钱包返回的信息。
+  </Card>
+  <Card title="备份与恢复" to="/guides/backup-and-restore">
+    在钱包持有任何资产之前执行此操作。
+  </Card>
+  <Card title="epic-server.toml" to="/reference/node-config">
+    所有节点配置键。
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="mainnet" />

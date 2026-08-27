@@ -1,0 +1,156 @@
+---
+title: Stratum
+description: "Stratum-сервер майнинга узла Epic: транспорт, методы, форматы сообщений и подключение майнера."
+---
+
+# Stratum
+
+Узел включает сервер Stratum для майнеров. Он слушает на `127.0.0.1` порту <Ver k="ports.stratum" />, смещённом по сети, как и
+все остальные порты узла, и работает только при `enable_stratum_server = true`. Этот ключ по умолчанию равен `false` в каждой
+сети, поэтому сгенерированный `epic-server.toml` всегда нужно отредактировать перед подключением майнера, включая
+usernet. См. [таблицу портов](/reference/cli#ports) и [`epic-server.toml`](/reference/node-config).
+
+Транспорт — сырой TCP с JSON-сообщениями, разделёнными символом новой строки. Каждое сообщение
+JSON-RPC — одна строка, завершённая символом новой строки, без HTTP-заголовков, путей и кодов
+состояния.
+
+## Методы и коды ошибок {/* #methods-and-error-codes */}
+
+Обрабатываются пять методов. Всё остальное возвращает `-32601`.
+
+| Метод | Параметры | Результат при успехе |
+| --- | --- | --- |
+| `login` | `login`, `pass`, `agent`, все обязательны | `"ok"`. Записывает имя воркера и агент (<Src repo="node" path="servers/src/mining/stratumserver.rs" line={928} />) |
+| `getjobtemplate` | `algorithm` | Объект шаблона задания |
+| `submit` | `height`, `job_id`, `nonce`, `pow` | `"ok"`, или `"blockfound - <block hash>"` если шара является блоком |
+| `keepalive` | none | `"ok"` |
+| `status` | none | `id`, `height`, `difficulty`, `accepted`, `rejected`, `stale` для вызывающего воркера |
+
+Коды ошибок, которые отправляет сервер:
+
+| Код | Сообщение |
+| --- | --- |
+| `-32000` | Узел синхронизируется — подождите |
+| `-32501` | Шара отклонена из-за низкой сложности |
+| `-32502` | Не удалось проверить решение |
+| `-32503` | Решение отправлено слишком поздно |
+| `-32600` | Некорректный запрос |
+| `-32601` | Метод не найден |
+| `32603` | Внутренняя ошибка |
+
+## Запрос работы {/* #requesting-work */}
+
+`getjobtemplate` требует параметр `algorithm`, указывающий, какой из трёх алгоритмов доказательства работы вы намерены
+использовать для майнинга. Epic запускает все три одновременно, поэтому задание привязано к
+конкретному алгоритму.
+
+`algorithm` в ответе — тот, который требует политика на данной высоте блока, не обязательно тот, который вы
+запросили, поэтому майнеру нужен один воркер на каждый алгоритм, который он намерен использовать.
+`only_randomx` сужает политику до одного алгоритма в частной цепочке. См. [политику блоков](/mining/proof-of-work#the-block-policy).
+
+Узел возвращает `-32000 Node is syncing - Please wait` до тех пор, пока не достигнет `peer_min_preferred_outbound_count` исходящих пиров. В usernet, который по
+замыслу не имеет пиров, установите этот ключ в `0`. См. [запуск локальной сети](/guides/local-network#why-usernet).
+
+Поля шаблона задания (<Src repo="node" path="servers/src/mining/stratumserver.rs" line={176} />):
+
+| Поле | Тип |
+| --- | --- |
+| `height` | u64 |
+| `job_id` | u64, индекс версии блока, на основе которого построено задание |
+| `pre_pow` | hex-строка сериализованного заголовка включительно до полей перед нонсом |
+| `algorithm` | `cuckoo`, `randomx` или `progpow` |
+| `difficulty` | массив пар `[algorithm_name, minimum_share_difficulty]` |
+| `block_difficulty` | массив пар `[algorithm_name, current_block_difficulty]` |
+| `epochs` | массив троек `[start_height, end_height, seed_hash]`, для выбора сида RandomX |
+
+Оба списка сложности охватывают Cuckatoo, RandomX и ProgPow, в указанном порядке.
+
+## Отправка шар {/* #submitting-shares */}
+
+`submit` принимает `height`, `job_id`, `nonce` как число и `pow`. `pow` — перечисление с внешним тегом, то есть
+объект с одним ключом, значение которого является кортежем (<Src repo="node" path="servers/src/mining/stratumserver.rs" line={161} />):
+
+| Алгоритм | `pow` |
+| --- | --- |
+| Cuckoo и Cuckatoo | `{"Cuckoo": [edge_bits, [nonces]]}`, сначала edge bits, затем 42 нонса |
+| RandomX | `{"RandomX": [32 bytes]}` |
+| ProgPow | `{"ProgPow": [32 bytes]}` |
+
+Шара, сложность которой превышает `block_difficulty`, обрабатывается как блок, и результат принимает значение
+`blockfound - <block hash>`. Шара, которая превышает только `difficulty`, засчитывается, и результат равен `"ok"`.
+
+## Справочник сообщений {/* #message-reference */}
+
+Сериализация определяется структурами в <Src repo="node" path="servers/src/mining/stratumserver.rs" />.
+
+### Запросы {/* #requests */}
+
+`id` — целое число или строка, `jsonrpc` — `"2.0"`, а `params` — объект параметров метода или null (<Src repo="node" path="servers/src/mining/stratumserver.rs" line={64} />).
+
+```json title="client -> server, one line each"
+{"id":"1","jsonrpc":"2.0","method":"getjobtemplate","params":{"algorithm":"randomx"}}
+{"id":"2","jsonrpc":"2.0","method":"keepalive","params":null}
+{"id":"3","jsonrpc":"2.0","method":"status","params":null}
+```
+
+```json title="client -> server, a RandomX share, one line"
+{"id":"4","jsonrpc":"2.0","method":"submit","params":{
+  "height":1000001,
+  "job_id":7,
+  "nonce":13476209874311234567,
+  "pow":{"RandomX":[10,27,44,3,255,18,9,72,64,31,88,120,4,17,203,55,
+                    91,6,142,77,38,199,15,60,231,2,113,49,86,170,25,8]}
+}}
+```
+
+```json title="client -> server, a Cuckatoo share, nonce list abbreviated to 3 of 42, one line"
+{"id":"5","jsonrpc":"2.0","method":"submit","params":{
+  "height":1000001,"job_id":7,"nonce":42,
+  "pow":{"Cuckoo":[31,[1042,20984,31006]]}
+}}
+```
+
+### Ответы {/* #replies */}
+
+Каждый ответ содержит одни и те же четыре ключа и воспроизводит метод, который его породил (<Src repo="node" path="servers/src/mining/stratumserver.rs" line={73} />).
+`result` и `error` присутствуют оба, один из них null.
+
+```text title="server -> client, envelope"
+{"id": <same as the request>, "jsonrpc": "2.0", "method": <the method called>,
+ "result": <method result> | null, "error": {"code": <int>, "message": <string>} | null}
+```
+
+`result` равен `"ok"` для `login` и `keepalive`, строке `"blockfound - <hash>"` или `"ok"` для `submit`, объекту шаблона задания для
+`getjobtemplate` и объекту статуса воркера для `status`.
+
+### Просмотр живой сессии {/* #watch-a-live-session */}
+
+Один запрос, один ответ, с `nc`:
+
+```bash
+# Сначала включите сервер: stratum_mining_config.enable_stratum_server = true
+printf '{"id":"1","jsonrpc":"2.0","method":"getjobtemplate","params":{"algorithm":"randomx"}}\n' \
+  | nc 127.0.0.1 3416
+```
+
+По одному заданию на алгоритм, с ответами в форматированном виде:
+
+```python title="examples/python/stratum_probe.py" file=<rootDir>/examples/python/stratum_probe.py
+```
+
+## Далее {/* #next */}
+
+`EpicCash/epic-miner` — эталонный майнер. Поверхность Foreign JSON-RPC узла предоставляет ту же работу через HTTP
+посредством `get_block_template`, `finalize_block_template` и `submit_block`.
+
+<CardGrid>
+  <Card title="Майнинг через HTTP" to="/api/node#mining-over-http">
+    Три метода внешнего JSON-RPC для сборки и публикации блока.
+  </Card>
+  <Card title="Доказательство работы" to="/mining/proof-of-work">
+    Три алгоритма и соотношение между ними.
+  </Card>
+  <Card title="Эмиссия" to="/mining/emission">
+    Размер выплаты за блок.
+  </Card>
+</CardGrid>

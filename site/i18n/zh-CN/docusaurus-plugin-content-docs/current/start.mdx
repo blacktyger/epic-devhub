@@ -1,0 +1,26 @@
+---
+title: 开始你的Epic开发者之旅
+description: 从MimbleWimble模型出发，经由私有本地链和首次转账，直至连接mainnet的完整引导路径。
+sidebar_label: 从这里开始
+---
+
+# 开始你的Epic开发者之旅
+
+八个阶段。完成后，你将构建出二进制文件、挖掘自己的链、在链上转移代币，并通过代码驱动钱包。
+
+第03至05阶段在你自己创建的私有链上运行，使用你自己铸造的代币。该链的行为与mainnet完全一致，不会与mainnet产生任何交互。
+
+<JourneyOverview />
+
+## 已熟悉该主题 {/* #already-know-the-subject */}
+
+跳过此流程，直接查阅参考文档：
+
+- [配置与CLI](/reference/cli)，了解命令和持久化设置。
+- [API参考](/api/)和[代码示例](/examples/)，用于编程开发。
+- [挖矿与共识](/mining/proof-of-work)，用于节点和协议开发。
+- [v4的变更内容](/whats-new-in-v4)，适用于从3.x文档迁移的用户。
+
+## 本版本未涵盖的内容 {/* #what-this-version-does-not-cover */}
+
+**Tor。**发布版本的归档文件不包含钱包洋葱监听器所需的`tor`二进制文件，且`use_tor_listener`默认值为`true`，因此普通的`epic-wallet listen`可能在后台线程中失败。[关闭Tor监听器](/guides/mainnet-setup#turn-off-the-tor-listener)中说明了相应的修改方法。Tor配置键列于[钱包](/reference/wallet-config)和[节点](/reference/node-config)参考文档中。

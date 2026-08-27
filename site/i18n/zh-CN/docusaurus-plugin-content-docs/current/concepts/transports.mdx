@@ -1,0 +1,120 @@
+---
+title: 传输方式
+description: 在Epic钱包之间传输slate的六种方式，支持接收方离线，以及如何在它们之间做出选择。
+---
+
+# 传输方式
+
+slate（交易协商数据）需要在两个钱包之间来回传递。传输方式与密码学无关，无论选择哪条路径，最终生成的交易都相同。不同之处在于操作成本、接收方是否必须在该时刻可达，以及slate的所有字段是否能在传输过程中完整保留。
+
+发送方式：`http`、`file`、`self`、`keybase`、`emoji`、`epicbox`。监听器接受`http`、`keybase`或`epicbox`。
+
+## 对比 {/* #comparison */}
+
+| 传输方式 | 发送时接收方可达 | 需要可达地址 | 可在NAT后工作 | Slate版本 | 支付证明 |
+| --- | --- | --- | --- | --- | --- |
+| `epicbox` | 不需要，中继存储slate | 否 | 是 | 始终为V2 | 不携带 |
+| `http` | 需要 | 是，公开URL | 否 | 与监听器协商 | 携带 |
+| `file` | 不需要 | 否 | 是 | slate使用V3字段时为V3 | 携带 |
+| `emoji` | 不需要 | 否 | 是 | slate使用V3字段时为V3 | 携带 |
+| `keybase` | 不需要 | Keybase身份 | 是 | 不转换直接发送 | 携带 |
+| `self` | 同一钱包 | 否 | 是 | n/a | n/a |
+
+Epicbox是唯一不需要接收方在发送时刻可达的传输方式，也是唯一会丢失支付证明的传输方式。这两列决定了大多数集成方案的选择。
+
+版本列是证明列存在的原因。支付证明是V3 slate的字段。`file`和`emoji`在slate携带`payment_proof`或`ttl_cutoff_height`时（<Src repo="wallet" path="impls/src/adapters/file.rs" line={30} />和<Src repo="wallet" path="impls/src/adapters/emoji.rs" line={1151} />）立即序列化为V3。`keybase`在不进行版本转换的情况下序列化slate，因此所有字段均得以保留（<Src repo="wallet" path="impls/src/adapters/keybase.rs" line={304} />）。`http`询问监听器所支持的版本，若slate携带证明则返回错误而非降级处理（<Src repo="wallet" path="impls/src/adapters/http.rs" line={143} />）。`epicbox`无条件转换为V2（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={251} />），因此证明请求在slate发出前就已丢失。如需请求证明，请参阅[相应地选择传输方式](/concepts/payment-proofs#choose-the-transport-accordingly)。
+
+开发者常用的三种传输方式之间的已知差异：
+
+| 传输方式 | 完成转账所需命令 | 谁必须处于监听状态 | `txs`记录交易对手方 |
+| --- | --- | --- | --- |
+| `file` | 3，分布在两个钱包中 | 无需任何人 | 否，`From/To Address`是`None` |
+| `http` | 1，仅发送方 | 接收方 | 否，`From/To Address`是`None` |
+| `epicbox` | 1条命令，但两个钱包均需订阅 | **双方** | 是，发送方地址 |
+
+**Epicbox要求发送方也保持监听。** `send -m epicbox`连接到中继，发布slate，锁定其输入（input），然后返回（<Src repo="wallet" path="controller/src/command.rs" line={566} />）。它不等待回复。已签名的slate通过中继作为新消息返回，持有发送方epicbox订阅的进程负责最终确认并广播（<Fn repo="wallet" path="impls/src/adapters/epicbox.rs" line={502} name="process_incoming_slate" />）。因此，接收方需要`listen -m epicbox`来签名，发送方需要`listen -m epicbox`来最终确认。由于中继会存储消息直到收件方重新连接，双方无需在对方操作时同时在线。在发送前启动两个订阅。实测往返时间约为1.5秒。
+
+**只有epicbox能告知付款方身份。** 文件和HTTP方式会使交易日志的对手方字段留空，因此归因需依赖你自己系统中的其他机制。参阅[交易所集成](/guides/exchange-integration)。
+
+## epicbox {/* #epicbox */}
+
+一种存储转发中继。你的钱包与中继保持WebSocket连接，中继会保存发给你的slate，直到你重新连接并确认。当双方均无法接受入站连接时，这是唯一可用的选项。
+
+```bash
+# receiver
+epic-wallet listen -m epicbox
+
+# sender
+epic-wallet send -m epicbox -d <52-char-key>@epicbox.epiccash.com 1.5
+```
+
+中继存储已签名的slate，并根据发送方地址验证签名。slate不会无限期排队；参阅[投递机制及其限制](/api/epicbox#delivery-and-its-limits)。最终确认订阅广播交易后，交易在节点的内存池（mempool）中等待，这就是进程看起来无响应的原因；参阅[发送似乎卡住](/guides/stuck-transactions#case-3-the-send-appears-to-hang)。
+
+wire协议记录于[epicbox参考文档](/api/epicbox)。
+
+## http {/* #http */}
+
+发送方将slate直接发布到接收方的监听器。延迟最低，且携带所有V3 slate字段，包括支付证明。
+
+```bash
+# receiver
+epic-wallet listen
+
+# sender
+epic-wallet send -m http -d http://receiver.example:3415 1.5
+```
+
+接收方必须可达，这意味着需要公网主机或端口转发。
+
+## file {/* #file */}
+
+将slate写入文件，通过任意方式传输，由另一方处理。无网络依赖。
+
+```bash
+epic-wallet send -m file -d slate.tx 1.5             # 发送方，第1轮
+epic-wallet receive -m file -i slate.tx              # receiver
+epic-wallet finalize -m file -i slate.tx.response    # sender
+```
+
+用于调试、在你控制的机器之间转移资产，以及精确检查slate的内容。
+
+## emoji {/* #emoji */}
+
+将slate编码为一串emoji，用于通过聊天应用粘贴传输。
+
+该编码使用一个包含1,024个条目的表，每个字符提供10位信息。第一个字符是头部，编码了填充位的数量，因此emoji slate始终以十个特定字符之一开头。每字节slate JSON大约对应0.8个字符，编码为UTF-8后字节数约为原来的3.2倍。
+
+解码要求使用表中的精确字符，因此会替换或规范化emoji的聊天客户端会导致解码失败；且解码复杂度与长度成二次方关系，大型slate解码速度较慢。
+
+## keybase {/* #keybase */}
+
+需要Keybase客户端，保留此方式以兼容现有用途。
+
+## self {/* #self */}
+
+转账双方使用同一个钱包。适用于在同一钱包内的账户之间转移资金，以及在无对手方的情况下测试交易机制。`--dest`指定目标账户。
+
+```bash
+epic-wallet send -m self -d <destination_account> 1.5
+```
+
+## 选择 {/* #choosing */}
+
+| 场景 | 用途 |
+| --- | --- |
+| 对正确性有要求的集成 | 私有网络上的`http` |
+| 普通用户、移动端、间歇性连接 | `epicbox` |
+| 调试，或在自有机器之间转账 | `file` |
+| 需要支付证明 | 除`epicbox`以外的任何场景 |
+| 基于聊天的转账 | `emoji` |
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="Epicbox协议" to="/api/epicbox">
+    线路协议、握手及投递行为。
+  </Card>
+  <Card title="支付证明" to="/concepts/payment-proofs">
+    为何传输方式决定是否生成支付证明。
+  </Card>
+</CardGrid>

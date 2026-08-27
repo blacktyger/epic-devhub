@@ -1,364 +1,1134 @@
 {
-  "theme.ErrorPageContent.title": {
-    "message": "页面已崩溃。",
-    "description": "The title of the fallback page when the page crashed"
+  "journey.overview.heading": {
+    "message": "路线",
+    "description": "Heading for the journey overview on the start page"
   },
-  "theme.BackToTopButton.buttonAriaLabel": {
-    "message": "回到顶部",
-    "description": "The ARIA label for the back to top button"
+  "journey.overview.ofRouteRead": {
+    "message": "路线已读",
+    "description": "Label next to the overall progress percentage"
   },
-  "theme.blog.archive.title": {
-    "message": "历史博文",
-    "description": "The page & hero title of the blog archive page"
+  "journey.overview.continue": {
+    "message": "继续：{title}",
+    "description": "Continue button label with stage title"
   },
-  "theme.blog.archive.description": {
-    "message": "历史博文",
-    "description": "The page & hero description of the blog archive page"
+  "journey.overview.begin": {
+    "message": "开始：{title}",
+    "description": "Begin button label with first stage title"
   },
-  "theme.blog.paginator.navAriaLabel": {
-    "message": "博文列表分页导航",
-    "description": "The ARIA label for the blog pagination"
+  "journey.overview.resetProgress": {
+    "message": "重置进度",
+    "description": "Reset progress button label"
   },
-  "theme.blog.paginator.newerEntries": {
-    "message": "较新的博文",
-    "description": "The label used to navigate to the newer blog posts page (previous page)"
+  "journey.overview.footNote": {
+    "message": "根据每页阅读进度计算，保存在此浏览器中。",
+    "description": "Note explaining how progress tracking works"
   },
-  "theme.blog.paginator.olderEntries": {
-    "message": "较旧的博文",
-    "description": "The label used to navigate to the older blog posts page (next page)"
+  "journey.nav.ariaLabel": {
+    "message": "开发者之旅",
+    "description": "Aria label for the journey navigation"
   },
-  "theme.tags.tagsPageLink": {
-    "message": "查看所有标签",
-    "description": "The label of the link targeting the tag list page"
+  "journey.nav.label": {
+    "message": "开发者之旅",
+    "description": "Label identifying this as the developer journey"
   },
-  "theme.blog.post.paginator.navAriaLabel": {
-    "message": "博文分页导航",
-    "description": "The ARIA label for the blog posts pagination"
+  "journey.nav.previous": {
+    "message": "上一节：{title}",
+    "description": "Previous stage link label"
   },
-  "theme.blog.post.paginator.newerPost": {
-    "message": "较新一篇",
-    "description": "The blog post button label to navigate to the newer/previous post"
+  "journey.nav.overview": {
+    "message": "旅程概览",
+    "description": "Link back to journey overview"
   },
-  "theme.blog.post.paginator.olderPost": {
-    "message": "较旧一篇",
-    "description": "The blog post button label to navigate to the older/next post"
+  "journey.nav.next": {
+    "message": "下一节：{title}",
+    "description": "Next stage link label"
   },
-  "theme.colorToggle.ariaLabel.mode.system": {
-    "message": "system mode",
-    "description": "The name for the system color mode"
+  "journey.nav.browseApi": {
+    "message": "浏览API参考",
+    "description": "Link to API reference after the last stage"
   },
-  "theme.colorToggle.ariaLabel.mode.light": {
-    "message": "浅色模式",
-    "description": "The name for the light color mode"
+  "journey.lifecycle.prepare.title": {
+    "message": "准备"
   },
-  "theme.colorToggle.ariaLabel.mode.dark": {
-    "message": "暗黑模式",
-    "description": "The name for the dark color mode"
+  "journey.lifecycle.prepare.summary": {
+    "message": "两个钱包均可访问的节点，以及持有可花费输出（output）的发送方。接收方是否需要在线取决于传输方式。"
   },
-  "theme.colorToggle.ariaLabel": {
-    "message": "切换浅色/暗黑模式（当前为{mode}）",
-    "description": "The ARIA label for the color mode toggle"
+  "journey.lifecycle.draft.title": {
+    "message": "起草并锁定"
   },
-  "theme.docs.breadcrumbs.navAriaLabel": {
-    "message": "页面路径",
-    "description": "The ARIA label for the breadcrumbs"
+  "journey.lifecycle.draft.summary": {
+    "message": "发送方构建部分slate并在本地预留所选输出。此时链上尚无任何记录，只有取消操作才能释放预留。"
   },
-  "theme.docs.paginator.navAriaLabel": {
-    "message": "文件选项卡",
-    "description": "The ARIA label for the docs pagination"
+  "journey.lifecycle.deliver.title": {
+    "message": "传递"
   },
-  "theme.docs.paginator.previous": {
-    "message": "上一页",
-    "description": "The label used to navigate to the previous doc"
+  "journey.lifecycle.deliver.summary": {
+    "message": "slate通过文件传输、HTTP请求或中继排队消息到达接收方。这一步在实践中最容易失败。"
   },
-  "theme.docs.paginator.next": {
-    "message": "下一页",
-    "description": "The label used to navigate to the next doc"
+  "journey.lifecycle.cosign.title": {
+    "message": "共同签名"
   },
-  "theme.docs.tagDocListPageTitle.nDocsTagged": {
-    "message": "{count} 篇文档带有标签",
-    "description": "Pluralized label for \"{count} docs tagged\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  "journey.lifecycle.cosign.summary": {
+    "message": "接收方添加一个输出、其范围证明（range proof）和部分签名，然后以相同方式返回slate。"
   },
-  "theme.docs.tagDocListPageTitle": {
-    "message": "{nDocsTagged}「{tagName}」",
-    "description": "The title of the page for a docs tag"
+  "journey.lifecycle.post.title": {
+    "message": "广播或取消"
   },
-  "theme.docs.versionBadge.label": {
-    "message": "版本：{versionLabel}"
+  "journey.lifecycle.post.summary": {
+    "message": "发送方完成聚合签名并广播交易。如果交换无法完成，请主动取消以释放已预留的输出。"
   },
-  "theme.docs.versions.unreleasedVersionLabel": {
-    "message": "此为 {siteTitle} {versionLabel} 版尚未发行的文档。",
-    "description": "The label used to tell the user that he's browsing an unreleased doc version"
+  "journey.lifecycle.heading": {
+    "message": "转账实际执行的操作",
+    "description": "Heading for the slate lifecycle section"
   },
-  "theme.docs.versions.unmaintainedVersionLabel": {
-    "message": "此为 {siteTitle} {versionLabel} 版的文档，现已不再积极维护。",
-    "description": "The label used to tell the user that he's browsing an unmaintained doc version"
+  "journey.lifecycle.ariaLabel": {
+    "message": "Slate生命周期阶段",
+    "description": "Aria label for the lifecycle stage buttons"
   },
-  "theme.docs.versions.latestVersionSuggestionLabel": {
-    "message": "最新的文档请参阅 {latestVersionLink} ({versionLabel})。",
-    "description": "The label used to tell the user to check the latest version"
+  "journey.lifecycle.stageAriaLabel": {
+    "message": "阶段{number}：{title}",
+    "description": "Aria label for individual lifecycle stage button"
   },
-  "theme.docs.versions.latestVersionLinkLabel": {
-    "message": "最新版本",
-    "description": "The label used for the latest version suggestion link label"
+  "journey.invite.heading": {
+    "message": "八个阶段学习Epic Cash",
+    "description": "Journey section heading on landing page"
   },
-  "theme.common.editThisPage": {
-    "message": "编辑此页",
-    "description": "The link label to edit the current page"
+  "journey.invite.lede": {
+    "message": "从账本原理到用代码驱动钱包，每个阶段一页。",
+    "description": "Journey section sub-heading on landing page"
   },
-  "theme.common.headingLinkTitle": {
-    "message": "{heading}的直接链接",
-    "description": "Title for link to heading"
+  "journey.invite.completenessAriaLabel": {
+    "message": "旅程完成度",
+    "description": "Aria label for journey progress dial"
   },
-  "theme.lastUpdated.atDate": {
-    "message": "于 {date} ",
-    "description": "The words used to describe on which date a page has been last updated"
+  "journey.invite.read": {
+    "message": "已读",
+    "description": "Label below the progress percentage"
   },
-  "theme.lastUpdated.byUser": {
-    "message": "由 {user} ",
-    "description": "The words used to describe by who the page has been last updated"
+  "journey.invite.continue": {
+    "message": "继续：{title}",
+    "description": "Continue button when journey is in progress"
   },
-  "theme.lastUpdated.lastUpdatedAtBy": {
-    "message": "最后{byUser}{atDate}更新",
-    "description": "The sentence used to display when a page has been last updated, and by who"
+  "journey.invite.startAt01": {
+    "message": "从第01阶段开始",
+    "description": "Start button when journey has not begun"
   },
-  "theme.navbar.mobileVersionsDropdown.label": {
-    "message": "选择版本",
-    "description": "The label for the navbar versions dropdown on mobile view"
+  "journey.invite.progressNote": {
+    "message": "进度以阅读位置为准，保存在当前浏览器中。",
+    "description": "Note about how progress is tracked"
   },
-  "theme.NotFound.title": {
-    "message": "找不到页面",
-    "description": "The title of the 404 page"
+  "slateExchange.scenario.completes": {
+    "message": "完成",
+    "description": "Scenario label: successful direct transfer"
   },
-  "theme.tags.tagsListLabel": {
-    "message": "标签：",
-    "description": "The label alongside a tag list"
+  "slateExchange.completes.step1": {
+    "message": "发送方向节点请求链顶端，构建一个slate，并预留将要花费的输入（input）。"
   },
-  "theme.admonition.caution": {
-    "message": "警告",
-    "description": "The default label used for the Caution admonition (:::caution)"
+  "slateExchange.completes.step2": {
+    "message": "发送方将slate直接发送到接收方的监听器。"
   },
-  "theme.admonition.danger": {
-    "message": "危险",
-    "description": "The default label used for the Danger admonition (:::danger)"
+  "slateExchange.completes.step3": {
+    "message": "接收方添加其一半并签名。"
   },
-  "theme.admonition.info": {
-    "message": "信息",
-    "description": "The default label used for the Info admonition (:::info)"
+  "slateExchange.completes.step4": {
+    "message": "已签名的slate在同一响应中返回。"
   },
-  "theme.admonition.note": {
-    "message": "备注",
-    "description": "The default label used for the Note admonition (:::note)"
+  "slateExchange.completes.step5": {
+    "message": "发送方对其最终确认并广播到节点，节点将其广播出去。"
   },
-  "theme.admonition.tip": {
-    "message": "提示",
-    "description": "The default label used for the Tip admonition (:::tip)"
+  "slateExchange.scenario.receiverAway": {
+    "message": "无接收方",
+    "description": "Scenario label: receiver offline"
   },
-  "theme.admonition.warning": {
-    "message": "注意",
-    "description": "The default label used for the Warning admonition (:::warning)"
+  "slateExchange.receiverAway.step1": {
+    "message": "发送方构建一个slate并预留将要花费的输入。"
   },
-  "theme.AnnouncementBar.closeButtonAriaLabel": {
-    "message": "关闭",
-    "description": "The ARIA label for close button of announcement bar"
+  "slateExchange.receiverAway.step2": {
+    "message": "接收方地址上没有监听器，请求失败。"
   },
-  "theme.blog.sidebar.navAriaLabel": {
-    "message": "最近博文导航",
-    "description": "The ARIA label for recent posts in the blog sidebar"
+  "slateExchange.receiverAway.step3": {
+    "message": "只有一半已签名，无法最终确认。"
   },
-  "theme.DocSidebarItem.expandCategoryAriaLabel": {
-    "message": "展开侧边栏分类 '{label}'",
-    "description": "The ARIA label to expand the sidebar category"
+  "slateExchange.receiverAway.step4": {
+    "message": "已预留的输入保持预留状态。取消交易可将其释放。"
   },
-  "theme.DocSidebarItem.collapseCategoryAriaLabel": {
-    "message": "折叠侧边栏分类 '{label}'",
-    "description": "The ARIA label to collapse the sidebar category"
+  "slateExchange.scenario.senderAway": {
+    "message": "无发送方",
+    "description": "Scenario label: sender offline"
   },
-  "theme.IconExternalLink.ariaLabel": {
-    "message": "(opens in new tab)",
-    "description": "The ARIA label for the external link icon"
+  "slateExchange.senderAway.step1": {
+    "message": "发送方构建一个slate并预留将要花费的输入。"
   },
-  "theme.NavBar.navAriaLabel": {
-    "message": "主导航",
-    "description": "The ARIA label for the main navigation"
+  "slateExchange.senderAway.step2": {
+    "message": "发送方将slate直接发送到接收方的监听器。"
   },
-  "theme.navbar.mobileLanguageDropdown.label": {
-    "message": "选择语言",
-    "description": "The label for the mobile language switcher dropdown"
+  "slateExchange.senderAway.step3": {
+    "message": "接收方添加其一半并签名。"
   },
-  "theme.NotFound.p1": {
-    "message": "我们找不到您要找的页面。",
-    "description": "The first paragraph of the 404 page"
+  "slateExchange.senderAway.step4": {
+    "message": "发送方已离线，已签名的slate无处返回，也没有机制暂存它。"
   },
-  "theme.NotFound.p2": {
-    "message": "请联系原始链接来源网站的所有者，并告知他们链接已损坏。",
-    "description": "The 2nd paragraph of the 404 page"
+  "slateExchange.senderAway.step5": {
+    "message": "无法最终确认，已预留的输入保持预留状态，直到交易被取消。"
   },
-  "theme.TOCCollapsible.toggleButtonLabel": {
-    "message": "本页总览",
-    "description": "The label used by the button on the collapsible TOC component"
+  "slateExchange.scenario.noNode": {
+    "message": "无节点",
+    "description": "Scenario label: node offline"
   },
-  "theme.blog.post.readMore": {
-    "message": "阅读更多",
-    "description": "The label used in blog post item excerpts to link to full blog posts"
+  "slateExchange.noNode.step1": {
+    "message": "钱包通过节点读取链并广播交易，因此发送时会先连接节点。"
   },
-  "theme.blog.post.readMoreLabel": {
-    "message": "阅读 {title} 的全文",
-    "description": "The ARIA label for the link to full blog posts from excerpts"
+  "slateExchange.noNode.step2": {
+    "message": "没有可达节点时，发送在slate生成前即停止，不会预留任何输入。"
   },
-  "theme.blog.post.readingTime.plurals": {
-    "message": "阅读需 {readingTime} 分钟",
-    "description": "Pluralized label for \"{readingTime} min read\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  "slateExchange.noNode.step3": {
+    "message": "将钱包指向可达的节点，然后重新发送。"
   },
-  "theme.CodeBlock.copy": {
+  "slateExchange.epicbox.step1": {
+    "message": "发送方对slate加密并发布到中继。"
+  },
+  "slateExchange.epicbox.step2": {
+    "message": "中继持有slate，直到接收方的钱包连接。两个钱包无需同时在线。"
+  },
+  "slateExchange.epicbox.step3": {
+    "message": "接收方取回slate，添加其一半并签名。"
+  },
+  "slateExchange.epicbox.step4": {
+    "message": "已签名的slate返回中继，中继持有它直到发送方回来。"
+  },
+  "slateExchange.epicbox.step5": {
+    "message": "发送方重新上线，从中继取回已签名的slate。"
+  },
+  "slateExchange.epicbox.step6": {
+    "message": "发送方对其最终确认并广播到节点，节点将其广播出去。"
+  },
+  "slateExchange.epicbox.step7": {
+    "message": "确认数（confirmations）埋入输出，接收方即可花费。"
+  },
+  "slateExchange.label.sender": {
+    "message": "发送方",
+    "description": "Label for the sender in the SVG diagram"
+  },
+  "slateExchange.label.receiver": {
+    "message": "接收方",
+    "description": "Label for the receiver in the SVG diagram"
+  },
+  "slateExchange.label.epicboxRelay": {
+    "message": "Epicbox中继",
+    "description": "Label for the epicbox relay in the SVG diagram"
+  },
+  "slateExchange.label.holdingSlate": {
+    "message": "持有slate中",
+    "description": "Relay sub-label when holding"
+  },
+  "slateExchange.label.idle": {
+    "message": "空闲",
+    "description": "Relay sub-label when idle"
+  },
+  "slateExchange.label.inputsReserved": {
+    "message": "输入已预留",
+    "description": "Sender sub-label when inputs are reserved"
+  },
+  "slateExchange.label.play": {
+    "message": "播放",
+    "description": "Play button label"
+  },
+  "slateExchange.label.pause": {
+    "message": "暂停",
+    "description": "Pause button label"
+  },
+  "slateExchange.label.transferOutcome": {
+    "message": "转账结果",
+    "description": "Aria label for the scenario dot tabs"
+  },
+  "slateExchange.status.online": {
+    "message": "在线",
+    "description": "Online status shown in the SVG diagram"
+  },
+  "slateExchange.status.offline": {
+    "message": "离线",
+    "description": "Offline status shown in the SVG diagram"
+  },
+  "slateExchange.label.node": {
+    "message": "节点",
+    "description": "Node label in the SVG diagram"
+  },
+  "slateExchange.liveStep": {
+    "message": "{scenario}。第{current}步，共{total}步。{step}",
+    "description": "Live announcement for the active transfer-diagram step"
+  },
+  "journey.fundamentals.title": {
+    "message": "理解账本"
+  },
+  "journey.exchange.title": {
+    "message": "理解交易所"
+  },
+  "journey.build.title": {
+    "message": "构建二进制文件"
+  },
+  "journey.localNetwork.title": {
+    "message": "运行私有链"
+  },
+  "journey.transfer.title": {
+    "message": "完成转账"
+  },
+  "journey.mainnet.title": {
+    "message": "连接主网"
+  },
+  "journey.operate.title": {
+    "message": "操作钱包"
+  },
+  "journey.integrate.title": {
+    "message": "构建集成"
+  },
+  "journey.fundamentals.outcome": {
+    "message": "你已了解Epic为何没有链上接收地址，也没有公开的交易历史。"
+  },
+  "journey.exchange.outcome": {
+    "message": "你能描述slate、其两轮流程，以及为何交付失败不会导致资金损失。"
+  },
+  "journey.build.outcome": {
+    "message": "你已为当前平台构建了可用的epic、epic-wallet和epic-miner二进制文件。"
+  },
+  "journey.localNetwork.outcome": {
+    "message": "节点正在usernet上产生区块，且你的两个钱包之一持有可花费的币。"
+  },
+  "journey.transfer.outcome": {
+    "message": "你已在自己的钱包之间转移了币，并观察到每种传输方式的差异。"
+  },
+  "journey.mainnet.outcome": {
+    "message": "已同步的主网节点和已备份的钱包，涉及真实价值。"
+  },
+  "journey.operate.outcome": {
+    "message": "你能接收、发送、读取钱包报告，恢复钱包，并处理卡住的转账。"
+  },
+  "journey.integrate.outcome": {
+    "message": "你能调用节点和钱包API，并处理Epic的Ok/Err响应封装。"
+  },
+  "homepage.masthead.versionsAriaLabel": {
+    "message": "软件版本",
+    "description": "Aria label for the version pills strip in the masthead"
+  },
+  "homepage.masthead.title": {
+    "message": "开发者中心",
+    "description": "Main heading on the homepage"
+  },
+  "homepage.masthead.tagline": {
+    "message": "文档、指南与代码示例。"
+  },
+  "homepage.masthead.taglineMobileLine1": {
+    "message": "文档、指南",
+    "description": "First line of the tagline on mobile"
+  },
+  "homepage.masthead.taglineMobileLine2": {
+    "message": "与代码示例。",
+    "description": "Second line of the tagline on mobile"
+  },
+  "homepage.masthead.pill.pow": {
+    "message": "工作量证明",
+    "description": "Proof of Work pill in masthead"
+  },
+  "homepage.masthead.pill.opensource": {
+    "message": "开源",
+    "description": "Open Source pill in masthead"
+  },
+  "homepage.masthead.pill.private": {
+    "message": "隐私",
+    "description": "Private pill in masthead"
+  },
+  "homepage.quickstart.nodeLabel": {
+    "message": "节点",
+    "description": "Node tab label in quick start"
+  },
+  "homepage.quickstart.nodeTitle": {
+    "message": "运行节点",
+    "description": "Node quick start title"
+  },
+  "homepage.quickstart.nodeSetupLink": {
+    "message": "节点与钱包配置",
+    "description": "Link to mainnet setup guide"
+  },
+  "homepage.quickstart.checksums": {
+    "message": "校验和及其他构建产物",
+    "description": "Link to downloads page"
+  },
+  "homepage.quickstart.nodeLinuxNote": {
+    "message": "Linux x86-64。",
+    "description": "Platform note for node Linux"
+  },
+  "homepage.quickstart.nodeMacNote": {
+    "message": "Apple silicon。Gatekeeper会拦截未签名的二进制文件，需手动允许后方可运行。",
+    "description": "Platform note for node macOS"
+  },
+  "homepage.quickstart.nodeWinNote": {
+    "message": "x86-64，PowerShell。",
+    "description": "Platform note for node Windows"
+  },
+  "homepage.quickstart.walletLabel": {
+    "message": "钱包",
+    "description": "Wallet tab label in quick start"
+  },
+  "homepage.quickstart.walletTitle": {
+    "message": "创建钱包",
+    "description": "Wallet quick start title"
+  },
+  "homepage.quickstart.walletOpsLink": {
+    "message": "钱包操作",
+    "description": "Link to wallet operations guide"
+  },
+  "homepage.quickstart.walletLinuxNote": {
+    "message": "Linux x86-64。",
+    "description": "Platform note for wallet Linux"
+  },
+  "homepage.quickstart.walletWinNote": {
+    "message": "x86-64，PowerShell。",
+    "description": "Platform note for wallet Windows"
+  },
+  "homepage.quickstart.heading": {
+    "message": "快速开始",
+    "description": "Quick start panel heading"
+  },
+  "homepage.quickstart.softwareAriaLabel": {
+    "message": "软件",
+    "description": "Aria label for the node/wallet tab group"
+  },
+  "homepage.quickstart.platformAriaLabel": {
+    "message": "平台",
+    "description": "Aria label for the platform tab group"
+  },
+  "homepage.quickstart.copied": {
+    "message": "已复制",
+    "description": "Copy button label after copying"
+  },
+  "homepage.quickstart.copy": {
     "message": "复制",
-    "description": "The copy button label on code blocks"
+    "description": "Copy button label"
   },
-  "theme.CodeBlock.copied": {
-    "message": "复制成功",
-    "description": "The copied button label on code blocks"
+  "homepage.journey.kicker": {
+    "message": "开发者之旅",
+    "description": "Section kicker above the developer journey"
   },
-  "theme.CodeBlock.copyButtonAriaLabel": {
-    "message": "复制代码到剪贴板",
-    "description": "The ARIA label for copy code blocks button"
+  "homepage.model.kicker": {
+    "message": "如果你曾使用过其他区块链",
+    "description": "Kicker text above the four differences section"
   },
-  "theme.docs.breadcrumbs.home": {
-    "message": "主页面",
-    "description": "The ARIA label for the home page in the breadcrumbs"
+  "homepage.model.heading": {
+    "message": "四项不同之处",
+    "description": "Heading for the four differences section"
   },
-  "theme.CodeBlock.wordWrapToggle": {
-    "message": "切换自动换行",
-    "description": "The title attribute for toggle word wrapping button of code block lines"
+  "homepage.model.noAddresses.title": {
+    "message": "账本中没有地址。",
+    "description": "Bold title for no-addresses point"
   },
-  "theme.docs.sidebar.collapseButtonTitle": {
-    "message": "收起侧边栏",
-    "description": "The title attribute for collapse button of doc sidebar"
+  "homepage.model.noAddresses.body": {
+    "message": "Epicbox地址用于在钱包之间路由消息。没有任何输出（output）支付到该地址，因此无余额可查询，也无历史记录可读取。",
+    "description": "Explanation of epicbox address routing"
   },
-  "theme.docs.sidebar.collapseButtonAriaLabel": {
-    "message": "收起侧边栏",
-    "description": "The title attribute for collapse button of doc sidebar"
+  "homepage.model.interactive.title": {
+    "message": "转账需要双方参与。",
+    "description": "Bold title for interactive transfers point"
   },
-  "theme.docs.sidebar.navAriaLabel": {
-    "message": "文档侧边栏",
-    "description": "The ARIA label for the sidebar navigation"
+  "homepage.model.interactive.body": {
+    "message": "发送方构建一个称为slate的部分交易，接收方添加其对应部分，发送方进行最终确认。转账失败的根源在于传递环节，而非共识机制。",
+    "description": "Explanation of slate exchange"
   },
-  "theme.docs.sidebar.closeSidebarButtonAriaLabel": {
-    "message": "关闭导航栏",
-    "description": "The ARIA label for close button of mobile sidebar"
+  "homepage.model.locking.title": {
+    "message": "发送操作会预留你的输出（output）。",
+    "description": "Bold title for output locking point"
   },
-  "theme.docs.sidebar.toggleSidebarButtonAriaLabel": {
-    "message": "切换导航栏",
-    "description": "The ARIA label for hamburger menu button of mobile navigation"
+  "homepage.model.locking.body": {
+    "message": "在转账确认或你取消之前，这些输出不可用。没有任何计时器会自动释放它们。",
+    "description": "Explanation of output reservation"
   },
-  "theme.navbar.mobileSidebarSecondaryMenu.backButtonLabel": {
-    "message": "← 回到主菜单",
-    "description": "The label of the back button to return to main menu, inside the mobile navbar sidebar secondary menu (notably used to display the docs sidebar)"
+  "homepage.model.restore.title": {
+    "message": "助记词恢复的是资金，而非历史记录。",
+    "description": "Bold title for seed restore point"
   },
-  "theme.navbar.mobileDropdown.collapseButton.expandAriaLabel": {
-    "message": "Expand the dropdown",
-    "description": "The ARIA label of the button to expand the mobile dropdown navbar item"
+  "homepage.model.restore.body": {
+    "message": "没有可供重建的公开记录，因此恢复后的钱包余额正确，但交易日志为空。",
+    "description": "Explanation of seed restore behaviour"
   },
-  "theme.navbar.mobileDropdown.collapseButton.collapseAriaLabel": {
-    "message": "Collapse the dropdown",
-    "description": "The ARIA label of the button to collapse the mobile dropdown navbar item"
+  "homepage.index.concepts": {
+    "message": "概念",
+    "description": "Concepts section label in index"
   },
-  "theme.docs.sidebar.expandButtonTitle": {
-    "message": "展开侧边栏",
-    "description": "The ARIA label and title attribute for expand button of doc sidebar"
+  "homepage.index.concepts.mimblewimble": {
+    "message": "MimbleWimble模型"
   },
-  "theme.docs.sidebar.expandButtonAriaLabel": {
-    "message": "展开侧边栏",
-    "description": "The ARIA label and title attribute for expand button of doc sidebar"
+  "homepage.index.concepts.interactive": {
+    "message": "交互式交易"
+  },
+  "homepage.index.concepts.outputs": {
+    "message": "输出与锁定"
+  },
+  "homepage.index.concepts.addresses": {
+    "message": "地址"
+  },
+  "homepage.index.concepts.transports": {
+    "message": "传输方式"
+  },
+  "homepage.index.concepts.proofs": {
+    "message": "支付证明"
+  },
+  "homepage.index.guides": {
+    "message": "指南",
+    "description": "Guides section label in index"
+  },
+  "homepage.index.guides.build": {
+    "message": "构建二进制文件"
+  },
+  "homepage.index.guides.localNetwork": {
+    "message": "运行本地网络"
+  },
+  "homepage.index.guides.firstTransfer": {
+    "message": "第一笔转账"
+  },
+  "homepage.index.guides.mainnetSetup": {
+    "message": "节点与钱包配置"
+  },
+  "homepage.index.guides.walletOps": {
+    "message": "钱包操作"
+  },
+  "homepage.index.guides.backup": {
+    "message": "备份与恢复"
+  },
+  "homepage.index.guides.stuck": {
+    "message": "诊断卡住的交易"
+  },
+  "homepage.index.api": {
+    "message": "API参考",
+    "description": "API reference section label in index"
+  },
+  "homepage.index.api.overview": {
+    "message": "概述"
+  },
+  "homepage.index.api.node": {
+    "message": "Node API"
+  },
+  "homepage.index.api.walletOwner": {
+    "message": "Wallet Owner API"
+  },
+  "homepage.index.api.epicbox": {
+    "message": "Epicbox中继协议"
+  },
+  "homepage.index.api.auth": {
+    "message": "身份验证与TLS"
+  },
+  "homepage.index.examples": {
+    "message": "代码示例",
+    "description": "Code examples section label in index"
+  },
+  "homepage.index.examples.overview": {
+    "message": "概述与配置"
+  },
+  "homepage.index.examples.node": {
+    "message": "节点查询"
+  },
+  "homepage.index.examples.walletConnect": {
+    "message": "钱包：连接与读取"
+  },
+  "homepage.index.examples.sendReceive": {
+    "message": "钱包：发送与接收"
+  },
+  "homepage.index.config": {
+    "message": "配置与CLI",
+    "description": "Config section label in index"
+  },
+  "homepage.index.config.cli": {
+    "message": "CLI"
+  },
+  "homepage.index.config.downloads": {
+    "message": "下载"
+  },
+  "homepage.index.mining": {
+    "message": "挖矿与共识",
+    "description": "Mining section label in index"
+  },
+  "homepage.index.mining.pow": {
+    "message": "工作量证明"
+  },
+  "homepage.index.mining.emission": {
+    "message": "发行与征税"
+  },
+  "homepage.index.mining.migrating": {
+    "message": "从3.x迁移"
+  },
+  "homepage.index.kicker": {
+    "message": "其他",
+    "description": "Kicker above the doc index section"
+  },
+  "homepage.layout.title": {
+    "message": "Epic Cash开发者文档",
+    "description": "Page title for the homepage"
+  },
+  "homepage.layout.description": {
+    "message": "Epic Cash开发者文档：节点与钱包API、epicbox中继协议、共识、挖矿与集成。",
+    "description": "Meta description for the homepage"
+  },
+  "assistant.host.resizePanel": {
+    "message": "调整助手面板大小"
+  },
+  "assistant.host.loading": {
+    "message": "正在加载助手"
+  },
+  "assistant.modal.label": {
+    "message": "提问或搜索文档"
+  },
+  "assistant.modal.inputLabel": {
+    "message": "提问或搜索文档"
+  },
+  "assistant.modal.placeholder": {
+    "message": "提问或搜索…"
+  },
+  "assistant.modal.clear": {
+    "message": "清空输入框"
+  },
+  "assistant.modal.optionsWithQuery": {
+    "message": "向助手提问或打开页面"
+  },
+  "assistant.modal.suggestedQuestions": {
+    "message": "推荐问题"
+  },
+  "assistant.modal.askAi": {
+    "message": "向AI提问：{question}"
+  },
+  "assistant.modal.askAiNote": {
+    "message": "来自本文档的解答及所引用章节"
+  },
+  "assistant.modal.searchMissing": {
+    "message": "搜索索引未加载，当前仅可使用助手。"
+  },
+  "assistant.modal.devIndexMissing": {
+    "message": "关键词搜索需要索引。请先运行npm run build，然后重新加载。"
+  },
+  "assistant.modal.noMatches": {
+    "message": "无匹配页面。请改用助手提问。"
+  },
+  "assistant.modal.seeAll": {
+    "message": "查看\"{query}\"的全部结果"
+  },
+  "assistant.modal.devIndexStale": {
+    "message": "Dev：索引来自上次构建。"
+  },
+  "assistant.shortcut.move": {
+    "message": "移动"
+  },
+  "assistant.shortcut.open": {
+    "message": "打开"
+  },
+  "assistant.shortcut.askDirectly": {
+    "message": "直接提问"
+  },
+  "assistant.shortcut.close": {
+    "message": "关闭"
+  },
+  "assistant.shortcut.send": {
+    "message": "发送"
+  },
+  "assistant.shortcut.newline": {
+    "message": "换行"
+  },
+  "assistant.page.copiedAnnouncement": {
+    "message": "页面已复制为Markdown"
+  },
+  "assistant.page.copyFailedAnnouncement": {
+    "message": "无法复制此页面"
+  },
+  "assistant.page.ask": {
+    "message": "询问此页面"
+  },
+  "assistant.page.copied": {
+    "message": "已复制"
+  },
+  "assistant.page.copyFailed": {
+    "message": "复制失败"
+  },
+  "assistant.page.copy": {
+    "message": "复制页面"
+  },
+  "assistant.markdown.externalLink": {
+    "message": "（在新标签页中打开）"
+  },
+  "assistant.markdown.codeText": {
+    "message": "文本"
+  },
+  "assistant.markdown.copyAfterAnswer": {
+    "message": "回答完成后即可复制"
+  },
+  "assistant.markdown.copyCodeLabel": {
+    "message": "将{language}复制到剪贴板"
+  },
+  "assistant.markdown.copy": {
+    "message": "复制"
+  },
+  "assistant.markdown.copied": {
+    "message": "已复制"
+  },
+  "assistant.error.rate": {
+    "message": "已达到当前提问上限，请几分钟后重试。"
+  },
+  "assistant.error.network": {
+    "message": "连接已断开。"
+  },
+  "assistant.error.unavailable": {
+    "message": "AI助手当前不可用。"
+  },
+  "assistant.error.label": {
+    "message": "错误"
+  },
+  "assistant.error.tryAgain": {
+    "message": "重试"
+  },
+  "assistant.notice.lengthLimit": {
+    "message": "超出{count}字符限制，请尝试缩短内容。"
+  },
+  "assistant.notice.sessionLimit": {
+    "message": "已达到本次会话的提问上限。请重新加载页面以开始新会话，或使用搜索框。"
+  },
+  "assistant.notice.budgetDegraded": {
+    "message": "助手今日额度已用尽，以下为最相关的文档章节。"
+  },
+  "assistant.notice.budgetUnavailable": {
+    "message": "助手今日不可用，搜索框涵盖相同的文档内容。"
+  },
+  "assistant.notice.label": {
+    "message": "提示"
+  },
+  "assistant.notice.sectionLink": {
+    "message": "文档章节{number}"
+  },
+  "assistant.announce.working": {
+    "message": "正在生成回答"
+  },
+  "assistant.announce.limit": {
+    "message": "本次会话已达提问上限"
+  },
+  "assistant.announce.degraded": {
+    "message": "助手今日额度已超限，改为显示文档章节"
+  },
+  "assistant.announce.unavailable": {
+    "message": "助手不可用"
+  },
+  "assistant.announce.stopped": {
+    "message": "回答已停止"
+  },
+  "assistant.announce.failed": {
+    "message": "无法生成答案"
+  },
+  "assistant.announce.connectionLost": {
+    "message": "连接已断开"
+  },
+  "assistant.announce.complete": {
+    "message": "回答完成"
+  },
+  "assistant.announce.completeSource": {
+    "message": "回答完成，1个来源"
+  },
+  "assistant.announce.completeSources": {
+    "message": "回答完成，{count}个来源"
+  },
+  "assistant.panel.dialogLabel": {
+    "message": "Epic文档助手"
+  },
+  "assistant.panel.title": {
+    "message": "文档助手"
+  },
+  "assistant.panel.scopeLive": {
+    "message": "基于Epic开发者文档的回答，并可查询实时链数据和EpicCash代码仓库。回答可能有误，请核对所链接的章节。"
+  },
+  "assistant.panel.scopeDocs": {
+    "message": "基于Epic开发者文档的回答，并已识别您当前所在页面。回答可能有误，请核对所链接的章节。"
+  },
+  "assistant.panel.close": {
+    "message": "关闭助手"
+  },
+  "assistant.panel.conversation": {
+    "message": "与文档助手的对话"
+  },
+  "assistant.panel.emptyLead": {
+    "message": "询问节点、钱包、epicbox、挖矿或API相关问题。"
+  },
+  "assistant.panel.youAsked": {
+    "message": "您的提问："
+  },
+  "assistant.panel.assistantAnswered": {
+    "message": "助手回答："
+  },
+  "assistant.panel.reading": {
+    "message": "正在读取文档"
+  },
+  "assistant.panel.liveDataLabel": {
+    "message": "本回答已查询实时数据"
+  },
+  "assistant.panel.activityUnavailable": {
+    "message": "（不可用）"
+  },
+  "assistant.panel.stopped": {
+    "message": "已停止。以上为已接收内容。"
+  },
+  "assistant.panel.sourcesLabel": {
+    "message": "本回答的来源"
+  },
+  "assistant.panel.sources": {
+    "message": "来源"
+  },
+  "assistant.panel.followups": {
+    "message": "后续建议"
+  },
+  "assistant.panel.composerLabel": {
+    "message": "就Epic Cash开发者文档提问"
+  },
+  "assistant.panel.composerPlaceholder": {
+    "message": "询问Epic相关问题…"
+  },
+  "assistant.panel.composerHint": {
+    "message": "按Enter发送，Shift加Enter换行，Escape关闭。"
+  },
+  "assistant.panel.stopGenerating": {
+    "message": "停止生成"
+  },
+  "assistant.panel.stop": {
+    "message": "停止"
+  },
+  "assistant.panel.sendQuestion": {
+    "message": "发送问题"
+  },
+  "assistant.panel.ask": {
+    "message": "提问"
+  },
+  "assistant.panel.modelLabel": {
+    "message": "回答您问题所用的模型"
+  },
+  "assistant.panel.questionLeft": {
+    "message": "剩余1个问题"
+  },
+  "assistant.panel.questionsLeft": {
+    "message": "还剩{count}个问题"
+  },
+  "assistant.panel.footLive": {
+    "message": "答案可能有误，请以链接页面为准。"
+  },
+  "assistant.panel.footDocs": {
+    "message": "答案由系统生成，可能有误。请以链接页面为准。"
+  },
+  "assistant.model.opus-4-6.note": {
+    "message": "较慢。更擅长编写代码。"
+  },
+  "assistant.model.sonnet-4-6.note": {
+    "message": "快速。最适合查询。"
+  },
+  "assistant.tool.epic_chain_status": {
+    "message": "正在查询实时Epic链"
+  },
+  "assistant.tool.epic_chain_window": {
+    "message": "正在测量近期网络难度"
+  },
+  "assistant.tool.epic_block": {
+    "message": "正在查询Epic区块"
+  },
+  "assistant.tool.epic_mempool": {
+    "message": "正在查询交易池"
+  },
+  "assistant.tool.epic_node_peers": {
+    "message": "正在查询对等节点运行的节点版本"
+  },
+  "assistant.tool.epic_github_releases": {
+    "message": "正在查询EpicCash发布版本"
+  },
+  "assistant.tool.epic_github_activity": {
+    "message": "正在查询EpicCash近期开发动态"
+  },
+  "assistant.tool.epic_github_repo": {
+    "message": "正在查询EpicCash仓库"
+  },
+  "assistant.tool.default": {
+    "message": "正在查询实时数据"
+  },
+  "assistant.suggestion.wrongAddress": {
+    "message": "为什么错误地址不会导致资金丢失？"
+  },
+  "assistant.suggestion.bothOnline": {
+    "message": "为什么Epic转账需要双方同时在线？"
+  },
+  "assistant.suggestion.slate": {
+    "message": "slate是什么，其中包含哪些内容？"
+  },
+  "assistant.suggestion.slateTransport": {
+    "message": "哪些方式可以在两个钱包之间传递slate？"
+  },
+  "assistant.suggestion.hiddenAmounts": {
+    "message": "MimbleWimble如何隐藏金额？"
+  },
+  "assistant.suggestion.lockedBalance": {
+    "message": "发送失败后为什么余额被锁定？"
+  },
+  "assistant.suggestion.privateChain": {
+    "message": "如何在一台机器上运行私有链？"
+  },
+  "assistant.suggestion.usernetMining": {
+    "message": "哪些配置能让usernet链真正开始挖矿？"
+  },
+  "assistant.suggestion.buildWindows": {
+    "message": "如何在Windows上构建节点？"
+  },
+  "assistant.suggestion.mainnetSetup": {
+    "message": "如何在mainnet上搭建节点和钱包？"
+  },
+  "assistant.suggestion.firstTransfer": {
+    "message": "如何完成第一笔转账？"
+  },
+  "assistant.suggestion.backup": {
+    "message": "如何备份钱包，恢复时哪些内容不会被还原？"
+  },
+  "assistant.suggestion.stuck": {
+    "message": "我的交易卡在未确认状态，该怎么办？"
+  },
+  "assistant.suggestion.twoWallets": {
+    "message": "如何在同一台机器上运行两个钱包？"
+  },
+  "assistant.suggestion.ownerApiPython": {
+    "message": "如何通过Owner API从Python打开钱包？"
+  },
+  "assistant.suggestion.spendingMethods": {
+    "message": "哪些Owner API方法可以花费资金？"
+  },
+  "assistant.suggestion.sendSequence": {
+    "message": "发送交易的完整调用序列是什么？"
+  },
+  "assistant.suggestion.encryptedHandshake": {
+    "message": "加密Owner API握手如何工作？"
+  },
+  "assistant.suggestion.credentials": {
+    "message": "每个API接口需要哪种凭据？"
+  },
+  "assistant.suggestion.balance": {
+    "message": "如何读取钱包余额，各数字含义是什么？"
+  },
+  "assistant.suggestion.nodeSync": {
+    "message": "如何检查节点是否已同步？"
+  },
+  "assistant.suggestion.algorithms": {
+    "message": "Epic使用哪些工作量证明算法？"
+  },
+  "assistant.suggestion.reward": {
+    "message": "区块奖励是多少，征收机制如何运作？"
+  },
+  "assistant.suggestion.minerNode": {
+    "message": "如何将矿工指向我的节点？"
+  },
+  "assistant.suggestion.exchange": {
+    "message": "将Epic集成到交易所需要什么？"
+  },
+  "assistant.suggestion.paymentProof": {
+    "message": "如何证明我已向某人付款？"
+  },
+  "assistant.suggestion.ports": {
+    "message": "每个组件开放哪些端口？"
+  },
+  "assistant.suggestion.v4Changes": {
+    "message": "3.x与4.0之间有哪些变化？"
+  },
+  "assistant.suggestion.download": {
+    "message": "在哪里下载钱包，如何验证？"
+  },
+  "theme.colorToggle.title": {
+    "message": "切换到{mode}",
+    "description": "Tooltip for the color mode toggle"
+  },
+  "search.askOrSearch": {
+    "message": "提问或搜索…",
+    "description": "Visible label for the combined assistant and search control"
+  },
+  "search.askOrSearchAriaLabel": {
+    "message": "提问或搜索文档，快捷键{modifier}加K",
+    "description": "Accessible label for the combined assistant and search control"
   },
   "theme.SearchBar.noResultsText": {
-    "message": "没有找到任何文档"
+    "message": "无结果"
   },
   "theme.SearchBar.seeAllOutsideContext": {
-    "message": "查看“{context}”以外的全部结果"
+    "message": "查看\"{context}\"以外的所有结果"
   },
   "theme.SearchBar.searchInContext": {
-    "message": "查看“{context}”以内的全部结果"
-  },
-  "theme.SearchBar.seeAll": {
-    "message": "查看全部结果"
-  },
-  "theme.SearchBar.label": {
-    "message": "搜索",
-    "description": "The ARIA label and placeholder for search button"
-  },
-  "theme.SearchPage.existingResultsTitle": {
-    "message": "“{query}”的搜索结果",
-    "description": "The search page title for non-empty query"
-  },
-  "theme.SearchPage.emptyResultsTitle": {
-    "message": "搜索文档",
-    "description": "The search page title for empty query"
+    "message": "查看\"{context}\"以内的所有结果"
   },
   "theme.SearchPage.searchContext.everywhere": {
-    "message": "所有"
+    "message": "全部范围"
   },
-  "theme.SearchPage.documentsFound.plurals": {
-    "message": "共找到 {count} 篇文档",
-    "description": "Pluralized label for \"{count} documents found\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  "diagram.slateRounds.step1.title": {
+    "message": "发送方构建部分slate",
+    "description": "Slate exchange diagram, step 1 heading"
   },
-  "theme.SearchPage.noResultsText": {
-    "message": "没有找到任何文档",
-    "description": "The paragraph for empty search result"
+  "diagram.slateRounds.step1.body": {
+    "message": "init_send_tx选择输入（input）并写入第一轮数据。tx_lock_outputs随后在本地预留这些输入，此时接收方尚未执行任何操作。",
+    "description": "Slate exchange diagram, step 1 detail. Keep init_send_tx and tx_lock_outputs as written."
   },
-  "theme.ErrorPageContent.tryAgain": {
-    "message": "重试",
-    "description": "The label of the button to try again rendering when the React error boundary captures an error"
+  "diagram.slateRounds.step2.title": {
+    "message": "slate传输至接收方",
+    "description": "Slate exchange diagram, step 2 heading"
   },
-  "theme.common.skipToMainContent": {
-    "message": "跳到主要内容",
-    "description": "The skip to content label used for accessibility, allowing to rapidly navigate to main content with keyboard tab/enter navigation"
+  "diagram.slateRounds.step2.body": {
+    "message": "可通过移动文件、HTTP请求或中继排队消息完成。传输方式是实际中最容易出错的环节。",
+    "description": "Slate exchange diagram, step 2 detail"
   },
-  "theme.tags.tagsPageTitle": {
-    "message": "标签",
-    "description": "The title of the tag list page"
+  "diagram.slateRounds.step3.title": {
+    "message": "接收方完成其部分",
+    "description": "Slate exchange diagram, step 3 heading"
   },
-  "theme.blog.post.plurals": {
-    "message": "{count} 篇博文",
-    "description": "Pluralized label for \"{count} posts\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  "diagram.slateRounds.step3.body": {
+    "message": "receive_tx添加一个输出（output）、其范围证明（range proof）及部分签名，此时slate包含两个参与方。",
+    "description": "Slate exchange diagram, step 3 detail. Keep receive_tx as written."
   },
-  "theme.blog.tagTitle": {
-    "message": "{nPosts} 含有标签「{tagName}」",
-    "description": "The title of the page for a blog tag"
+  "diagram.slateRounds.step4.title": {
+    "message": "slate原路返回",
+    "description": "Slate exchange diagram, step 4 heading"
   },
-  "theme.blog.author.pageTitle": {
-    "message": "{authorName} - {nPosts}",
-    "description": "The title of the page for a blog author"
+  "diagram.slateRounds.step4.body": {
+    "message": "通过epicbox时异步到达，因此发送方也需要运行一个监听器。",
+    "description": "Slate exchange diagram, step 4 detail"
   },
-  "theme.blog.authorsList.pageTitle": {
-    "message": "作者",
-    "description": "The title of the authors page"
+  "diagram.slateRounds.step5.title": {
+    "message": "发送方最终确认并广播",
+    "description": "Slate exchange diagram, step 5 heading"
   },
-  "theme.blog.authorsList.viewAll": {
-    "message": "查看所有作者",
-    "description": "The label of the link targeting the blog authors page"
+  "diagram.slateRounds.step5.body": {
+    "message": "finalize_tx完成聚合签名，post_tx进行广播。直到此时，节点才能看到该交易。",
+    "description": "Slate exchange diagram, step 5 detail. Keep finalize_tx and post_tx as written."
   },
-  "theme.blog.author.noPosts": {
-    "message": "该作者尚未撰写任何文章。",
-    "description": "The text for authors with 0 blog post"
+  "diagram.slateRounds.caption": {
+    "message": "一次转账，两轮交互。直到第05步才有内容上链。",
+    "description": "Caption under the slate exchange diagram"
   },
-  "theme.contentVisibility.unlistedBanner.title": {
-    "message": "未列出页",
-    "description": "The unlisted content banner title"
+  "diagram.slateRounds.senderWallet": {
+    "message": "发送方钱包",
+    "description": "Slate diagram, label on the sending party box"
   },
-  "theme.contentVisibility.unlistedBanner.message": {
-    "message": "此页面未列出。搜索引擎不会对其索引，只有拥有直接链接的用户才能访问。",
-    "description": "The unlisted content banner message"
+  "diagram.slateRounds.holdsInputs": {
+    "message": "持有输入",
+    "description": "Slate diagram, what the sender does. Keep it to three words or so."
   },
-  "theme.contentVisibility.draftBanner.title": {
-    "message": "草稿页",
-    "description": "The draft content banner title"
+  "diagram.slateRounds.signsTwice": {
+    "message": "签名两次",
+    "description": "Slate diagram, what the sender does. Two words if possible."
   },
-  "theme.contentVisibility.draftBanner.message": {
-    "message": "此页面是草稿，仅在开发环境中可见，不会包含在正式版本中。",
-    "description": "The draft content banner message"
+  "diagram.slateRounds.receiverWallet": {
+    "message": "接收方钱包",
+    "description": "Slate diagram, label on the receiving party box"
   },
-  "theme.docs.DocCard.categoryDescription.plurals": {
-    "message": "{count} 个项目",
-    "description": "The default description for a category card in the generated index about how many items this category includes"
+  "diagram.slateRounds.addsOutput": {
+    "message": "添加一个输出",
+    "description": "Slate diagram, what the receiver does. Keep it short."
+  },
+  "diagram.slateRounds.signsOnce": {
+    "message": "签名一次",
+    "description": "Slate diagram, what the receiver does. Two words if possible."
+  },
+  "diagram.slateRounds.roundOne": {
+    "message": "第1轮，一个签名",
+    "description": "Slate diagram, label on the first transport arrow"
+  },
+  "diagram.slateRounds.roundTwo": {
+    "message": "第2轮，两个签名",
+    "description": "Slate diagram, label on the return transport arrow"
+  },
+  "diagram.slateRounds.transports": {
+    "message": "file, http or epicbox",
+    "description": "Slate diagram, the three transports. These are transport names; keep them as written."
+  },
+  "diagram.slateRounds.node": {
+    "message": "节点",
+    "description": "Slate diagram, label on the node box. One word."
+  },
+  "diagram.slateRounds.mempoolThenBlock": {
+    "message": "内存池（mempool），然后进入区块",
+    "description": "Slate diagram, what happens after posting. Keep mempool as written."
+  },
+  "diagram.handshake.step1.title": {
+    "message": "生成密钥对",
+    "description": "Owner API handshake diagram, step 1 heading"
+  },
+  "diagram.handshake.step1.body": {
+    "message": "在客户端生成一个secp256k1密钥对，每次会话使用一次。",
+    "description": "Owner API handshake diagram, step 1 detail. Keep secp256k1 as written."
+  },
+  "diagram.handshake.step2.body": {
+    "message": "发送你的压缩公钥，钱包返回其自身的公钥。这是唯一的未加密调用。",
+    "description": "Owner API handshake diagram, step 2 detail"
+  },
+  "diagram.handshake.step3.title": {
+    "message": "推导共享机密",
+    "description": "Owner API handshake diagram, step 3 heading"
+  },
+  "diagram.handshake.step3.body": {
+    "message": "用你的标量乘以钱包公钥，保留原始x坐标，32字节，不做哈希处理。对其进行哈希是最常见的实现错误。",
+    "description": "Owner API handshake diagram, step 3 detail"
+  },
+  "diagram.handshake.step4.title": {
+    "message": "open_wallet，已加密",
+    "description": "Owner API handshake diagram, step 4 heading. open_wallet is a method name; keep it."
+  },
+  "diagram.handshake.step4.body": {
+    "message": "encrypted_request_v3内的第一个调用。需要钱包密码，返回一个令牌。",
+    "description": "Owner API handshake diagram, step 4 detail. Keep encrypted_request_v3 as written."
+  },
+  "diagram.handshake.step5.title": {
+    "message": "后续所有调用",
+    "description": "Owner API handshake diagram, step 5 heading"
+  },
+  "diagram.handshake.step5.body": {
+    "message": "使用AES-256-GCM，每次生成新的12字节nonce，16字节tag附加在密文之后，令牌置于params中。",
+    "description": "Owner API handshake diagram, step 5 detail. Keep AES-256-GCM and params as written."
+  },
+  "diagram.handshake.caption": {
+    "message": "握手流程，每个会话执行一次。步骤03之后的所有内容均已加密。",
+    "description": "Caption under the Owner API handshake diagram"
+  },
+  "diagram.handshake.yourClient": {
+    "message": "你的客户端",
+    "description": "Handshake diagram, label on the caller lane"
+  },
+  "diagram.handshake.walletPublicKey": {
+    "message": "钱包的公钥",
+    "description": "Handshake diagram, what the wallet sends back"
+  },
+  "diagram.handshake.deriveSecret": {
+    "message": "推导共享机密",
+    "description": "Handshake diagram, the local step the client performs"
+  },
+  "diagram.handshake.encryptedRequest": {
+    "message": "encrypted_request_v3，携带open_wallet",
+    "description": "Handshake diagram, the first encrypted call. Both names are identifiers; keep them."
+  },
+  "diagram.handshake.tokenEncrypted": {
+    "message": "令牌，已加密",
+    "description": "Handshake diagram, what comes back from open_wallet. Two or three words."
+  },
+  "unverified.ariaLabel": {
+    "message": "未验证的声明",
+    "description": "Accessible name of the box marking a claim that has not been confirmed"
+  },
+  "unverified.label": {
+    "message": "未验证",
+    "description": "Badge on the unverified-claim box. One word."
+  },
+  "unverified.toConfirm": {
+    "message": "待确认：",
+    "description": "Lead-in before what would settle an unverified claim"
+  },
+  "toc.navAriaLabel": {
+    "message": "本页内容",
+    "description": "Accessible name of the table of contents landmark"
+  },
+  "toc.heading": {
+    "message": "本页内容",
+    "description": "Visible heading above the table of contents"
+  },
+  "toc.sectionCount.one": {
+    "message": "节",
+    "description": "Noun after the table-of-contents count, when there is exactly one"
+  },
+  "toc.sectionCount.other": {
+    "message": "节",
+    "description": "Noun after the table-of-contents count, when there is more than one"
   }
 }

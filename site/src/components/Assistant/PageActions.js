@@ -1,5 +1,6 @@
 import React, {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import AiMark from './AiMark';
+import {assistantMessage as msg} from './messages';
 import {openAssistant} from './store';
 
 /**
@@ -66,7 +67,7 @@ export default function PageActions() {
     }
 
     setCopied(outcome);
-    announce(outcome === 'done' ? 'Page copied as Markdown' : 'Could not copy this page');
+    announce(outcome === 'done' ? msg.pageCopied() : msg.pageCopyFailed());
 
     window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => setCopied(null), RESET_MS);
@@ -74,7 +75,11 @@ export default function PageActions() {
 
   if (!doc) return null;
 
-  const copyLabel = copied === 'done' ? 'Copied' : copied === 'failed' ? 'Copy failed' : 'Copy page';
+  const copyLabel = copied === 'done'
+    ? msg.pageCopiedLabel()
+    : copied === 'failed'
+      ? msg.pageCopyFailedLabel()
+      : msg.pageCopy();
 
   return (
     <div className="epicPageActions" ref={rootRef} data-epic-page-actions="">
@@ -83,7 +88,7 @@ export default function PageActions() {
         className="epicPageActions-button epicPageActions-ask"
         onClick={() => openAssistant(null, {pageContext: true})}>
         <AiMark className="epicPageActions-mark" />
-        Ask about this page
+        {msg.pageAsk()}
       </button>
 
       {/* State is in the label, not only in a colour change. */}

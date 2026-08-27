@@ -1,0 +1,102 @@
+---
+title: 钱包：连接与读取
+sidebar_label: 钱包：连接与读取
+description: 使用Python完成Epic钱包Owner API v3加密握手并读取余额。
+---
+
+# 钱包：连接与读取
+
+每个Owner API v3调用都在加密信封内传输。客户端获得共享机密后，每个方法都是普通的JSON-RPC调用。
+
+启动API：
+
+```bash
+epic-wallet owner_api
+```
+
+## 握手流程 {/* #the-handshake */}
+
+客户端生成一个secp256k1密钥对，通过`init_secure_api`交换公钥，并将后续每个请求包装在`encrypted_request_v3`中。第一个包装调用是`open_wallet`，它返回后续所有调用所携带的令牌。逐条消息的说明见[Owner API参考](/api/wallet-owner#the-encrypted-handshake)。
+
+<HandshakeTrace />
+
+## 完整客户端 {/* #a-complete-client */}
+
+需要`requests`、`coincurve`和`pycryptodome`。从`examples`目录运行。
+
+<details>
+<summary><code>python/epic_wallet.py</code>，客户端</summary>
+
+```python title="examples/python/epic_wallet.py" file=<rootDir>/examples/python/epic_wallet.py
+```
+
+</details>
+
+使用方法：
+
+```python title="examples/python/balance.py" file=<rootDir>/examples/python/balance.py
+```
+
+```bash
+EPIC_WALLET_PASSWORD=... python python/balance.py
+```
+
+## 读取余额 {/* #reading-a-balance */}
+
+`retrieve_summary_info`返回一个二元数组：数据是否已通过节点验证，以及汇总信息本身。
+
+| 字段 | 含义 |
+| --- | --- |
+| `last_confirmed_height` | 数据对应的区块高度 |
+| `total` | 钱包已知的全部信息 |
+| `amount_currently_spendable` | 当前可发送的金额 |
+| `amount_awaiting_confirmation` | 已接收但确认数不足 |
+| `amount_awaiting_finalization` | 转账仍在进行中的部分 |
+| `amount_locked` | 已预留为您发起的转账的输入 |
+| `amount_immature` | 仍在成熟期内的coinbase输出 |
+
+`total`与`amount_currently_spendable`之间的差额来自[输出（output）与锁定](/concepts/outputs-and-locking)。
+
+:::note[Amounts are strings in JSON]
+
+`u64`的值序列化为字符串，以避免JavaScript数字精度问题。将其解析为整数，除以<Ver k="epicBase" />得到EPIC。
+
+:::
+
+## 列出输出与交易 {/* #listing-outputs-and-transactions */}
+
+`retrieve_outputs`和`retrieve_txs`各自返回一个对象，其中包含`pager`以及记录列表，而非裸数组。需提供`limit`、`offset`和`sort_order`：不设限制时，大型钱包会在单次响应中返回所有记录。
+
+```python title="examples/python/list_paged.py" file=<rootDir>/examples/python/list_paged.py
+```
+
+同一文件中的`every_output`每次翻页遍历整个集合。
+
+```json title="result.Ok"
+{
+  "refresh_from_node": true,
+  "pager": {
+    "records_read": 20,
+    "total_records": 143,
+    "limit": 20,
+    "offset": 0,
+    "sort_order": "desc"
+  },
+  "txs": [{ "...": "TxLogEntry" }]
+}
+```
+
+`retrieve_outputs`与`outputs`相同，以`outputs`替代`txs`。类型为<Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={185} kind="struct" name="RetrieveTxsResult" />，
+<Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={174} kind="struct" name="RetrieveOutputsResult" />
+以及<Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={196} kind="struct" name="Pager" />。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="钱包：发送与接收" to="/examples/send-receive">
+    完整转账、取消操作及支付证明。
+  </Card>
+  <Card title="Owner API参考" to="/api/wallet-owner">
+    所有<Ver k="ownerApiMethods" />方法按功能分组。
+  </Card>
+</CardGrid>

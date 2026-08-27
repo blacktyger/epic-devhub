@@ -1,0 +1,62 @@
+---
+title: 交互式交易
+description: Epic转账由双方共同构建。本文介绍转账的流程、slate（交易协商数据）的内容以及转账失败的原因。
+---
+
+# 交互式交易
+
+Epic转账是一种交换，而非广播。两个钱包来回传递一份称为**slate**（交易协商文档）的文件，各自添加自己那一半的密码学内容，之后才有任何内容上链。
+
+这源于[MimbleWimble模型](/concepts/mimblewimble)中描述的承诺（commitment）方案。接收方的输出（output）承诺（commits to）一个只有接收方知道的盲化因子（blinding factor），而交易的超额签名（excess signature）是双方都必须参与的聚合签名。发送方无法单独完成。
+
+## 转账流程 {/* #the-sequence */}
+
+发送方构建一个部分slate并在本地预留其输入（inputs）。slate通过当前使用的传输方式传送给接收方。接收方添加一个输出（output）和一个部分签名，并以相同方式返回。发送方完成聚合签名，并将最终交易广播到节点。
+
+<SlateRounds />
+
+除`file`外，每种传输方式上的步骤01和02都在单个`send`内完成。步骤01中的预留从发起发送的那一刻起就存在，而非在发送完成时。参见[哪些操作会预留输出](/concepts/outputs-and-locking#what-reserves-outputs)。
+
+**发票流程**颠倒了双方角色。收款方调用`issue_invoice_tx`请求金额，付款方调用`process_invoice_tx`为其提供资金，收款方再调用`finalize_invoice_tx`。密码学机制相同，仅发起方不同。
+
+## 转账失败的原因 {/* #how-transfers-fail */}
+
+失败几乎总是发生在传递环节，而非链上：
+
+- **接收方未在监听。**没有监听器意味着没有第二轮，也没有交易。
+- **中继未能投递。**使用epicbox时，slate会在队列中等待接收方重新连接。该队列有容量限制；参见[投递保证](/api/epicbox#delivery-and-its-limits)。
+- **发送方在两轮之间离线。**接收方已完成其部分并返回了一个没有钱包在等待的slate。在epicbox上，返回阶段需要发送方自己的订阅；参见[对比说明](/concepts/transports#comparison)。
+- **两个钱包对slate版本存在分歧。**参见[slate版本](/concepts/interactive-transactions#slate-versions)。
+
+重试同一笔发送无法解决上述任何问题，因为发送方的输入已承诺给第一次尝试。取消后重新开始。参见[如何释放它们](/concepts/outputs-and-locking#what-releases-them)。
+
+## slate的内容 {/* #what-a-slate-contains */}
+
+slate是JSON格式。`id`是双方用于本次转账的UUID，也是你追踪进行中发送的句柄，务必持久化保存。`num_participants`对于普通转账为2，`participant_data`每一方持有一个条目，包含该方的公开随机数和部分签名。将`participant_data`的长度与`num_participants`进行比较，可判断slate处于哪一轮。条目数较少表示slate仍在发出途中等待接收方，条目数相等表示slate已返回，可以最终确认。
+
+`amount`和`fee`以freemen为单位，手续费由发送方设置。`tx`是正在构建的交易，包含输入、输出和内核（kernels）。`height`是发送方观察到的区块高度，`lock_height`是内核锁定高度。`ttl_cutoff_height`是可选的到期高度，到期后不会释放输出；参见[如何释放它们](/concepts/outputs-and-locking#what-releases-them)。`payment_proof`是可选的支付证明请求；参见[支付证明](/concepts/payment-proofs)。`version_info`携带slate格式版本及发送方希望返回的版本。
+
+字段类型和默认值见[钱包Owner API参考](/api/wallet-owner)。
+
+## Slate版本 {/* #slate-versions */}
+
+当前使用两种格式：V2和V3。V3包含V2没有位置存放的两个字段`ttl_cutoff_height`和`payment_proof`，将V3 slate转换为V2会丢弃这两个字段。哪些传输方式会进行转换，以及因此哪些传输方式支持支付证明，见[对比说明](/concepts/transports#comparison)。
+
+`target_slate_version`请求一种格式。传入2或3。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="输出与锁定" to="/concepts/outputs-and-locking">
+    哪些内容被预留、何时预留以及如何释放。
+  </Card>
+  <Card title="传输方式" to="/concepts/transports">
+    六种移动slate的方式，以及哪些方式可容忍对方离线。
+  </Card>
+  <Card title="发起转账" to="/guides/first-transfer">
+    在本地链上端到端完整演练。
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="exchange" />

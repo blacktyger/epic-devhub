@@ -1,5 +1,8 @@
 import React, {useState, useCallback, useMemo} from 'react';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import {Streamdown} from 'streamdown';
+import {assistantMessage as msg} from './messages';
+import {localiseDocHref} from './locale';
 import 'streamdown/styles.css';
 
 /**
@@ -45,14 +48,14 @@ const SECURITY = {
 };
 
 /** Internal doc links stay in the SPA; anything external opens in a new tab and says so. */
-function AssistantLink({href = '', children, ...rest}) {
+function AssistantLink({href = '', children, locale, ...rest}) {
   const isInternal =
     href.startsWith('/') ||
     href.startsWith('#') ||
     href.startsWith('https://devdocs.epiccash.com');
 
   if (isInternal) {
-    const path = href.replace('https://devdocs.epiccash.com', '') || '/';
+    const path = localiseDocHref(href, locale);
     return (
       <a className="epicChat-link" href={path} {...rest}>
         {children}
@@ -67,7 +70,7 @@ function AssistantLink({href = '', children, ...rest}) {
       rel="noopener noreferrer"
       {...rest}>
       {children}
-      <span className="epicChat-srOnly"> (opens in a new tab)</span>
+      <span className="epicChat-srOnly">{msg.externalLink()}</span>
     </a>
   );
 }
@@ -113,21 +116,21 @@ function CodeBlock({children, className = '', streaming, ...rest}) {
     }
   }, [source]);
 
+  const codeLanguage = language || msg.codeText();
+
   return (
     <div className="epicChat-code" data-language={language || undefined}>
       <div className="epicChat-codeHead">
-        <span className="epicChat-codeLang">{language || 'text'}</span>
+        <span className="epicChat-codeLang">{codeLanguage}</span>
         <button
           type="button"
           className="epicChat-codeCopy"
           onClick={copy}
           disabled={streaming}
           aria-label={
-            streaming
-              ? 'Copy is available once the answer finishes'
-              : `Copy ${language || 'code'} to clipboard`
+            streaming ? msg.copyAfterAnswer() : msg.copyCodeLabel(codeLanguage)
           }>
-          {copied ? 'Copied' : 'Copy'}
+          {copied ? msg.copied() : msg.copy()}
         </button>
       </div>
       <pre className={className} {...rest}>
@@ -146,15 +149,17 @@ function extractText(node) {
 }
 
 export default function Markdown({children, streaming = false, reducedMotion = false}) {
+  const {i18n} = useDocusaurusContext();
+  const locale = i18n.currentLocale;
   const components = useMemo(
     () => ({
-      a: AssistantLink,
+      a: (props) => <AssistantLink {...props} locale={locale} />,
       // Recovers real emphasis semantics; streamdown emits a span by default.
       strong: (props) => <strong {...props} />,
       em: (props) => <em {...props} />,
       pre: (props) => <CodeBlock {...props} streaming={streaming} />,
     }),
-    [streaming],
+    [streaming, locale],
   );
 
   return (

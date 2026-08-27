@@ -1,0 +1,111 @@
+---
+title: Миграция с 3.x
+description: Что изменилось в Epic node 4.x и wallet 4.x и что нужно обновить в интеграции, собранной под 3.x.
+---
+
+# Миграция с 3.x
+
+Текущие релизы: узел **<Ver k="node" />**, кошелёк **<Ver k="wallet" />** и протокол epicbox **<Ver k="epicboxProtocol" />**.
+
+## Изменения API {/* #api-changes */}
+
+### `total_difficulty` — объект {/* #total_difficulty-is-an-object */}
+
+Сложность отслеживается отдельно для каждого алгоритма доказательства работы:
+
+```json
+{
+  "total_difficulty": {
+    "cuckaroo": 0,
+    "cuckatoo": 1234,
+    "randomx": 5678,
+    "progpow": 9012
+  }
+}
+```
+
+### Заголовки блоков описывают доказательства двумя полями {/* #block-headers-describe-proofs-with-two-fields */}
+
+`proof` задаёт название алгоритма, а `solution` — размеченное объединение, форма которого зависит от него. В
+3.x решение хранилось в одном скалярном поле.
+
+### Чтение выходов и транзакций кошелька поддерживает пагинацию {/* #wallet-output-and-transaction-reads-take-pagination */}
+
+`retrieve_outputs` и `retrieve_txs` принимают `limit`, `offset` и `sort_order`. Передавайте их явно.
+
+### `Status` получает поля supply {/* #status-gains-supply-fields */}
+
+`supply` и `max_supply` — суммы в freemen. `blocks_to_next_halving` — количество блоков, при <Src repo="node" path="api/src/types.rs" line={96} />. Шаги эмиссии не являются
+исключительно халвингами; см. [emission](/mining/emission).
+
+### Ядра представлены в двух формах {/* #kernels-appear-in-two-shapes */}
+
+`get_block` возвращает плоское ядро (kernel). `get_kernel` и `get_last_n_kernels` возвращают исходный тип с внешне размеченным
+полем `features`.
+
+## Изменения командной строки {/* #command-line-changes */}
+
+Флаги изменились. `init -h` для текущего каталога теперь `-w`, `scan -h <height>` теперь `-s <height>`, а аргумент `taxes` узла —
+`start_height`. Новые команды кошелька: `export_tx`, `import_tx` и `change_password`, а также `--slate_version` для команд перевода. Все команды и
+флаги описаны в [configuration and CLI](/reference/cli).
+
+Смесь алгоритмов в тестовых сетях задаётся ключом конфигурации, а не флагом командной строки. См.
+[the block policy](/mining/proof-of-work#the-block-policy).
+
+## Тулчейн и сборка {/* #toolchain-and-build */}
+
+Каждый репозиторий фиксирует версию Rust, поэтому достаточно установить rustup — самостоятельно
+фиксировать версию не нужно. Сборка также требует системных пакетов помимо тулчейна Rust; они
+перечислены по платформам в [building from source](/guides/build).
+
+## Изменения хранилища {/* #storage-changes */}
+
+Кошелёк хранит данные в SQLite по пути `db/sqlite/epic.db` в режиме WAL, а его каталог Tor — `wallet_tor`. Всё, что читало
+базу данных кошелька 3.x напрямую, требует переработки. Пути и ключи описаны в [wallet
+configuration](/reference/wallet-config).
+
+## Новое поведение {/* #new-behaviour */}
+
+### Встроенный Tor {/* #bundled-tor */}
+
+Сборка с `--features with-tor` загружает экспертный пакет Tor и проверяет его по зафиксированному дайджесту. Релизные
+сборки не включают эту функцию. См. [what this version does not cover](/start#what-this-version-does-not-cover).
+
+### Epicbox подтверждает доставку {/* #epicbox-acknowledges-delivery */}
+
+Протокол <Ver k="epicboxProtocol" /> добавляет подтверждение `Made` с идентификатором сообщения, поэтому слейт (slate)
+помечается доставленным только после того, как получатель подтверждает его обработку. Совместимость
+с клиентами до версии 3.5.2 сохранена. См. [the protocol](/api/epicbox).
+
+### Подтверждение мемпула после публикации {/* #mempool-confirmation-after-posting */}
+
+После публикации транзакции кошелёк отслеживает мемпул узла и фиксирует отдельное состояние при её
+появлении там. Именно это ожидание объясняет, почему отправка может выглядеть зависшей — см. [the
+send appears to hang](/guides/stuck-transactions#case-3-the-send-appears-to-hang); кроме того, опубликованный перевод выходит из множества, которое принимает
+`cancel_tx`, — см. [cancelling has preconditions](/concepts/outputs-and-locking#cancelling-has-preconditions).
+
+### Реализация релея Epicbox изменилась {/* #the-epicbox-relay-implementation-changed */}
+
+Релей — `EpicCash/epic-epicbox-docker`, Node.js с вспомогательным модулем верификации на Rust. Топология развёртывания и
+хранилище описаны в [the epicbox reference](/api/epicbox).
+
+## Поведение, которое нужно проверить в вашей интеграции {/* #behaviour-to-check-in-your-integration */}
+
+- **`tx_lock_outputs` обязателен** в ручной последовательности отправки. См. [what reserves outputs](/concepts/outputs-and-locking#what-reserves-outputs).
+- **Epicbox конвертирует каждый слейт в V2**, что удаляет запрос доказательства платежа. См. [the
+  transport comparison](/concepts/transports#comparison).
+- **`change_password` удаляет резервную сид-фразу**, если не передан `--remove-backup`.
+- **Значения по умолчанию для валидации синхронизации изменились.** `skip_pow_validation` и `disable_checkpoints` по умолчанию равны
+  `true`, что пропускает доказательство работы для контрольных точек истории, при этом всегда
+  полностью проверяя последние <Ver k="powVerificationThreshold" /> блоков. См. [node and wallet setup](/guides/mainnet-setup).
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="Модель MimbleWimble" to="/concepts/mimblewimble">
+    Краткое объяснение того, почему модель транзакций работает именно так.
+  </Card>
+  <Card title="Wallet Owner API" to="/api/wallet-owner">
+    Поверхность, на которую ориентировано большинство интеграций.
+  </Card>
+</CardGrid>

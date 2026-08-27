@@ -1,0 +1,213 @@
+---
+title: epic-server.toml
+description: Epic节点的完整配置参考，涵盖每个部分和键及其默认值。
+---
+
+# `epic-server.toml`
+
+节点配置文件的完整参考。所示默认值为全新mainnet安装时写入的值。
+
+每个键的修改均需重启才能生效。该文件在启动时读取一次，不支持重新加载信号。
+
+## 文件位置 {/* #where-the-file-lives */}
+
+节点按以下顺序查找配置：
+
+1. `--config_file <path>`（若已指定）。显式路径处文件缺失为致命错误。
+2. 当前工作目录中的`./epic-server.toml`。
+3. `~/.epic/<network>/epic-server.toml`，若不存在则以默认值创建。
+
+`<network>`为`main`、`floo`、`user`或`auto`。
+
+`epic server config`将一个全新的`epic-server.toml`写入当前目录，其路径指向该目录。若文件已存在则拒绝覆盖。
+
+## 加固的起始配置 {/* #a-hardened-starting-point */}
+
+生成的文件包含所有键及其默认值。最小化加固配置与默认值的差异体现在以下键上：
+
+```toml title="epic-server.toml"
+[server]
+# 仅回环地址。如需从其他主机访问，请在前端配置带身份验证的代理。
+api_http_addr = "127.0.0.1:3413"
+api_secret_path = "/home/you/.epic/main/.api_secret"
+
+# 可选，需手动创建：节点不会自动写入此文件。
+foreign_api_secret_path = "/home/you/.epic/main/.foreign_api_secret"
+
+# 保留完整区块历史，不进行剪枝。
+archive_mode = true
+
+# 仅在需要自行验证所有历史工作量证明时，才将这些选项设为 false。
+# skip_pow_validation = true
+# disable_checkpoints = true
+
+[server.p2p_config]
+host = "0.0.0.0"
+port = 3414
+
+[logging]
+log_to_file = true
+file_log_level = "Info"
+```
+
+有关foreign secret，请参阅[身份验证与TLS](/api/authentication)；有关入门指引，请参阅[节点与钱包设置](/guides/mainnet-setup)。
+
+## `[server]` {/* #server */}
+
+| Key | 类型 | Default | 用途 |
+| --- | --- | --- | --- |
+| `db_root` | string | `~/.epic/main/chain_data` | 存放链和对等节点数据库的目录 |
+| `api_http_addr` | `host:port` | <code>127.0.0.1:<Ver k="ports.nodeApi" /></code> | HTTP API的监听地址 |
+| `api_secret_path` | string，可选 | `~/.epic/main/.api_secret` | `/v1`和`/v2/owner`的基本身份验证机密。注释掉则不启用 |
+| `foreign_api_secret_path` | string，可选 | `.foreign_api_secret`，相对路径 | `/v2/foreign`的Basic auth机密。需自行创建该文件。参见[API身份验证](/api/authentication) |
+| `foundation_path` | string | `/usr/share/epic/foundation.json`，Windows上为`.\foundation.json` | 预生成的基金会coinbase数据 |
+| `tls_certificate_file` | string，可选 | unset | PEM证书链。设置后API切换为HTTPS |
+| `tls_certificate_key` | string，可选 | unset | PEM私钥。设置证书时必填 |
+| `chain_type` | enum | `Mainnet` | `Mainnet`, `Floonet`, `UserTesting`, `AutomatedTesting` |
+| `chain_validation_mode` | enum | `Disabled` | `EveryBlock`在每个区块后执行完整链验证 |
+| `archive_mode` | bool，可选 | `false` | `true`保留完整区块历史而不进行裁剪 |
+| `skip_pow_validation` | bool，可选 | `true` | 同步时跳过历史区块的工作量证明验证 |
+| `disable_checkpoints` | bool，可选 | `true` | 允许跳过检查点范围之外的工作量证明。仅当`skip_pow_validation`为true时生效 |
+| `skip_sync_wait` | bool，可选 | `false` | 跳过启动时的同步等待 |
+| `header_sync_timeout` | 秒 | `10` | 等待确认更多区块头存在的超时时间。零或负值将变为10 |
+| `run_tui` | bool，可选 | `false` | 运行终端界面。启用后将禁用stdout日志 |
+| `only_randomx` | bool，可选 | `false` | 在测试网络上强制执行仅RandomX区块策略。参见[区块策略](/mining/proof-of-work#the-block-policy) |
+| `no_progpow` | bool，可选 | `false` | 在测试网络上从区块策略中移除ProgPow。参见[区块策略](/mining/proof-of-work#the-block-policy) |
+| `run_test_miner` | bool，可选 | `false` | 内置矿工，仅支持Cuckoo。挖矿链需要Stratum和外部矿工。参见[运行本地网络](/guides/local-network) |
+| `test_miner_wallet_url` | string，可选 | unset | 接收测试矿工coinbase的钱包监听器。未设置时回退到`http://127.0.0.1:13415` |
+
+两个同步验证密钥的默认值均为`true`，可加快初始同步速度。在距链顶端<Ver k="powVerificationThreshold" />个区块以内，无论这两个密钥如何设置，工作量证明均会被完整验证。每个密钥跳过的内容，请参阅[节点与钱包设置](/guides/mainnet-setup)。
+
+## `[server.p2p_config]` {/* #serverp2p_config */}
+
+| Key | 类型 | Default | 用途 |
+| --- | --- | --- | --- |
+| `host` | IP | `0.0.0.0` | 监听的网络接口。`127.0.0.1`限制为本地 |
+| `port` | u16 | <Ver k="ports.nodeP2p" />，floonet为13414，usernet为23414 | P2P监听端口 |
+| `seeding_type` | enum | `DNSSeed`，usernet上为`None` | `None`、`List`、`DNSSeed`、`Programmatic`。`DNSSeed`在mainnet上查询`node.epiccash.com:3414`，在floonet上查询`floonet.epiccash.com:13414`。参见[网络](/reference/cli#networks)了解何时使用`List` |
+| `seeds` | `ip:port`数组，可选 | 代码中未设置，生成文件中有四个地址 | 使用`seeding_type = "List"`时启用。若设置了该类型但列表为空，则启动失败 |
+| `capabilities` | u32标志位 | `31` | 节点对外公告的能力。见下方位表 |
+| `peer_min_preferred_outbound_count` | u32，可选 | `4` | 节点持续尝试连接的出站对等节点，以及同步状态离开`AwaitingPeers`前必须达到的数量。不在生成的文件中。在私有链上设置`0`，否则[Stratum服务器](/mining/stratum#requesting-work)将拒绝工作 |
+| `peers_allow` | 数组，可选 | unset | 仅连接这些对等节点 |
+| `peers_deny` | 数组，可选 | unset | 从不连接这些对等节点 |
+| `peers_preferred` | 数组，可选 | unset | 优先对等节点，主动拨号连接 |
+| `ban_window` | 秒，可选 | `10800` | 被封禁的对等节点保持封禁状态的时长 |
+| `peer_max_inbound_count` | u32，可选 | `128` | 最大入站对等节点数 |
+| `peer_max_outbound_count` | u32，可选 | `128` | 最大出站对等节点数 |
+| `peer_listener_buffer_count` | u32，可选 | `8` | 入站限制之上的余量，用于辅助引导启动 |
+| `dandelion_peer` | `ip:port`，可选 | unset | 固定的Dandelion中继 |
+| `my_onion_addr` | string，可选 | unset | 本节点自身的洋葱地址 |
+
+生成文件写入的四个地址（<Src repo="node" path="config/src/comments.rs" line={272} />）：
+
+```toml title="epic-server.toml, p2p seeds"
+seeds = ["95.217.197.180:3414","5.161.127.56:3414","5.75.242.4:3414","5.78.71.29:3414"]
+```
+
+能力位：
+
+| 位 | 值 | 含义 |
+| --- | --- | --- |
+| `HEADER_HIST` | 1 | 提供区块头历史 |
+| `TXHASHSET_HIST` | 2 | 提供txhashset历史 |
+| `PEER_LIST` | 4 | 提供对等节点列表 |
+| `TX_KERNEL_HASH` | 8 | 提供内核（kernel）哈希 |
+| `HEADER_FASTSYNC` | 16 | 支持快速区块头同步 |
+| `ONIONSTEM` | 32 | 支持通过洋葱路由传输stem交易 |
+
+默认值31为除`ONIONSTEM`之外的所有位。
+
+## `[server.pool_config]` {/* #serverpool_config */}
+
+| Key | 类型 | Default | 用途 |
+| --- | --- | --- | --- |
+| `accept_fee_base` | u64 | `100000` | 内存池接受交易的每单位交易权重最低手续费 |
+| `max_pool_size` | usize | `50000` | 主池中的最大交易数 |
+| `max_stempool_size` | usize | `50000` | stempool中的最大交易数 |
+| `mineable_max_weight` | usize | `40000`，usernet及自动化测试网络上为150 | 矿工打包进区块的最大总权重 |
+
+## `[server.dandelion_config]` {/* #serverdandelion_config */}
+
+| Key | 类型 | Default | 用途 |
+| --- | --- | --- | --- |
+| `epoch_secs` | u16 | `600` | 一个Dandelion epoch的长度 |
+| `embargo_secs` | u16 | `180` | 若在此时间到期前未见到某笔茎传播交易，则将其蒲公英广播 |
+| `aggregation_secs` | u16 | `30` | 中继前的聚合窗口 |
+| `stem_probability` | u8 percent | `90` | 一个epoch中茎模式的概率 |
+| `always_stem_our_txs` | bool | `true` | 始终对通过自身API提交的交易进行茎传播 |
+
+## `[server.stratum_mining_config]` {/* #serverstratum_mining_config */}
+
+| Key | 类型 | Default | 用途 |
+| --- | --- | --- | --- |
+| `enable_stratum_server` | bool，可选 | 所有网络上均为`false` | 运行Stratum服务器。生成的配置文件无论针对哪个网络，均携带`false` |
+| `stratum_server_addr` | string，可选 | <code>127.0.0.1:<Ver k="ports.stratum" /></code> | Stratum监听地址 |
+| `attempt_time_per_block` | 秒 | `15` | 重新构建区块头前挖矿的持续时间 |
+| `cuckatoo_minimum_share_difficulty` | u64 | `3` | Cuckatoo工作节点的最低份额难度 |
+| `randomx_minimum_share_difficulty` | u64 | `4000`，usertesting上为1 | RandomX工作节点的最低份额难度 |
+| `progpow_minimum_share_difficulty` | u64 | `200000` | ProgPow工作节点的最低份额难度 |
+| `wallet_listener_url` | string | <code>http://127.0.0.1:<Ver k="ports.walletForeign" /></code> | 接收coinbase奖励的钱包监听器 |
+| `burn_reward` | bool | `false` | 丢弃区块奖励而非支付给钱包。仅用于测试 |
+
+保留`[server.stratum_mining_config]`部分并设置`enable_stratum_server = false`以禁用挖矿。有关协议详情，请参阅[Stratum](/mining/stratum)。
+
+## `[server.webhook_config]` {/* #serverwebhook_config */}
+
+| Key | 类型 | Default | 用途 |
+| --- | --- | --- | --- |
+| `tx_received_url` | string，可选 | unset | 从对等节点收到交易时的POST目标 |
+| `header_received_url` | string，可选 | unset | 收到区块头时的POST目标 |
+| `block_received_url` | string，可选 | unset | 收到区块时的POST目标 |
+| `block_accepted_url` | string，可选 | unset | 本节点接受区块（包括重组）时的POST目标 |
+| `nthreads` | u16 | `4` | Webhook 投递的工作线程数 |
+| `timeout` | 秒 | `10` | HTTP请求超时 |
+
+## `[server.tor]` {/* #servertor */}
+
+| Key | 类型 | Default | 用途 |
+| --- | --- | --- | --- |
+| `socks_proxy_addr` | string | `127.0.0.1:9050` | SOCKS代理地址，写入生成的`torrc` |
+| `send_config_dir` | string | `.` | `torrc`、`data/`及洋葱服务地址的目录 |
+
+洋葱茎路由还需要`capabilities`包含`ONIONSTEM`位（值为32），而默认值31不包含该位。
+
+## `[logging]` {/* #logging */}
+
+| Key | 类型 | Default | 用途 |
+| --- | --- | --- | --- |
+| `log_to_stdout` | bool | `true` | 输出到标准输出 |
+| `stdout_log_level` | enum | `Info` | `Error`, `Warning`, `Info`, `Debug`, `Trace` |
+| `log_to_file` | bool | `false` | 输出到文件 |
+| `file_log_level` | enum | `Debug` | 文件日志级别 |
+| `log_file_path` | string | `~/.epic/main/epic-server.log` | 日志文件路径 |
+| `log_file_append` | bool | `true` | 每次运行时追加而非截断 |
+| `log_max_size` | bytes，可选 | `16777216` | 超过此大小时轮转。注释掉以禁用轮转 |
+| `log_max_files` | u32，可选 | `32` | 保留的轮转文件数量 |
+| `tui_running` | bool，可选 | unset | 启动时从`run_tui`设置 |
+
+全新节点不写入日志文件，因为`log_to_file`为`false`，而`log_file_path`已填充。设置`log_to_file = true`可将日志写入磁盘。
+
+## 源码 {/* #source */}
+
+这些值来自配置结构体及其默认值：
+
+- <Src repo="node" path="servers/src/common/types.rs" />用于`[server]`、`[server.webhook_config]`和`[server.tor]`
+- <Src repo="node" path="p2p/src/types.rs" />用于`[server.p2p_config]`
+- <Src repo="node" path="pool/src/types.rs" />用于`[server.pool_config]`和`[server.dandelion_config]`
+- <Src repo="node" path="util/src/logger.rs" line={65} />用于`[logging]`，与钱包共享
+- <Src repo="node" path="config/src/comments.rs" />用于写入磁盘的注释模板
+- <Src repo="node" path="config/src/config.rs" />用于文件发现和路径重写
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="API身份验证与TLS" to="/api/authentication">
+    如何为每个API接口开启身份验证。
+  </Card>
+  <Card title="epic-wallet.toml" to="/reference/wallet-config">
+    钱包的配置文件。
+  </Card>
+  <Card title="CLI 参考" to="/reference/cli">
+    命令、参数、端口与网络。
+  </Card>
+</CardGrid>

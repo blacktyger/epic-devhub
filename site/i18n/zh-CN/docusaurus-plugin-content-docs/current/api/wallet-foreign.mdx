@@ -1,0 +1,40 @@
+---
+title: Wallet Foreign API
+sidebar_label: Wallet Foreign API
+description: Epic钱包监听器JSON-RPC方法，用于slate接收、发票最终确认及挖矿奖励。
+---
+
+# Wallet Foreign API
+
+Foreign API是钱包供他人调用的一侧。发送方将slate（交易协商数据）提交至此，并取回部分签名的slate；付款方的发票在此完成最终确认；挖矿节点向此请求构建支付给本钱包的coinbase输出。
+
+- **端点**：`http://127.0.0.1:3415/v2/foreign`，通过`epic-wallet listen`启动
+- **协议**：JSON-RPC 2.0 over HTTP POST
+- **凭据**：无
+- **默认绑定**：`api_listen_interface`为`127.0.0.1`，`api_listen_port`为<Ver k="ports.walletForeign" />（<Src repo="wallet" path="config/src/types.rs" line={71} />）
+
+此处不支持凭据，因为完成转账的对方是陌生人，必须能够访问该接口。默认绑定为回环地址，因此对方若要通过HTTP访问本钱包，需要扩大监听接口或在其前端部署反向代理，访问限制只能在前端实现。改用[epicbox中继](/api/epicbox)接收则完全不需要开放入站端口。
+
+当`owner_api_include_foreign`为true时，Owner监听器也提供相同的六个方法（<Src repo="wallet" path="controller/src/controller.rs" line={151} />）。
+
+<RpcGroup id="wallet-foreign" />
+
+## 来源 {/* #source */}
+
+- <Src repo="wallet" path="api/src/foreign_rpc.rs" line={65} />定义了这六个方法
+- <Src repo="wallet" path="controller/src/controller.rs" line={209} />是独立监听器
+- <Src repo="wallet" path="libwallet/src/api_impl/foreign.rs" />为其背后的实现
+
+## 下一个 {/* #next */}
+
+<CardGrid>
+  <Card title="交互式交易" to="/concepts/interactive-transactions">
+    两轮交互的内容，以及各方的职责。
+  </Card>
+  <Card title="传输方式" to="/concepts/transports">
+    slate如何到达该接口。
+  </Card>
+  <Card title="身份验证与TLS" to="/api/authentication">
+    每个接口及其所需凭据。
+  </Card>
+</CardGrid>

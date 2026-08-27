@@ -1,0 +1,182 @@
+---
+title: Node API
+description: Epic节点的JSON-RPC接口、各方法所属接口及客户端需处理的响应结构。
+---
+
+# Node API
+
+节点在单个监听器上提供JSON-RPC 2.0服务，默认绑定到`127.0.0.1`端口<Ver k="ports.nodeApi" />，分为两个接口层。
+
+| 接口 | 路径 | 服务 |
+| --- | --- | --- |
+| Owner | `/v2/owner` | 节点管理，八个方法 |
+| Foreign | `/v2/foreign` | 链读取、交易提交、区块模板，十七个方法 |
+
+凭据及哪些端点需要凭据，统一在[身份验证与TLS](/api/authentication)中说明。
+
+同一监听器还在`/v1`下提供REST接口。参见[v1 REST接口](#the-v1-rest-surface)。
+
+## JSON-RPC方法分布 {/* #which-json-rpc-method-lives-where */}
+
+`/v2/owner`仅用于节点管理：
+
+`get_status`, `validate_chain`, `compact_chain`, `get_peers`, `get_connected_peers`, `ban_peer`, `unban_peer`, `get_onion_addresses`.
+
+`/v2/foreign`用于其他所有操作，包括所有链读取和交易提交：
+
+`get_header`, `get_block`, `get_blocks`, `get_tip`, `get_version`, `get_kernel`, `get_last_n_kernels`, `get_outputs`, `get_unspent_outputs`, `get_pmmr_indices`, `get_pool_size`, `get_stempool_size`, `get_unconfirmed_transactions`, `push_transaction`, `get_block_template`, `finalize_block_template`, `submit_block`.
+
+因此，读取区块是Foreign API调用，在默认安装下无需凭据：
+
+```bash
+curl -s -d '{"jsonrpc":"2.0","method":"get_tip","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/foreign
+```
+
+检查同步状态是Owner接口的调用，需要[节点凭据](/api/authentication#the-node-credential)。
+
+## 响应结构 {/* #response-shapes */}
+
+`total_difficulty`是以工作量证明（proof-of-work）算法为键的对象，而非整数：
+
+```json
+{
+  "total_difficulty": {
+    "cuckaroo": 0,
+    "cuckatoo": 1234,
+    "randomx": 5678,
+    "progpow": 9012
+  }
+}
+```
+
+区块头用两个字段描述其证明：`proof`为命名算法的字符串，`solution`为外部标记联合类型，其结构随算法而变。
+
+`Status`以整数EPIC而非freemen表示`supply`和`max_supply`，以区块数表示`blocks_to_next_halving`。奖励步进并非全部为减半；参见[发行](/mining/emission)。
+
+内核（kernel）在不同方法中以两种形式出现。`get_block`返回扁平化形式，而`get_kernel`和`get_last_n_kernels`返回带有外部标记`features`字段的原始类型。两种形式均需处理。
+
+## HTTP挖矿 {/* #mining-over-http */}
+
+Foreign接口提供三步区块提交流程，作为Stratum的替代方案：`get_block_template`、`finalize_block_template`、`submit_block`。该接口为HTTP上的JSON-RPC。参见[Stratum](/mining/stratum)。
+
+## v1 REST接口 {/* #the-v1-rest-surface */}
+
+节点在同一进程、同一端口上，于`/v1`下提供REST服务，于`/v2`下提供JSON-RPC服务。编号代表两种接口风格，而非两代接口：`/v1`注册于<Src repo="node" path="api/src/handlers.rs" line={536} />，`/v2`注册于<Src repo="node" path="api/src/handlers.rs" line={135} />和<Src repo="node" path="api/src/handlers.rs" line={155} />。
+
+区别在于操作名称的位置。
+
+|  | `/v1` | `/v2` |
+| --- | --- | --- |
+| 风格 | REST | JSON-RPC 2.0 |
+| 操作由以下内容命名 | URL路径 | 请求体中的`method`字段 |
+| HTTP动词 | `GET`、`POST`用于变更 | `POST` |
+| URL | 每个操作一个 | `/v2/foreign`, `/v2/owner`, `/v2/tor` |
+| 结果 | 载荷本身 | `result.Ok`内的载荷 |
+| 凭据 | 通过`/v1`前缀进行Basic auth | 每个接口各自独立 |
+
+两个接口返回相同的载荷。`/v2/owner`上的`GET /v1/status`和`get_status`产生相同的响应体，因此[JSON-RPC页面](#full-method-reference)记录了两者的响应结构。
+
+`GET /`、`GET /v1/`和`GET /v2/`从<Src repo="node" path="api/src/handlers.rs" line={446} />返回v1路由列表。
+
+### 路由 {/* #routes */}
+
+HTTP动词以节点路由索引所报告的为准。右列为返回相同内容的JSON-RPC方法及其所属接口层。
+
+<details>
+<summary>每条v1路由及其对应的JSON-RPC方法</summary>
+
+路由器注册了19个模式，其中三个为通配符。
+
+| 路由 | 动词 | JSON-RPC等效方法 |
+| --- | --- | --- |
+| `/v1/` | GET | 无，此为路由索引 |
+| `/v1/status` | GET | `get_status`，owner |
+| `/v1/chain` | GET | `get_tip`，foreign |
+| `/v1/chain/validate` | GET | `validate_chain`，owner |
+| `/v1/chain/compact` | POST | `compact_chain`，owner |
+| `/v1/blocks/<hash\|height>` | GET | `get_block`，foreign |
+| `/v1/headers/<hash\|height\|commit>` | GET | `get_header`，foreign |
+| `/v1/chain/kernels/<excess>?min_height=&max_height=` | GET | `get_kernel`，foreign |
+| `/v1/chain/outputs/byids?id=` | GET | `get_outputs`，foreign |
+| `/v1/chain/outputs/byheight?start_height=&end_height=` | GET | `get_outputs`，foreign |
+| `/v1/txhashset/roots` | GET | 无 |
+| `/v1/txhashset/lastoutputs?n=` | GET | 无 |
+| `/v1/txhashset/lastrangeproofs` | GET | 无 |
+| `/v1/txhashset/lastkernels` | GET | `get_last_n_kernels`，foreign |
+| `/v1/txhashset/outputs?start_index=&max=` | GET | `get_unspent_outputs`，foreign |
+| `/v1/txhashset/merkleproof?n=` | GET | `include_merkle_proof` 在 `get_outputs` 上，foreign |
+| `/v1/pool` | GET | `get_pool_size` 和 `get_stempool_size`，foreign |
+| `/v1/pool/push_tx` | POST | `push_transaction`，foreign |
+| `/v1/peers/all` | GET | `get_peers`，owner |
+| `/v1/peers/connected` | GET | `get_connected_peers`，owner |
+| `/v1/peers/<addr>` | GET | `get_peers` 附带 `peer_addr`，owner |
+| `/v1/peers/<addr>/ban` | POST | `ban_peer`，owner |
+| `/v1/peers/<addr>/unban` | POST | `unban_peer`，owner |
+| `/v1/peers/onion_addresses` | GET | `get_onion_addresses`，owner |
+| `/v1/version` | GET | `get_version`，foreign |
+| `/v1/mining/block_template` | GET | `get_block_template`，foreign |
+| `/v1/kerneldownload` | GET | 无 |
+
+</details>
+
+`/v1`调用，在整个前缀范围内使用节点凭据：
+
+```bash
+curl -s -u epic:$(cat ~/.epic/main/.api_secret) http://127.0.0.1:3413/v1/status
+```
+
+```json
+{
+  "protocol_version": 2,
+  "user_agent": "MW/Epic 4.0.3",
+  "connections": 0,
+  "tip": {
+    "height": 1439,
+    "last_block_pushed": "9abbd80483f9b082a9362ebac0aba5619bdba7cf647cb15f5ed33102faf3cd1b",
+    "prev_block_to_last": "6ceed7ff0ff7da1d44b01dc03189edeb1323bfa6d3625768520dd1a0498a0735",
+    "total_difficulty": {"cuckaroo": 1440, "cuckatoo": 1440, "randomx": 1440, "progpow": 1440}
+  },
+  "sync_status": "no_sync",
+  "supply": 23024,
+  "max_supply": 21000000,
+  "blocks_to_next_halving": 479521
+}
+```
+
+于2026-08-24在高度1439的本地usernet链上捕获。
+
+## 完整方法参考 {/* #full-method-reference */}
+
+<CardGrid>
+  <Card title="链读取" to="/api/node/chain-reads">
+    十个方法。区块、区块头、内核、输出（output）和链顶端。
+  </Card>
+  <Card title="管理" to="/api/node/administration">
+    八个方法。状态、对等节点、验证和压缩。
+  </Card>
+  <Card title="内存池与提交" to="/api/node/mempool">
+    四个方法，其中一个不可逆。
+  </Card>
+  <Card title="区块模板" to="/api/node/block-templates">
+    三个方法。通过HTTP而非Stratum进行挖矿。
+  </Card>
+</CardGrid>
+
+## 来源 {/* #source */}
+
+- <Src repo="node" path="api/src/owner_rpc.rs" line={29} />定义八个Owner API方法
+- <Src repo="node" path="api/src/foreign_rpc.rs" line={37} />定义Foreign API方法
+- <Src repo="node" path="api/src/types.rs" />定义所有响应结构
+- <Src repo="node" path="api/src/auth.rs" />为Basic auth中间件
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="节点与钱包设置" to="/guides/mainnet-setup">
+    启动节点及需要检查的配置项。
+  </Card>
+  <Card title="Stratum" to="/mining/stratum">
+    挖矿套接字协议。
+  </Card>
+</CardGrid>

@@ -2,6 +2,7 @@ import React from 'react';
 import clsx from 'clsx';
 import useIsBrowser from '@docusaurus/useIsBrowser';
 import {useColorMode} from '@docusaurus/theme-common';
+import {translate} from '@docusaurus/Translate';
 
 /**
  * Two-state theme switch.
@@ -31,6 +32,30 @@ export default function ColorModeToggle({className, buttonClassName, value, onCh
   const isBrowser = useIsBrowser();
   const {colorMode} = useColorMode();
   const next = colorMode === 'dark' ? 'light' : 'dark';
+  const nextMode = translate({
+    id: next === 'light' ? 'theme.colorToggle.ariaLabel.mode.light' : 'theme.colorToggle.ariaLabel.mode.dark',
+    message: `${next} mode`,
+  });
+  const currentMode = translate({
+    id: colorMode === 'light' ? 'theme.colorToggle.ariaLabel.mode.light' : 'theme.colorToggle.ariaLabel.mode.dark',
+    message: `${colorMode} mode`,
+  });
+  const title = translate(
+    {
+      id: 'theme.colorToggle.title',
+      message: 'Switch to {mode}',
+      description: 'Tooltip for the color mode toggle',
+    },
+    {mode: nextMode},
+  );
+  const ariaLabel = translate(
+    {
+      id: 'theme.colorToggle.ariaLabel',
+      message: 'Switch to {nextMode}, currently {currentMode}',
+      description: 'The ARIA label for the color mode toggle',
+    },
+    {nextMode, currentMode},
+  );
 
   return (
     <div className={clsx('epicThemeToggle', className)}>
@@ -40,8 +65,8 @@ export default function ColorModeToggle({className, buttonClassName, value, onCh
         // Disabled until hydrated, matching upstream: before that the click has nowhere to go, and a
         // button that looks live and does nothing is worse than one that says it is not ready.
         disabled={!isBrowser}
-        title={`Switch to ${next} mode`}
-        aria-label={`Switch to ${next} mode, currently ${colorMode} mode`}
+        title={title}
+        aria-label={ariaLabel}
         onClick={() => onChange(next)}>
         {/* Shown in dark mode: press for light. */}
         <svg

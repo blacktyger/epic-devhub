@@ -1,0 +1,148 @@
+---
+title: 诊断卡住的交易
+description: 针对未完成的转账、余额异常以及无法花费的输出（output）的处理流程。
+---
+
+# 诊断卡住的交易
+
+未完成的转账会使资金处于以下状态之一：被某笔可取消的转账已预留、未成熟，或等待确认。未完成的转账不会消耗任何价值。
+
+## 首先，对其分类 {/* #first-classify-it */}
+
+```bash
+epic-wallet info
+```
+
+对比各项数值。总额与可花费金额之间的差距说明属于哪种情况。
+
+| 现象 | 原因 | 前往 |
+| --- | --- | --- |
+| 发送后，可花费余额低于总余额 | 转账进行中，输出（output）已预留 | [案例 1](#case-1-outputs-reserved-by-an-in-flight-transfer) |
+| 挖矿后，可花费余额低于总余额 | Coinbase 成熟度 | [案例 2](#case-2-coinbase-maturity) |
+| 发送操作挂起数分钟 | 内存池（mempool）确认等待 | [案例 3](#case-3-the-send-appears-to-hang) |
+| 已发送，但接收方未收到 | 投递失败 | [案例 4](#case-4-the-recipient-never-received-it) |
+| 数据与链不一致 | 本地数据库未更新 | [案例 5](#case-5-local-database-out-of-date) |
+| 已接收，但始终未确认 | 等待发送方 | [案例 6](#case-6-received-but-never-confirmed) |
+
+## 情况1：输出（output）被进行中的转账预留 {/* #case-1-outputs-reserved-by-an-in-flight-transfer */}
+
+```bash
+epic-wallet txs
+```
+
+查找类型为`Sent (Created)`且`Confirmed?`为false的条目，Owner API将其报告为`tx_type: "TxSentCreated"`。每个此类条目都持有输入（input）。不可用金额大于发送金额，因为在交易上链之前，找零输出（output）同样处于未确认状态。
+
+判断对方是否会响应。如果对方暂时离线且预计会回来，等待是正确的做法。如果转账不会完成，则取消它：
+
+```bash
+epic-wallet cancel -i <id>
+```
+
+或通过slate id：
+
+```bash
+epic-wallet cancel -t <slate_id>
+```
+
+取消操作会将已预留的输入返还为可花费状态，并丢弃未确认的找零。余额立即更新。
+
+`cancel`有前置条件，已广播到内存池（mempool）的交易已超出这些条件的适用范围。参见[取消操作的前置条件](/concepts/outputs-and-locking#cancelling-has-preconditions)。
+
+取消后，重新发起一笔新的发送，而不是复用旧的slate。
+
+## 情况2：coinbase成熟度 {/* #case-2-coinbase-maturity */}
+
+挖矿奖励在达到网络规定的成熟深度之前无法花费，mainnet上该深度为<Ver k="coinbaseMaturity" />个区块。参见[发行时序](/mining/emission#timing)。
+
+在达到该深度之前，该金额显示为当前不可花费。
+
+## 情况3：发送操作似乎挂起 {/* #case-3-the-send-appears-to-hang */}
+
+广播交易后，钱包每秒轮询一次节点的内存池，最长持续<Ver k="mempoolWaitMinutes" />分钟，以确认交易已到达，在此期间不打印任何内容。共尝试240次，每次间隔一秒，在`send`（<Src repo="wallet" path="controller/src/command.rs" line={609} />）中、在`finalize`（<Src repo="wallet" path="controller/src/command.rs" line={779} />）中以及在epicbox监听器自身的最终确认路径（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={582} />）中均如此。这些命令背后的Owner API调用会在同等时间窗口内阻塞，因此后端不得在请求线程上运行它们。
+
+等待其完成。如果以`Transaction with slate_id ... not found in mempool after waiting`结束，则表示广播未到达节点。检查节点是否正在运行且已同步，然后参见[情况5](#case-5-local-database-out-of-date)。
+
+## 情况4：接收方未收到 {/* #case-4-the-recipient-never-received-it */}
+
+转账在投递环节失败。需要检查的内容取决于传输方式。
+
+**通过epicbox。**中继会为未连接的接收方排队存储slate。适用两项限制，且较短的那项并非存储过期时限。已存储的slate无论状态如何，<Ver k="epicboxSlateExpiryDays" />天后将被删除。另外，若某接收方反复连接但未确认收到所提供的slate，在经过九次投递尝试后，其全部待处理队列将被丢弃；按默认<Ver k="epicboxChallengeSeconds" />秒的挑战间隔计算，大约需要九分钟。发送方不会收到任何通知，因此应将已接受的发送视为已接受投递，而非已完成投递。参见[投递及其限制](/api/epicbox#delivery-and-its-limits)。
+
+请接收方运行`epic-wallet listen -m epicbox`并保持运行。如果slate仍在队列中，它将会到达。如果已被丢弃，则取消并重新发送。
+
+**通过HTTP。**没有队列。发送时监听器必须处于可达状态。取消并在其恢复后重试。
+
+**无论哪种方式，都要检查钱包版本。**3.x钱包与4.x钱包可能对slate格式存在分歧。
+
+## 情况5：本地数据库未更新 {/* #case-5-local-database-out-of-date */}
+
+如果钱包的数据与链不一致，重建其视图：
+
+```bash
+epic-wallet scan
+```
+
+此操作会根据你的密钥重新扫描链并修复输出（output）集。不会删除记录。
+
+此操作不会清除已锁定的输出，因为锁定是链不感知的本地记录。对于这类输出，请使用`cancel`。
+
+如果重新扫描似乎没有任何效果，请先检查节点的高度。当节点报告的高度低于钱包最后确认的高度时，刷新会被跳过，这正是在节点仍在同步或已被重置时所看到的现象：
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux 和 macOS">
+
+```bash
+curl -s -u epic:$(cat ~/.epic/main/.api_secret) -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/owner
+```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+$secret = (Get-Content "$HOME\.epic\main\.api_secret" -First 1).Trim()
+$body = '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}'
+Invoke-RestMethod -Uri 'http://127.0.0.1:3413/v2/owner' -Method Post `
+  -ContentType 'application/json' -Body $body `
+  -Authentication Basic -Credential (
+    [PSCredential]::new('epic', (ConvertTo-SecureString $secret -AsPlainText -Force))
+  ) -AllowUnencryptedAuthentication
+```
+
+</TabItem>
+</Tabs>
+
+凭据相关内容参见[钱包向节点出示的凭据](/api/authentication#the-credential-the-wallet-presents-to-the-node)。
+
+## 情况6：已接收但从未确认 {/* #case-6-received-but-never-confirmed */}
+
+作为接收方，你已完成自己的环节并返回了slate。最终确认和广播是发送方的步骤，你无法代为执行，因为你不持有他们的密钥。
+
+```bash
+epic-wallet txs
+```
+
+`Received`条目中`Confirmed?`为false，确切表示此情况，`tx_type: "TxReceived"`通过API完成。请联系发送方。
+
+`TxReceived`在确认后保留其类型，因此`confirmed`是唯一能说明情况的字段。`fee`在接收的转账中为空，因为接收方从未设置它。
+
+若要放弃该交易，`cancel`同样适用于`TxReceived`，且仅释放您这一方已预留的部分。
+
+## 若以上均不符合 {/* #if-none-of-these-fit */}
+
+从[Case 5](#case-5-local-database-out-of-date)收集`epic-wallet info`、`epic-wallet txs`以及节点的`get_status`。同时记录您的钱包和节点版本、所用传输方式，以及对方是否运行了监听器。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="输出与锁定" to="/concepts/outputs-and-locking">
+    这些症状背后的状态机。
+  </Card>
+  <Card title="Epicbox delivery" to="/api/epicbox#delivery-and-its-limits">
+    中继保存slate的时长。
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="operate" />

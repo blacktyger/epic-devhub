@@ -1,26 +1,26 @@
 {
   "version.label": {
-    "message": "Next",
+    "message": "Далее",
     "description": "The label for version current"
   },
   "sidebar.docs.category.Concepts": {
-    "message": "Concepts",
+    "message": "Концепции",
     "description": "The label for category 'Concepts' in sidebar 'docs'"
   },
   "sidebar.docs.category.Guides": {
-    "message": "Guides",
+    "message": "Руководства",
     "description": "The label for category 'Guides' in sidebar 'docs'"
   },
   "sidebar.docs.category.Connecting to mainnet": {
-    "message": "Connecting to mainnet",
+    "message": "Подключение к mainnet",
     "description": "The label for category 'Connecting to mainnet' in sidebar 'docs'"
   },
   "sidebar.docs.category.Code examples": {
-    "message": "Code examples",
+    "message": "Примеры кода",
     "description": "The label for category 'Code examples' in sidebar 'docs'"
   },
   "sidebar.docs.category.API reference": {
-    "message": "API reference",
+    "message": "Справочник API",
     "description": "The label for category 'API reference' in sidebar 'docs'"
   },
   "sidebar.docs.category.Node API": {
@@ -32,11 +32,11 @@
     "description": "The label for category 'Wallet Owner API v3' in sidebar 'docs'"
   },
   "sidebar.docs.category.Configuration and CLI": {
-    "message": "Configuration and CLI",
+    "message": "Конфигурация и CLI",
     "description": "The label for category 'Configuration and CLI' in sidebar 'docs'"
   },
   "sidebar.docs.category.Mining and consensus": {
-    "message": "Mining and consensus",
+    "message": "Майнинг и консенсус",
     "description": "The label for category 'Mining and consensus' in sidebar 'docs'"
   }
 }

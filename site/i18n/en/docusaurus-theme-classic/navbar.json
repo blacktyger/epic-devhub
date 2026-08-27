@@ -1,0 +1,38 @@
+{
+  "logo.alt": {
+    "message": "Epic Cash",
+    "description": "The alt text of navbar logo"
+  },
+  "item.label.Start here": {
+    "message": "Start here",
+    "description": "Navbar item with label Start here"
+  },
+  "item.label.Concepts": {
+    "message": "Concepts",
+    "description": "Navbar item with label Concepts"
+  },
+  "item.label.Guides": {
+    "message": "Guides",
+    "description": "Navbar item with label Guides"
+  },
+  "item.label.Examples": {
+    "message": "Examples",
+    "description": "Navbar item with label Examples"
+  },
+  "item.label.API": {
+    "message": "API",
+    "description": "Navbar item with label API"
+  },
+  "item.label.Config & CLI": {
+    "message": "Config & CLI",
+    "description": "Navbar item with label Config & CLI"
+  },
+  "item.label.Mining": {
+    "message": "Mining",
+    "description": "Navbar item with label Mining"
+  },
+  "item.label.Downloads": {
+    "message": "Downloads",
+    "description": "Navbar item with label Downloads"
+  }
+}

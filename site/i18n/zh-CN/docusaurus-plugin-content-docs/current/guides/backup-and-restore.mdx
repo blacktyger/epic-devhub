@@ -1,0 +1,257 @@
+---
+title: 备份与恢复钱包
+sidebar_label: 备份与恢复
+description: Epic钱包的备份内容、如何通过恢复助记词进行恢复，以及恢复操作无法找回的内容。
+---
+
+# 备份与恢复钱包
+
+从助记词恢复只能重建你的**资金**，而非**记录**。
+
+在Bitcoin上，从种子文件重新扫描可以重建完整的交易历史，因为该历史是公开的且与密钥永久关联。在Epic上没有可供重建的公开历史。链上存储的是盲化的承诺（commitment），不含发送方、接收方或可读金额，因此重新扫描只能识别哪些输出（output）属于你，而无法得知它们的来源。
+
+## 需要备份的内容 {/* #what-to-back-up */}
+
+| 项目 | 内容 | 优先级 |
+| --- | --- | --- |
+| 恢复助记词 | 主机密，以单词形式存储 | **关键。** 丢失且无种子文件将导致资金损失 |
+| `wallet_data/wallet.seed` | 相同的机密，以密码加密存储 | **关键**，无密码则对窃贼毫无用处 |
+| `wallet_data/db/sqlite/epic.db` | 交易历史、账户标签、slate消息、支付证明记录 | 重要。无法从其他任何地方恢复 |
+| `wallet_data/saved_txs/` | 已存储的交易对象 | 重要，如果您需要[`repost`](/guides/wallet-operations#repost-a-completed-transfer-that-never-confirmed) |
+| `epic-wallet.toml` | 您的设置 | 便利性。全新的`init`会重新生成默认值 |
+
+可以丢失的文件：`epic-wallet.log`、`wallet_tor/`、`.owner_api_secret`，以及钱包未运行时的SQLite `-wal`和`-shm`文件。
+
+:::warning[`.api_secret` must match the node's]
+
+钱包的`.owner_api_secret`在下次运行时会自动重新生成。其`.api_secret`是钱包向**节点**出示的凭据，删除后节点调用将失败，直到将节点端的值重新复制回来。参见[钱包向节点出示的凭据](/api/authentication#the-credential-the-wallet-presents-to-the-node)。
+
+:::
+
+## 备份{/* #backing-up */}
+
+助记词是你严格需要的唯一内容，由`init`打印一次。若要再次显示：
+
+```bash
+epic-wallet recover
+```
+
+此操作会提示输入密码，解密种子文件并打印助记词。不写入任何内容，也不执行恢复操作。
+
+如需完整备份，请停止钱包并复制整个目录。以下两条命令均以当前日期命名归档文件，恢复章节中会复用相同名称：
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux 和 macOS">
+
+```bash
+# 先停止所有监听器或owner_api进程，确保SQLite未处于写入状态。
+stamp=$(date +%F)
+tar czf "$HOME/epic-wallet-backup-$stamp.tar.gz" \
+  -C ~/.epic/main \
+  wallet_data epic-wallet.toml
+
+# 在信任归档文件之前，先验证其内容是否符合预期。
+tar tzf "$HOME/epic-wallet-backup-$stamp.tar.gz" | head
+```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+# 先停止所有监听器或owner_api进程，确保SQLite未处于写入状态。
+$stamp = Get-Date -Format 'yyyy-MM-dd'
+Compress-Archive -Path "$HOME\.epic\main\wallet_data", "$HOME\.epic\main\epic-wallet.toml" `
+  -DestinationPath "$HOME\epic-wallet-backup-$stamp.zip"
+
+# Verify
+Expand-Archive -Path "$HOME\epic-wallet-backup-$stamp.zip" -DestinationPath "$env:TEMP\verify" -Force
+Get-ChildItem -Recurse "$env:TEMP\verify" | Select-Object -First 10
+```
+
+</TabItem>
+</Tabs>
+
+将助记词和归档文件存放在不同位置。没有密码的归档文件毫无用处；仅凭助记词即可转移资金。在真正需要之前，先按照[恢复完整目录备份](#restoring-a-full-directory-backup)中的步骤将归档文件还原到一个临时目录进行验证。
+
+:::danger[Copy the database only while the wallet is stopped]
+
+SQLite以WAL模式运行。在钱包进程写入期间复制`epic.db`可能产生还原后数据库损坏的归档文件。请先停止`listen`和`owner_api`。
+
+:::
+
+## 从助记词恢复 {/* #restoring-from-a-phrase */}
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux 和 macOS">
+
+```bash
+mkdir -p ~/restored
+cd ~/restored
+epic-wallet init -w -r
+```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$HOME\restored"
+Set-Location "$HOME\restored"
+epic-wallet init -w -r
+```
+
+</TabItem>
+</Tabs>
+
+系统会提示输入助记词，然后设置新密码。助记词在输入时即被验证，因此拼写错误的单词会在钱包创建前被拒绝。
+
+`-w`将钱包放在当前目录下。它是`init`上的一个参数，不接受值，因此`epic-wallet -w . init`无效。若要让后续命令指向`~/.epic/<network>`以外的钱包，可从该目录运行命令，或传入`--current_dir <path>`。
+
+然后重新扫描链以找到你的输出：
+
+```bash
+epic-wallet scan
+epic-wallet info
+```
+
+`init -r`将钱包标记为需要扫描，因此此步骤是必须执行的，而非可选的。扫描完成前，钱包不知道自己拥有任何输出。
+
+:::note[Scanning takes a while and needs a synced node]
+
+扫描过程遍历链，用你的密钥测试各个输出。此操作需要一个完全同步的节点，在mainnet上速度较慢。`-s`可从指定区块高度开始扫描，而非从0开始：
+
+```bash
+epic-wallet scan -s <height>
+```
+
+选择一个不高于产生钱包首个输出的区块的高度。以下任意一种方式均可获得该高度：
+
+- 在仍保有历史记录的设备上，`epic-wallet txs`中最早条目的`confirmation_height`。
+- 钱包创建时的链顶端高度，可从区块浏览器获取。
+- 低于上述两者的某个整数高度。起始高度过低只会增加扫描时间；起始高度高于首个输出则会静默地遗漏该输出，导致余额偏少。
+
+不指定`-s`时，扫描从0开始，这始终是正确的，也始终是最慢的。
+
+:::
+
+## 恢复后无法找回的内容 {/* #what-recovery-does-not-bring-back */}
+
+| 通过`init -r`加`scan`恢复 | 无法恢复 |
+| --- | --- |
+| 属于您种子的所有输出（output） | 交易历史、付款对象及时间 |
+| 正确的可花费余额 | 账户标签，将被自动生成的标签替换 |
+| 花费您所有资产的能力 | 附加在过往转账上的slate消息 |
+| 您的epicbox、支付证明及Tor地址 | 过往转账的支付证明记录 |
+|  | 已存储的交易对象，因此`repost`对旧转账无效 |
+|  | 丢失钱包时正在进行中的任何转账 |
+
+在多台设备上使用相同的恢复助记词不会同步各钱包。每个实例派生相同的密钥，在与已同步节点对比扫描后，能识别相同的当前输出并计算出有效余额。交易日志是本地数据库状态，因此每台设备只记录它参与的转账，一台设备可以显示正确的余额，但缺少另一台设备上记录的转账和状态详情。`scan`修复输出和余额状态，不合并这些记录。
+
+恢复扫描会还原派生路径，因此输出（output）会回到其派生时所属的账户分支。标签不会保留：`default`保留其名称，其余每个找到的路径按扫描发现的顺序依次标记为`account_1`、`account_2`等（<Src repo="wallet" path="libwallet/src/internal/scan.rs" line={512} />）。如需重命名，请先创建所需标签，再通过`self`传输方式转移资金：
+
+```bash
+epic-wallet account            # 列出扫描结果及每个路径
+epic-wallet account -c savings
+epic-wallet -a account_1 send -m self -d savings <amount>
+```
+
+参见[accounts](/concepts/accounts)。
+
+### 进行中的转账无法恢复 {/* #in-flight-transfers-cannot-be-recovered */}
+
+如果一笔转账在钱包丢失时尚未完成构建，则该转账已无法恢复。对方可能仍持有引用你当前所拥有输出的slate，但你这一方没有该交换的任何记录，且已预留输出的状态存在于已丢失的数据库中。
+
+恢复扫描后，这些输出将重新显示为可花费状态。如果对方随后提交了基于这些输出构建的已最终确认交易，则先确认的交易有效，另一笔交易将变为无效。在重新发送前，请与对方确认哪笔尝试是有效的。参见[interactive transactions](/concepts/interactive-transactions)。
+
+## 恢复完整目录备份 {/* #restoring-a-full-directory-backup */}
+
+如果你保留了完整的`wallet_data`目录，请直接还原该目录，而不是从助记词恢复。这样可以同时恢复历史记录、标签、支付证明记录以及资金。将[backing up](#backing-up)中实际创建的归档文件替换进去；文件名中的日期为创建当天的日期。
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux 和 macOS">
+
+```bash
+stamp=2026-08-22        # 正在恢复的归档文件日期
+mkdir -p ~/.epic/main
+tar xzf "$HOME/epic-wallet-backup-$stamp.tar.gz" -C ~/.epic/main
+epic-wallet info
+```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+$stamp = '2026-08-22'   # 正在恢复的归档文件日期
+New-Item -ItemType Directory -Force -Path "$HOME\.epic\main"
+Expand-Archive -Path "$HOME\epic-wallet-backup-$stamp.zip" `
+  -DestinationPath "$HOME\.epic\main" -Force
+epic-wallet info
+```
+
+</TabItem>
+</Tabs>
+
+如果之后数据与链上不一致，运行`epic-wallet scan`重建输出状态。该操作不会影响历史记录。
+
+## 恢复到已有钱包的目录 {/* #recovering-into-a-directory-that-already-has-a-wallet */}
+
+CLI无法执行此操作。`init -r`仍需经过钱包创建流程，而当种子文件已存在时该流程会拒绝执行（<Src repo="wallet" path="impls/src/lifecycle/default.rs" line={188} />），且没有覆盖参数。
+
+请先将现有钱包移至其他位置：
+
+<Tabs groupId="os">
+<TabItem value="linux" label="Linux 和 macOS">
+
+```bash
+mv ~/.epic/main/wallet_data/wallet.seed ~/.epic/main/wallet_data/wallet.seed.old
+epic-wallet init -r
+```
+
+</TabItem>
+<TabItem value="win" label="Windows">
+
+```powershell
+Move-Item "$HOME\.epic\main\wallet_data\wallet.seed" "$HOME\.epic\main\wallet_data\wallet.seed.old"
+epic-wallet init -r
+```
+
+</TabItem>
+</Tabs>
+
+:::danger[Never run `init` without `-r` to "reset" a wallet]
+
+单独执行`init`会生成全新的种子。如果你删除了`wallet_data/`但保留了`epic-wallet.toml`，`init`将继续执行，最终得到一个不含任何资金的空钱包。此后只能通过助记词访问这些资金。
+
+:::
+
+## 修改密码 {/* #changing-your-password */}
+
+```bash
+epic-wallet change_password
+```
+
+种子将使用新密码重新加密。助记词不会改变，因此旧的助记词备份仍然有效。
+
+`change_password`在重新加密前会写入`wallet.seed.bak`，新密码确认后将其删除。传入`--remove-backup`可保留该文件（<Src repo="wallet" path="src/cmd/wallet_args.rs" line={452} />）。确认新密码可用后，请删除保留的备份文件。
+
+## `scan --delete_unconfirmed`是破坏性操作 {/* #scan---delete_unconfirmed-is-destructive */}
+
+单独执行`scan`进行重建。添加`-d`则会删除未确认的输出、解锁已锁定的输出，并删除与之关联的交易日志条目。
+
+适用场景：钱包中存在已预留的输出，其对应转账已失效，且`cancel`无法清除。该操作会删除历史记录。请优先尝试[cancelling individual transfers](/guides/stuck-transactions)。
+
+## 下一步 {/* #next */}
+
+<CardGrid>
+  <Card title="钱包操作" to="/guides/wallet-operations">
+    此操作所保护的命令。
+  </Card>
+  <Card title="卡住的交易" to="/guides/stuck-transactions">
+    在不执行破坏性扫描的情况下清除已预留的输出。
+  </Card>
+  <Card title="CLI 参考" to="/reference/cli">
+    所有命令及参数。
+  </Card>
+</CardGrid>
+
+
+<JourneyNav stage="operate" />

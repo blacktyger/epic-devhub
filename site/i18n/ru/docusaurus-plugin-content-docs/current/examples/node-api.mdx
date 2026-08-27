@@ -1,0 +1,223 @@
+---
+title: Запросы к узлу
+description: Читайте высоту цепочки, блоки, мемпул и пиры из узла Epic с помощью curl и Python.
+---
+
+# Запросы к узлу
+
+Узел использует обычный JSON-RPC 2.0 поверх HTTP POST. Без рукопожатия, без шифрования; учётные
+данные для административной поверхности создаются автоматически.
+
+Каждый вызов определяют два параметра:
+
+- **Какой интерфейс.** `/v2/owner` — администрирование узла. `/v2/foreign` — все операции чтения цепочки плюс
+  отправка транзакций. Разделение описано в [Node API](/api/node#which-json-rpc-method-lives-where).
+- **Двойной конверт.** Ответ содержит JSON-RPC `result`, а внутри него — `Ok` или `Err`. См. [конверт
+  ответа](/api#the-response-envelope).
+
+Учётные данные владельца находятся в `~/.epic/main/.api_secret` (`floo` или `user` для других сетей), имя пользователя —
+литеральная строка `epic`. Вызовы Foreign API не требуют учётных данных. См. [аутентификация](/api/authentication).
+
+Оба клиента принимают `NODE_URL` и `EPIC_NETWORK`, поэтому локальная цепочка из [запустить локальную сеть](/guides/local-network) не
+требует правок. Запускайте их из каталога `examples`:
+
+```bash
+NODE_URL=http://127.0.0.1:23413 EPIC_NETWORK=user python python/epic_node.py
+```
+
+## Полный клиент {/* #a-complete-client */}
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+Требуется `curl` и `jq`.
+
+```bash title="examples/shell/node-status.sh" file=<rootDir>/examples/shell/node-status.sh
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+Требуется `requests`.
+
+```python title="examples/python/epic_node.py" file=<rootDir>/examples/python/epic_node.py
+```
+
+</TabItem>
+</Tabs>
+
+## Статус цепочки {/* #chain-status */}
+
+`get_status` на административной поверхности возвращает высоту блока, суммарную сложность, подключённые пиры
+и состояние синхронизации.
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+curl -s -u "epic:$(cat ~/.epic/main/.api_secret)" \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/owner | jq '.result.Ok'
+```
+
+В Windows PowerShell:
+
+```powershell
+$secret = (Get-Content "$HOME\.epic\main\.api_secret" -Raw).Trim()
+$auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("epic:$secret"))
+$body = '{"jsonrpc":"2.0","method":"get_status","params":[],"id":1}'
+Invoke-RestMethod -Uri 'http://127.0.0.1:3413/v2/owner' -Method Post -Body $body `
+  -ContentType 'application/json' -Headers @{ Authorization = "Basic $auth" }
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python
+status = node_rpc("get_status")
+print(status["tip"]["height"], status["sync_status"], status["connections"])
+```
+
+</TabItem>
+</Tabs>
+
+:::note[`total_difficulty` is an object, not a number]
+
+Epic использует несколько алгоритмов доказательства работы, поэтому сложность отслеживается отдельно
+для каждого алгоритма. См. [доказательство работы](/mining/proof-of-work).
+
+```json
+{"total_difficulty": {"cuckaroo": 0, "cuckatoo": 1234, "randomx": 5678, "progpow": 9012}}
+```
+
+:::
+
+## Получить блок {/* #fetch-a-block */}
+
+`get_block` находится на **foreign**-поверхности и принимает позиционные параметры, `[height, hash, commit]`. Передайте один и
+оставьте остальные null.
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+curl -s -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"get_block","params":[1000000,null,null],"id":1}' \
+  http://127.0.0.1:3413/v2/foreign | jq '.result.Ok.header | {height, timestamp, proof}'
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python
+block = get_block(height=1_000_000)
+header = block["header"]
+print(f"{header['height']} via {header['proof']} at {header['timestamp']}")
+print(f"{len(block['kernels'])} kernels, {len(block['outputs'])} outputs")
+```
+
+</TabItem>
+</Tabs>
+
+Ядра (kernels) представлены в двух формах в зависимости от метода. `get_block` возвращает плоскую форму,
+тогда как `get_kernel` и `get_last_n_kernels` возвращают исходный тип с полем `features` с внешней тегировкой.
+
+## Отслеживать новые блоки {/* #watch-for-new-blocks */}
+
+Node API не имеет механизма подписки, поэтому используется опрос. При целевом времени блока <Ver k="blockTimeSeconds" />
+секунд достаточно опрашивать каждые 10–15 секунд. Опрашивайте `get_tip` на foreign-поверхности — учётные
+данные не требуются.
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash title="examples/shell/watch-blocks.sh" file=<rootDir>/examples/shell/watch-blocks.sh
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+`watch_blocks()` в `epic_node.py` выдаёт каждый новый блок по мере продвижения вершины цепочки:
+
+```python
+for block in watch_blocks():
+    header = block["header"]
+    print(f"block {header['height']} via {header['proof']}")
+```
+
+</TabItem>
+</Tabs>
+
+Для получения событий по модели push вместо опроса см. `[server.webhook_config]` в [epic-server.toml](/reference/node-config) — этот параметр
+позволяет отправлять POST-запросы при событиях транзакции, заголовка и блока.
+
+## Мемпул и пиры {/* #mempool-and-peers */}
+
+Размер мемпула и версия — вызовы foreign-поверхности. Списки пиров — вызовы административной
+поверхности.
+
+<Tabs groupId="lang">
+<TabItem value="cli" label="CLI">
+
+```bash
+rpc() { curl -s -H 'Content-Type: application/json' -d "$1" http://127.0.0.1:3413/v2/foreign; }
+
+rpc '{"jsonrpc":"2.0","method":"get_pool_size","params":[],"id":1}' | jq '.result.Ok'
+rpc '{"jsonrpc":"2.0","method":"get_stempool_size","params":[],"id":1}' | jq '.result.Ok'
+
+curl -s -u "epic:$(cat ~/.epic/main/.api_secret)" -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"get_connected_peers","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/owner | jq '.result.Ok | length'
+```
+
+</TabItem>
+<TabItem value="py" label="Python">
+
+```python
+print("mempool:", node_rpc("get_pool_size", [], surface="foreign"))
+print("stempool:", node_rpc("get_stempool_size", [], surface="foreign"))
+print("peers:", len(node_rpc("get_connected_peers", [], surface="owner")))
+```
+
+</TabItem>
+</Tabs>
+
+### Все остальные методы {/* #every-other-method */}
+
+<details>
+<summary>Полный список методов JSON-RPC по интерфейсам</summary>
+
+`/v2/owner`, определено в <Src repo="node" path="api/src/owner_rpc.rs" line={29} />:
+
+```
+get_status          validate_chain      compact_chain
+get_peers           get_connected_peers ban_peer
+unban_peer          get_onion_addresses
+```
+
+`/v2/foreign`, определено в <Src repo="node" path="api/src/foreign_rpc.rs" line={37} />:
+
+```
+get_header          get_block           get_blocks
+get_tip             get_version         get_kernel
+get_last_n_kernels  get_outputs         get_unspent_outputs
+get_pmmr_indices    get_pool_size       get_stempool_size
+get_unconfirmed_transactions            push_transaction
+get_block_template  finalize_block_template                submit_block
+```
+
+Типы ответов определены в <Src repo="node" path="api/src/types.rs" />.
+
+</details>
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="Кошелёк: подключение и чтение" to="/examples/wallet-connect">
+    Зашифрованное рукопожатие и чтение баланса.
+  </Card>
+  <Card title="Справочник Node API" to="/api/node">
+    Поверхности, формы ответов и разделение методов.
+  </Card>
+</CardGrid>

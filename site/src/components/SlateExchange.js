@@ -1,4 +1,5 @@
 import React, {useEffect, useId, useRef, useState} from 'react';
+import {translate} from '@docusaurus/Translate';
 
 /**
  * The interactive transaction, as five screens: four for a direct HTTP exchange and one for the
@@ -25,76 +26,75 @@ const BACK_Y = 140;
 const RELAY_Y = 76;
 const NODE_Y = 178;
 
-const DIRECT = [
-  {
-    id: 'completes',
-    label: 'It completes',
-    steps: [
-      {text: 'The sender asks the node for the chain tip, builds a slate, and reserves the inputs it will spend.', x: SENDER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'online', node: 'online'},
-      {text: 'The sender posts the slate straight to the receiver\u2019s listener.', x: RECEIVER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'online', node: 'online'},
-      {text: 'The receiver adds their half and signs.', x: RECEIVER_EDGE, y: BACK_Y, halves: 2, sender: 'online', receiver: 'online', node: 'online'},
-      {text: 'The signed slate comes back in the same response.', x: SENDER_EDGE, y: BACK_Y, halves: 2, sender: 'online', receiver: 'online', node: 'online'},
-      {text: 'The sender finalises it and posts it to the node, which broadcasts it.', x: MIDDLE, y: NODE_Y, halves: 2, sender: 'online', receiver: 'online', node: 'online', chain: true},
-    ],
-  },
-  {
-    id: 'receiver-away',
-    label: 'No receiver',
-    steps: [
-      {text: 'The sender builds a slate and reserves the inputs it will spend.', x: SENDER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'offline', node: 'online'},
-      {text: 'Nothing is listening on the receiver\u2019s address, so the request fails.', x: MIDDLE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'offline', node: 'online', stalled: true},
-      {text: 'One half is signed, so there is nothing to finalise.', x: MIDDLE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'offline', node: 'online', stalled: true},
-      {text: 'The reserved inputs stay reserved. Cancelling the transaction returns them.', x: SENDER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'offline', node: 'online', held: true},
-    ],
-  },
-  {
-    id: 'sender-away',
-    label: 'No sender',
-    steps: [
-      {text: 'The sender builds a slate and reserves the inputs it will spend.', x: SENDER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'online', node: 'online'},
-      {text: 'The sender posts the slate straight to the receiver\u2019s listener.', x: RECEIVER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'online', node: 'online'},
-      {text: 'The receiver adds their half and signs.', x: RECEIVER_EDGE, y: BACK_Y, halves: 2, sender: 'offline', receiver: 'online', node: 'online'},
-      {text: 'The sender is gone, so the signed slate has nowhere to return to. Nothing holds it for later.', x: MIDDLE, y: BACK_Y, halves: 2, sender: 'offline', receiver: 'online', node: 'online', stalled: true},
-      {text: 'Nothing finalises, and the reserved inputs stay reserved until the transaction is cancelled.', x: SENDER_EDGE, y: BACK_Y, halves: 2, sender: 'offline', receiver: 'online', node: 'online', stalled: true, held: true},
-    ],
-  },
-  {
-    id: 'no-node',
-    label: 'No node',
-    steps: [
-      {text: 'A wallet reads the chain and posts through a node, so the send contacts one first.', x: SENDER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'online', node: 'offline', stalled: true},
-      {text: 'With none reachable the send stops before a slate exists, so no inputs are reserved.', x: SENDER_EDGE, y: OUT_Y, halves: 0, sender: 'online', receiver: 'online', node: 'offline', stalled: true},
-      {text: 'Point the wallet at a node it can reach, then send again.', x: SENDER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'online', node: 'online'},
-    ],
-  },
-];
+function buildScenarios() {
+  const DIRECT = [
+    {
+      id: 'completes',
+      label: translate({id: 'slateExchange.scenario.completes', message: 'It completes', description: 'Scenario label: successful direct transfer'}),
+      steps: [
+        {text: translate({id: 'slateExchange.completes.step1', message: 'The sender asks the node for the chain tip, builds a slate, and reserves the inputs it will spend.'}), x: SENDER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'online', node: 'online'},
+        {text: translate({id: 'slateExchange.completes.step2', message: 'The sender posts the slate straight to the receiver\u2019s listener.'}), x: RECEIVER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'online', node: 'online'},
+        {text: translate({id: 'slateExchange.completes.step3', message: 'The receiver adds their half and signs.'}), x: RECEIVER_EDGE, y: BACK_Y, halves: 2, sender: 'online', receiver: 'online', node: 'online'},
+        {text: translate({id: 'slateExchange.completes.step4', message: 'The signed slate comes back in the same response.'}), x: SENDER_EDGE, y: BACK_Y, halves: 2, sender: 'online', receiver: 'online', node: 'online'},
+        {text: translate({id: 'slateExchange.completes.step5', message: 'The sender finalises it and posts it to the node, which broadcasts it.'}), x: MIDDLE, y: NODE_Y, halves: 2, sender: 'online', receiver: 'online', node: 'online', chain: true},
+      ],
+    },
+    {
+      id: 'receiver-away',
+      label: translate({id: 'slateExchange.scenario.receiverAway', message: 'No receiver', description: 'Scenario label: receiver offline'}),
+      steps: [
+        {text: translate({id: 'slateExchange.receiverAway.step1', message: 'The sender builds a slate and reserves the inputs it will spend.'}), x: SENDER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'offline', node: 'online'},
+        {text: translate({id: 'slateExchange.receiverAway.step2', message: 'Nothing is listening on the receiver\u2019s address, so the request fails.'}), x: MIDDLE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'offline', node: 'online', stalled: true},
+        {text: translate({id: 'slateExchange.receiverAway.step3', message: 'One half is signed, so there is nothing to finalise.'}), x: MIDDLE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'offline', node: 'online', stalled: true},
+        {text: translate({id: 'slateExchange.receiverAway.step4', message: 'The reserved inputs stay reserved. Cancelling the transaction returns them.'}), x: SENDER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'offline', node: 'online', held: true},
+      ],
+    },
+    {
+      id: 'sender-away',
+      label: translate({id: 'slateExchange.scenario.senderAway', message: 'No sender', description: 'Scenario label: sender offline'}),
+      steps: [
+        {text: translate({id: 'slateExchange.senderAway.step1', message: 'The sender builds a slate and reserves the inputs it will spend.'}), x: SENDER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'online', node: 'online'},
+        {text: translate({id: 'slateExchange.senderAway.step2', message: 'The sender posts the slate straight to the receiver\u2019s listener.'}), x: RECEIVER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'online', node: 'online'},
+        {text: translate({id: 'slateExchange.senderAway.step3', message: 'The receiver adds their half and signs.'}), x: RECEIVER_EDGE, y: BACK_Y, halves: 2, sender: 'offline', receiver: 'online', node: 'online'},
+        {text: translate({id: 'slateExchange.senderAway.step4', message: 'The sender is gone, so the signed slate has nowhere to return to. Nothing holds it for later.'}), x: MIDDLE, y: BACK_Y, halves: 2, sender: 'offline', receiver: 'online', node: 'online', stalled: true},
+        {text: translate({id: 'slateExchange.senderAway.step5', message: 'Nothing finalises, and the reserved inputs stay reserved until the transaction is cancelled.'}), x: SENDER_EDGE, y: BACK_Y, halves: 2, sender: 'offline', receiver: 'online', node: 'online', stalled: true, held: true},
+      ],
+    },
+    {
+      id: 'no-node',
+      label: translate({id: 'slateExchange.scenario.noNode', message: 'No node', description: 'Scenario label: node offline'}),
+      steps: [
+        {text: translate({id: 'slateExchange.noNode.step1', message: 'A wallet reads the chain and posts through a node, so the send contacts one first.'}), x: SENDER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'online', node: 'offline', stalled: true},
+        {text: translate({id: 'slateExchange.noNode.step2', message: 'With none reachable the send stops before a slate exists, so no inputs are reserved.'}), x: SENDER_EDGE, y: OUT_Y, halves: 0, sender: 'online', receiver: 'online', node: 'offline', stalled: true},
+        {text: translate({id: 'slateExchange.noNode.step3', message: 'Point the wallet at a node it can reach, then send again.'}), x: SENDER_EDGE, y: OUT_Y, halves: 1, sender: 'online', receiver: 'online', node: 'online'},
+      ],
+    },
+  ];
 
-const EPICBOX = {
-  id: 'epicbox',
-  label: 'Epicbox',
-  relay: true,
-  steps: [
-    {text: 'The sender encrypts the slate and posts it to the relay.', x: MIDDLE, y: RELAY_Y, halves: 1, sender: 'online', receiver: 'offline', node: 'online', relay: 'holding'},
-    {text: 'The relay holds it until the receiver\u2019s wallet connects. The two wallets never have to be online at the same time.', x: MIDDLE, y: RELAY_Y, halves: 1, sender: 'offline', receiver: 'offline', node: 'online', relay: 'holding'},
-    {text: 'The receiver collects it, adds their half and signs.', x: RECEIVER_EDGE, y: OUT_Y, halves: 2, sender: 'offline', receiver: 'online', node: 'online'},
-    {text: 'The signed slate goes back to the relay, which holds it until the sender returns.', x: MIDDLE, y: RELAY_Y, halves: 2, sender: 'offline', receiver: 'online', node: 'online', relay: 'holding'},
-    // The slate returns to the sender before it reaches the node, and this step exists to show that.
-    // It used to jump from the relay straight down to the node, which drew a path that does not
-    // exist: only the sender can finalise, because only the sender holds the other half of the
-    // signature, so the slate has to be back in the sending wallet first.
-    {text: 'The sender comes back online and collects the signed slate from the relay.', x: SENDER_EDGE, y: BACK_Y, halves: 2, sender: 'online', receiver: 'offline', node: 'online'},
-    {text: 'The sender finalises it and posts it to the node, which broadcasts it.', x: MIDDLE, y: NODE_Y, halves: 2, sender: 'online', receiver: 'offline', node: 'online', chain: true},
-    {text: 'Confirmations bury the output, and the receiver can spend it.', x: MIDDLE, y: NODE_Y, halves: 2, sender: 'online', receiver: 'online', node: 'online', chain: true, confirmed: true},
-  ],
-};
+  const EPICBOX = {
+    id: 'epicbox',
+    label: 'Epicbox',
+    relay: true,
+    steps: [
+      {text: translate({id: 'slateExchange.epicbox.step1', message: 'The sender encrypts the slate and posts it to the relay.'}), x: MIDDLE, y: RELAY_Y, halves: 1, sender: 'online', receiver: 'offline', node: 'online', relay: 'holding'},
+      {text: translate({id: 'slateExchange.epicbox.step2', message: 'The relay holds it until the receiver\u2019s wallet connects. The two wallets never have to be online at the same time.'}), x: MIDDLE, y: RELAY_Y, halves: 1, sender: 'offline', receiver: 'offline', node: 'online', relay: 'holding'},
+      {text: translate({id: 'slateExchange.epicbox.step3', message: 'The receiver collects it, adds their half and signs.'}), x: RECEIVER_EDGE, y: OUT_Y, halves: 2, sender: 'offline', receiver: 'online', node: 'online'},
+      {text: translate({id: 'slateExchange.epicbox.step4', message: 'The signed slate goes back to the relay, which holds it until the sender returns.'}), x: MIDDLE, y: RELAY_Y, halves: 2, sender: 'offline', receiver: 'online', node: 'online', relay: 'holding'},
+      {text: translate({id: 'slateExchange.epicbox.step5', message: 'The sender comes back online and collects the signed slate from the relay.'}), x: SENDER_EDGE, y: BACK_Y, halves: 2, sender: 'online', receiver: 'offline', node: 'online'},
+      {text: translate({id: 'slateExchange.epicbox.step6', message: 'The sender finalises it and posts it to the node, which broadcasts it.'}), x: MIDDLE, y: NODE_Y, halves: 2, sender: 'online', receiver: 'offline', node: 'online', chain: true},
+      {text: translate({id: 'slateExchange.epicbox.step7', message: 'Confirmations bury the output, and the receiver can spend it.'}), x: MIDDLE, y: NODE_Y, halves: 2, sender: 'online', receiver: 'online', node: 'online', chain: true, confirmed: true},
+    ],
+  };
 
-const SCENARIOS = [...DIRECT, EPICBOX];
+  return [...DIRECT, EPICBOX];
+}
 
 const HOLD_MS = 1800;
 const SCENARIO_HOLD_MS = 5200;
 const SWIPE_PX = 40;
 
 export function SlateExchange() {
+  const SCENARIOS = buildScenarios();
   const [index, setIndex] = useState(0);
   const [stepIndex, setStepIndex] = useState(0);
   // One switch: click the area to stop, click again to start.
@@ -104,6 +104,8 @@ export function SlateExchange() {
   const dotRefs = useRef({});
   const dragX = useRef(null);
   const baseId = useId();
+  const scenariosRef = useRef(SCENARIOS);
+  scenariosRef.current = SCENARIOS;
 
   const scenario = SCENARIOS[index];
   const step = scenario.steps[Math.min(stepIndex, scenario.steps.length - 1)];
@@ -133,7 +135,7 @@ export function SlateExchange() {
           setStepIndex((i) => i + 1);
           return;
         }
-        setIndex((i) => (i + 1) % SCENARIOS.length);
+        setIndex((i) => (i + 1) % scenariosRef.current.length);
         setStepIndex(0);
       },
       isLast ? SCENARIO_HOLD_MS : HOLD_MS,
@@ -172,6 +174,27 @@ export function SlateExchange() {
 
   const panelId = `${baseId}-panel`;
   const viaRelay = Boolean(scenario.relay);
+
+  const senderLabel = translate({id: 'slateExchange.label.sender', message: 'Sender', description: 'Label for the sender in the SVG diagram'});
+  const receiverLabel = translate({id: 'slateExchange.label.receiver', message: 'Receiver', description: 'Label for the receiver in the SVG diagram'});
+  const relayLabel = translate({id: 'slateExchange.label.epicboxRelay', message: 'Epicbox relay', description: 'Label for the epicbox relay in the SVG diagram'});
+  const holdingLabel = translate({id: 'slateExchange.label.holdingSlate', message: 'holding the slate', description: 'Relay sub-label when holding'});
+  const idleLabel = translate({id: 'slateExchange.label.idle', message: 'idle', description: 'Relay sub-label when idle'});
+  const inputsReservedLabel = translate({id: 'slateExchange.label.inputsReserved', message: 'inputs reserved', description: 'Sender sub-label when inputs are reserved'});
+  const playLabel = translate({id: 'slateExchange.label.play', message: 'Play', description: 'Play button label'});
+  const pauseLabel = translate({id: 'slateExchange.label.pause', message: 'Pause', description: 'Pause button label'});
+  const outcomeAriaLabel = translate({id: 'slateExchange.label.transferOutcome', message: 'Transfer outcome', description: 'Aria label for the scenario dot tabs'});
+  const onlineLabel = translate({id: 'slateExchange.status.online', message: 'online', description: 'Online status shown in the SVG diagram'});
+  const offlineLabel = translate({id: 'slateExchange.status.offline', message: 'offline', description: 'Offline status shown in the SVG diagram'});
+  const nodeLabel = translate({id: 'slateExchange.label.node', message: 'Node', description: 'Node label in the SVG diagram'});
+  const liveStep = translate(
+    {
+      id: 'slateExchange.liveStep',
+      message: '{scenario}. Step {current} of {total}. {step}',
+      description: 'Live announcement for the active transfer-diagram step',
+    },
+    {scenario: scenario.label, current: stepIndex + 1, total: scenario.steps.length, step: step.text},
+  );
 
   return (
     <div className="slateExchange" ref={rootRef}>
@@ -220,9 +243,9 @@ export function SlateExchange() {
             <g className={`seRelay${step.relay === 'holding' ? ' isHolding' : ''}`}>
               <rect x="305" y="14" width="150" height="44" />
               <circle className="sePartyLamp" cx="319" cy="28" r="3.5" />
-              <text x="380" y="34" className="seLabel seRelayLabel">Epicbox relay</text>
+              <text x="380" y="34" className="seLabel seRelayLabel">{relayLabel}</text>
               <text x="380" y="50" className="seSub">
-                {step.relay === 'holding' ? 'holding the slate' : 'idle'}
+                {step.relay === 'holding' ? holdingLabel : idleLabel}
               </text>
             </g>
           ) : null}
@@ -230,18 +253,18 @@ export function SlateExchange() {
           <g className={`seParty is-${step.sender}${step.held ? ' isHeld' : ''}`}>
             <rect x="30" y="80" width="130" height="84" />
             <circle className="sePartyLamp" cx="44" cy="94" r="3.5" />
-            <text x="95" y="118" className="seLabel">Sender</text>
+            <text x="95" y="118" className="seLabel">{senderLabel}</text>
             <text x="95" y="138" className="seSub">
-              {step.held ? 'inputs reserved' : step.sender}
+              {step.held ? inputsReservedLabel : step.sender === 'online' ? onlineLabel : offlineLabel}
             </text>
           </g>
 
           <g className={`seParty is-${step.receiver}`}>
             <rect x="600" y="80" width="130" height="84" />
             <circle className="sePartyLamp" cx="614" cy="94" r="3.5" />
-            <text x="665" y="118" className="seLabel">Receiver</text>
+            <text x="665" y="118" className="seLabel">{receiverLabel}</text>
             <text x="665" y="138" className="seSub">
-              {step.receiver}
+              {step.receiver === 'online' ? onlineLabel : offlineLabel}
             </text>
           </g>
 
@@ -249,7 +272,7 @@ export function SlateExchange() {
             <rect x="305" y="196" width="150" height="46" />
             <circle className="seNodeLamp" cx="319" cy="212" r="3.5" />
             <text x="333" y="216" className="seSub seNodeLabel">
-              Node {step.node}
+              {nodeLabel} {step.node === 'online' ? onlineLabel : offlineLabel}
             </text>
             <g className="seNodeBlocks">
               <rect x="333" y="224" width="13" height="9" />
@@ -284,7 +307,7 @@ export function SlateExchange() {
       <ol className="seList">
         {scenario.steps.map((item, i) => (
           <li
-            key={item.text}
+            key={i}
             className={`seListItem${i === stepIndex ? ' isCurrent' : ''}${
               i < stepIndex ? ' isPast' : ''
             }`}>
@@ -303,7 +326,7 @@ export function SlateExchange() {
       </ol>
 
       <p className="epicSrOnly" aria-live="polite">
-        {scenario.label}. Step {stepIndex + 1} of {scenario.steps.length}. {step.text}
+        {liveStep}
       </p>
 
       <div className="seControls">
@@ -315,10 +338,10 @@ export function SlateExchange() {
           <svg className="sePlayIcon" viewBox="0 0 12 12" aria-hidden="true">
             {paused ? <path d="M3 2l7 4-7 4z" /> : <path d="M3.5 2h2v8h-2zM6.5 2h2v8h-2z" />}
           </svg>
-          <span>{paused ? 'Play' : 'Pause'}</span>
+          <span>{paused ? playLabel : pauseLabel}</span>
         </button>
 
-        <div className="seDots" role="tablist" aria-label="Transfer outcome" onKeyDown={onKeyDown}>
+        <div className="seDots" role="tablist" aria-label={outcomeAriaLabel} onKeyDown={onKeyDown}>
           {SCENARIOS.map((item, i) => (
             <button
               key={item.id}
