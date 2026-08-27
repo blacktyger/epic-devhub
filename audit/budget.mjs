@@ -95,15 +95,49 @@ if (htmlFiles.length === 0) {
   process.exit(1);
 }
 
-// The shared payload is the intersection of what every page declares, so a page that happens to
-// pull something extra cannot inflate the shared figure.
-let shared = null;
-for (const file of htmlFiles) {
-  const refs = declaredAssets(await fs.readFile(file, 'utf8'));
-  if (refs.size === 0) continue;
-  shared = shared === null ? refs : new Set([...shared].filter((r) => refs.has(r)));
+const rel = (f) => path.relative(BUILD, f).replace(/\\/g, '/');
+
+/**
+ * Locale roots, and why everything below is measured per locale.
+ *
+ * A localised build is a complete site per locale: `build/` for the default and `build/<locale>/` for
+ * each other, each with its own HTML, its own `assets/js` and its own copy of the fonts.
+ *
+ * Measuring the whole tree as one site produced four failures on 2026-08-27, none of which was a
+ * regression in the site:
+ *
+ *   - The shared payload is the intersection of what every page declares. An English page names
+ *     `assets/js/main.4c67b477.js` and a Russian page names `ru/assets/js/main.f4776a60.js`, so the
+ *     intersection across locales was empty. `sharedGzip` silently measured almost nothing, which is
+ *     a false pass on the one figure that gates what every reader downloads.
+ *   - With the main bundle no longer in `shared`, all three locales' copies of it fell into the route
+ *     chunk bucket and were held against the 64 kB per-chunk ceiling at roughly 152 kB each.
+ *   - The two font files exist in six directories, so the font total read 636 kB where a reader
+ *     fetches 212 kB.
+ *
+ * A reader loads one locale, so the honest figure is per locale and the gate is the worst of them.
+ * That fixes all four without moving a ceiling, and restores the shared-payload gate.
+ */
+async function localeRoots() {
+  const roots = [''];
+  for (const entry of await fs.readdir(BUILD, {withFileTypes: true})) {
+    if (!entry.isDirectory()) continue;
+    try {
+      await fs.access(path.join(BUILD, entry.name, 'assets', 'js'));
+      roots.push(entry.name);
+    } catch {
+      // Not a locale root, just a directory of pages.
+    }
+  }
+  return roots;
 }
-shared ??= new Set();
+
+const ROOTS = await localeRoots();
+const NESTED = ROOTS.filter(Boolean);
+// The default locale owns everything not claimed by a nested root, so its own files are the remainder.
+const localeOf = (relative) =>
+  NESTED.find((r) => relative === r || relative.startsWith(`${r}/`)) ?? '';
+const inLocale = (f, locale) => localeOf(rel(f)) === locale;
 
 const sizeOf = async (relative) => {
   try {
@@ -113,23 +147,65 @@ const sizeOf = async (relative) => {
   }
 };
 
-const sharedDetail = [];
-let sharedTotal = 0;
-for (const ref of [...shared].sort()) {
-  const bytes = await sizeOf(ref);
-  sharedTotal += bytes;
-  sharedDetail.push({file: ref, gzip: bytes});
+// Per locale: the shared payload every one of its pages declares, and the fonts it ships.
+const perLocale = [];
+for (const locale of ROOTS) {
+  const pages = htmlFiles.filter((f) => inLocale(f, locale));
+  let shared = null;
+  for (const file of pages) {
+    const refs = declaredAssets(await fs.readFile(file, 'utf8'));
+    if (refs.size === 0) continue;
+    shared = shared === null ? refs : new Set([...shared].filter((r) => refs.has(r)));
+  }
+  shared ??= new Set();
+
+  const detail = [];
+  let total = 0;
+  for (const ref of [...shared].sort()) {
+    const bytes = await sizeOf(ref);
+    total += bytes;
+    detail.push({file: ref, gzip: bytes});
+  }
+
+  const fonts = files.filter((f) => inLocale(f, locale) && /\.(woff2?|ttf|otf|eot)$/i.test(f));
+  let fontBytes = 0;
+  for (const f of fonts) fontBytes += (await fs.stat(f)).size;
+
+  perLocale.push({
+    locale: locale || '(default)',
+    pages: pages.length,
+    shared,
+    sharedGzip: total,
+    sharedFiles: detail,
+    fontCount: fonts.length,
+    fontBytes,
+  });
 }
 
-// Route chunks: everything under assets/js that is not part of the shared payload.
+// Gate the worst locale on each metric. They are close together in practice, and taking the worst
+// means a regression in one language cannot hide behind the others.
+const worstShared = perLocale.reduce((a, b) => (b.sharedGzip > a.sharedGzip ? b : a));
+const worstFonts = perLocale.reduce((a, b) => (b.fontBytes > a.fontBytes ? b : a));
+const sharedTotal = worstShared.sharedGzip;
+const sharedDetail = worstShared.sharedFiles;
+const fontTotal = worstFonts.fontBytes;
+const fontFiles = files.filter(
+  (f) => inLocale(f, worstFonts.locale === '(default)' ? '' : worstFonts.locale)
+    && /\.(woff2?|ttf|otf|eot)$/i.test(f),
+);
+
+// Route chunks: every assets/js file that is not part of its own locale's shared payload. Union of
+// the per-locale shared sets, so each locale's main bundle is excluded from the chunk bucket rather
+// than only the default locale's.
+const sharedEverywhere = new Set(perLocale.flatMap((l) => [...l.shared]));
 const chunkFiles = files.filter(
   (f) =>
     /[\\/]assets[\\/]js[\\/].+\.js$/.test(f) &&
-    ![...shared].some((s) => f.endsWith(s.replace(/\//g, path.sep))),
+    ![...sharedEverywhere].some((s) => f.endsWith(s.replace(/\//g, path.sep))),
 );
 const allChunks = [];
 for (const f of chunkFiles) {
-  allChunks.push({file: path.relative(BUILD, f).replace(/\\/g, '/'), gzip: gzip(await fs.readFile(f))});
+  allChunks.push({file: rel(f), gzip: gzip(await fs.readFile(f))});
 }
 allChunks.sort((a, b) => b.gzip - a.gzip);
 
@@ -184,10 +260,7 @@ function budgetFileNames() {
   }
 }
 
-// Fonts.
-const fontFiles = files.filter((f) => /\.(woff2?|ttf|otf|eot)$/i.test(f));
-let fontTotal = 0;
-for (const f of fontFiles) fontTotal += (await fs.stat(f)).size;
+// Fonts are measured per locale above; fontTotal and fontFiles are the worst locale's.
 
 // Informational only.
 let buildTotal = 0;
@@ -196,11 +269,20 @@ for (const f of files) buildTotal += (await fs.stat(f)).size;
 const measured = {
   sharedGzip: sharedTotal,
   sharedFiles: sharedDetail,
+  sharedWorstLocale: worstShared.locale,
+  perLocale: perLocale.map(({locale, pages, sharedGzip, fontCount, fontBytes}) => ({
+    locale,
+    pages,
+    sharedGzip,
+    fontCount,
+    fontBytes,
+  })),
   topChunks: chunks.slice(0, TRACKED_CHUNKS),
   chunkCount: chunks.length,
   onDemandChunks,
   fontBytes: fontTotal,
   fontCount: fontFiles.length,
+  fontWorstLocale: worstFonts.locale,
   informational: {
     buildBytes: buildTotal,
     pageCount: htmlFiles.length,
@@ -215,6 +297,7 @@ if (UPDATE) {
       'Ceilings in gzip bytes, written by "node budget.mjs --update" with 10% headroom.',
       'sharedGzip is the payload every page declares: webpack runtime, main bundle, stylesheet.',
       'chunkGzip caps any single route chunk, so one heavy page cannot hide behind an average.',
+      'Every figure is measured per locale and gates the worst locale, because a reader loads one.',
       'Raise a ceiling deliberately and say why in the commit. Do not raise it to make CI pass.',
     ],
     sharedGzip: limit(sharedTotal),
@@ -267,8 +350,13 @@ await fs.writeFile(
   JSON.stringify({measured, budget, over}, null, 2),
 );
 
-console.log(`shared first-load: ${kb(sharedTotal)} / ${kb(budget.sharedGzip)}`);
+console.log(`shared first-load: ${kb(sharedTotal)} / ${kb(budget.sharedGzip)}  (worst locale: ${worstShared.locale})`);
 for (const f of sharedDetail) console.log(`    ${f.file}  ${kb(f.gzip)}`);
+if (perLocale.length > 1) {
+  for (const l of perLocale) {
+    console.log(`    ${l.locale.padEnd(11)} shared ${kb(l.sharedGzip).padStart(9)}  fonts ${kb(l.fontBytes).padStart(9)} in ${l.fontCount} files  ${l.pages} pages`);
+  }
+}
 console.log(`route chunks: ${chunks.length}, largest ${kb(chunks[0]?.gzip ?? 0)} / ${kb(budget.chunkGzip)}`);
 for (const c of measured.topChunks) console.log(`    ${c.file}  ${kb(c.gzip)}`);
 if (onDemandChunks.length) {
@@ -277,7 +365,7 @@ if (onDemandChunks.length) {
   );
   for (const c of onDemandChunks) console.log(`    ${c.file}  ${kb(c.gzip)}  (fetched only on interaction)`);
 }
-console.log(`fonts: ${fontFiles.length} files, ${kb(fontTotal)} / ${kb(budget.fontBytes)}`);
+console.log(`fonts: ${fontFiles.length} files, ${kb(fontTotal)} / ${kb(budget.fontBytes)}  (worst locale: ${worstFonts.locale})`);
 console.log(`build output (not gated): ${kb(buildTotal)} across ${htmlFiles.length} pages`);
 
 if (over.length === 0) {

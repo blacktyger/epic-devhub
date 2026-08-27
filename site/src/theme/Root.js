@@ -58,7 +58,16 @@ function LocalePreference() {
     document.addEventListener('click', onLocaleChoice, true);
 
     const baseUrl = siteConfig.baseUrl || '/';
-    const atRoot = window.location.pathname === baseUrl;
+    // A localised build carries the locale in baseUrl: on the Russian site it is "/ru/", not "/".
+    // Comparing the pathname against it therefore made every locale's landing page look like the
+    // site root, and the redirect below then computed its way back to the page it was already on,
+    // which location.replace turns into an endless reload. Measured on 2026-08-27: /ru/ navigated
+    // 73 times in 8 seconds and /zh-CN/ 62, while / and /ru/start were stable.
+    //
+    // Restricting detection to the default locale's root is also what the doc comment above already
+    // promises. /ru/ is a deep link that names its language, so it is exactly the case that must
+    // never be redirected.
+    const atRoot = currentLocale === DEFAULT_LOCALE && window.location.pathname === baseUrl;
 
     if (atRoot) {
       let preferred = null;

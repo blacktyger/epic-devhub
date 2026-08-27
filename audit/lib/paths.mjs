@@ -39,6 +39,7 @@ export const PORTS = {
   journey: 7780,
   scratch: 7782,
   vitals: 7784,
+  landing: 7785,
 };
 
 /**

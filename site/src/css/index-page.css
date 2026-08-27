@@ -1027,15 +1027,24 @@
   outline: 2px solid var(--ifm-color-primary);
   outline-offset: 2px;
 }
+/* One grid cell holding every note variant, so the tallest one sets the height and switching a tab
+   or the snapshot toggle cannot move the panel. The pixel reservation this replaces read
+   `min-height: calc(2 * 1.5em)`, which was measured in English and was short by one line in English
+   at 1440px, two in Russian at the same width, and four in Russian at 375px. */
+.ixSnippetNotes {
+  display: grid;
+}
 .ixSnippetNote {
+  grid-area: 1 / 1;
   margin: 0;
   font-size: 0.72rem;
-  /* Two lines reserved for the same reason as the command block: the macOS caveat wraps to two
-     lines at both 1440px and 390px while every other note is one, which was the other 18px of
-     the masthead's 36px jump. */
   line-height: 1.5;
-  min-height: calc(2 * 1.5em);
   color: var(--ifm-color-content-secondary);
+}
+/* visibility, not display: a hidden grid item still occupies the cell, which is the whole point.
+   `display: none` would take it out of layout and hand the height back to the selected variant. */
+.ixSnippetNote:not(.isActive) {
+  visibility: hidden;
 }
 .ixSnippetLinks {
   display: flex;

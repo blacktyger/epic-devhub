@@ -157,6 +157,16 @@ const PLATFORMS = [
   {id: 'windows', label: 'Windows', prompt: '> '},
 ];
 
+// Every note the foot can display. The snapshot sentence only exists where the node is included, so
+// the components without one contribute a single variant each: six paragraphs, not eight. The panel
+// renders all of them and hides the inactive ones, which is what keeps its height constant without a
+// pixel reservation that a copy edit or a new locale would invalidate.
+const NOTE_VARIANTS = COMPONENTS.flatMap((entry) =>
+  entry.hasNode
+    ? [{componentId: entry.id, snapshot: false}, {componentId: entry.id, snapshot: true}]
+    : [{componentId: entry.id, snapshot: false}],
+);
+
 function componentLabels() {
   return {
     node: translate({id: 'homepage.quickstart.nodeLabel', message: 'Node', description: 'Node tab label in quick start'}),
@@ -350,21 +360,42 @@ function QuickStartPanel() {
       </pre>
 
       <div className="ixSnippetFoot">
-        <p className="ixSnippetNote">
-          {titles[componentId]}.{' '}
-          <Translate id="homepage.quickstart.sourceNote" description="Note explaining that the installer builds from source">
-            Builds from pinned sources, so nothing prebuilt is downloaded.
-          </Translate>
-          {snapshotOn ? (
-            <>
-              {' '}
-              <Translate id="homepage.quickstart.fastSyncNote" description="Note explaining what happens when the snapshot cannot be fetched">
-                If the snapshot cannot be fetched the install still succeeds, and the installer
-                prints how to bootstrap by hand.
-              </Translate>
-            </>
-          ) : null}
-        </p>
+        {/* Every note the panel can show, stacked in one grid cell, with all but the selected one
+            hidden. The cell is therefore as tall as the tallest variant, in whatever locale and at
+            whatever width it is being read.
+
+            A pixel reservation was tried first and cannot do this job. The note reserved two lines;
+            the tallest variant is three lines in English at 1440px, four in Russian at the same
+            width, and six in Russian at 375px. Any single number is dead space in one locale and a
+            17px to 34px jump in another, and it goes stale on the next copy edit or the next locale.
+            Measured across every variant in all three shipped locales at four widths on 2026-08-27.
+
+            aria-hidden on the inactive copies, so a screen reader reads one note rather than six. */}
+        <div className="ixSnippetNotes">
+          {NOTE_VARIANTS.map(({componentId: noteComponent, snapshot}) => {
+            const isActive = noteComponent === componentId && snapshot === snapshotOn;
+            return (
+              <p
+                key={`${noteComponent}-${snapshot}`}
+                className={`ixSnippetNote${isActive ? ' isActive' : ''}`}
+                aria-hidden={!isActive}>
+                {titles[noteComponent]}.{' '}
+                <Translate id="homepage.quickstart.sourceNote" description="Note explaining that the installer builds from source">
+                  Builds from pinned sources, so nothing prebuilt is downloaded.
+                </Translate>
+                {snapshot ? (
+                  <>
+                    {' '}
+                    <Translate id="homepage.quickstart.fastSyncNote" description="Note explaining what happens when the snapshot cannot be fetched">
+                      If the snapshot cannot be fetched the install still succeeds, and the installer
+                      prints how to bootstrap by hand.
+                    </Translate>
+                  </>
+                ) : null}
+              </p>
+            );
+          })}
+        </div>
         <p className="ixSnippetLinks">
           <Link to="/guides/build">
             <Translate id="homepage.quickstart.buildLink" description="Link to the build from source guide">Manual build</Translate>
