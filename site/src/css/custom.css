@@ -5417,3 +5417,225 @@ html[class*='docs-doc-id-examples/'],
     transition-duration: 0.001ms;
   }
 }
+
+
+/* ---------------------------------------------------------------------------
+   Local epicbox exchange, src/components/RelayExchange.js.
+
+   The drawing reuses the `.se*` classes from the landing-page diagram above, including their
+   light-mode overrides, because it is the same picture with different labels. What is added here is
+   the address lines, the strip showing which wallet is listening at each step, and the relay's own
+   log line for the current step.
+
+   Text colour comes from --ifm-color-secondary-content rather than a new value: the diagram sits on
+   --epic-s2 inside .cdStage, and the landing figure's greys were measured against the page
+   background instead.
+   --------------------------------------------------------------------------- */
+.rxDiagram {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  margin-inline: auto;
+  overflow: visible;
+}
+
+.rxDiagram .seSub,
+.rxAddr {
+  fill: var(--ifm-color-content-secondary);
+}
+
+.rxAddr {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-anchor: middle;
+}
+
+/* A slate parked in the relay's queue is present but not in flight. */
+.seSlate.rxStored {
+  opacity: 0.72;
+}
+
+.rxListen {
+  margin-top: var(--epic-space-16);
+  padding-top: var(--epic-space-12);
+  border-top: 1px solid var(--epic-line);
+}
+
+.rxListenLabel {
+  margin: 0 0 var(--epic-space-8);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--ifm-color-content-secondary);
+}
+
+.rxListenRow {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: var(--epic-space-8);
+  align-items: center;
+}
+
+.rxListenRow + .rxListenRow {
+  margin-top: var(--epic-space-4);
+}
+
+.rxListenWho {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.68rem;
+  color: var(--ifm-color-content-secondary);
+}
+
+.rxListenCells {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--epic-space-2);
+}
+
+/* Listening is carried by fill, the current step by an outline, so the two states are readable
+   together and neither depends on colour alone: the step list below says who is listening in words. */
+.rxCell {
+  height: 6px;
+  background: var(--epic-line);
+}
+
+.rxCell.isOn {
+  background: var(--epic-gold-deep);
+}
+
+.rxCell.isNow {
+  outline: 1px solid var(--ifm-color-content-secondary);
+}
+
+.rxCell.isOn.isNow {
+  background: var(--ifm-color-primary);
+  outline-color: var(--epic-gold-deep);
+}
+
+[data-theme='light'] .rxCell.isOn {
+  background: #8a5a1d;
+}
+
+[data-theme='light'] .rxCell.isOn.isNow {
+  background: #8a5a1d;
+  outline-color: #221f1a;
+}
+
+.rxLogStack {
+  display: grid;
+  margin: var(--epic-space-12) 0 0;
+}
+
+.rxLog {
+  grid-area: 1 / 1;
+  align-self: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--epic-space-8);
+  margin: 0;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+}
+
+/* visibility, not display: a hidden line still has to occupy its space or the cell collapses to the
+   active one and nothing is reserved. It also keeps the inactive lines out of the accessibility
+   tree, which is wanted anyway. */
+.rxLogGhost {
+  visibility: hidden;
+}
+
+.rxLogFrom {
+  color: var(--ifm-color-content-secondary);
+}
+
+.rxLogLine {
+  color: var(--ifm-font-color-base);
+}
+
+
+/* ---------------------------------------------------------------------------
+   Wide screens: the documentation column takes the band, the prose keeps the measure.
+
+   The ramp above already grows --epic-content-max from 1320px to 1600px between 1548px and 2560px,
+   and grows the root font with it. Only half of that reached a documentation page: the type scaled,
+   the column did not, because the article sits in Infima's `.container`, which stops at
+   --ifm-container-width-xl and never reads our token. Measured on the dev server at
+   /concepts/mimblewimble: 1140px of container at 1440, then 1320px at 1800, 2358 and 2560 alike,
+   with 369px of empty space between the sidebar and the text at 2358 and 470px at 2560.
+
+   So the container gets the token, and the prose gets a cap. Both halves are required. Widening the
+   column on its own takes the reading measure from 68 characters to about 82, which is the number the
+   measure exists to prevent; capping the prose alone leaves the same empty space it started with.
+   What the extra width goes to instead is everything that is not prose: code blocks, config tables,
+   the API method blocks, card grids, tab sets and the stepped figures.
+
+   The cap is an explicit list rather than `> *` with exceptions, so anything added to a page later
+   keeps today's behaviour instead of being silently squeezed by a rule that has not heard of it.
+
+   Nothing here applies below 1548px, which is where the ramp starts and where every geometry number
+   the harness asserts at 1440 and 1536 is measured.
+   --------------------------------------------------------------------------- */
+@media (min-width: 1548px) {
+  /* The band a documentation page may use, which is wider than the landing band and ramps further.
+     1320 to 1800 over 1548 to 2560: slope 480 / 1012 = 47.43vw, intercept 1320 - 0.4743 x 1548 =
+     585.7px. The landing page keeps --epic-content-max and its 1600 ceiling, because its prose is
+     the band; here the prose is capped at the measure below, so a wider band only ever feeds code
+     blocks, tables, method blocks and figures, and cannot stretch a line of text. */
+  html[class*='docs-doc-page'] main .container.padding-top--md {
+    max-width: clamp(1320px, 585.7px + 47.43vw, 1800px);
+  }
+
+  /* The contents panel is a list of short links, so it takes a fixed column and the surplus goes to
+     the article instead. Left to its percentage it reached 437px of mostly empty space at 2560. */
+  html[class*='docs-doc-page'] .theme-doc-toc-desktop {
+    max-width: 320px;
+  }
+
+  html[class*='docs-doc-page'] .theme-doc-markdown > p,
+  html[class*='docs-doc-page'] .theme-doc-markdown > ul,
+  html[class*='docs-doc-page'] .theme-doc-markdown > ol,
+  html[class*='docs-doc-page'] .theme-doc-markdown > dl,
+  html[class*='docs-doc-page'] .theme-doc-markdown > blockquote,
+  html[class*='docs-doc-page'] .theme-doc-markdown > header,
+  html[class*='docs-doc-page'] .theme-doc-markdown > h2,
+  html[class*='docs-doc-page'] .theme-doc-markdown > h3,
+  html[class*='docs-doc-page'] .theme-doc-markdown > h4,
+  html[class*='docs-doc-page'] .theme-doc-markdown > .theme-admonition,
+  html[class*='docs-doc-page'] .theme-doc-markdown > .epicUnverified {
+    max-width: var(--epic-measure);
+  }
+
+  /* The stepped figures are drawn from a fixed viewBox, so a wider column is a bigger diagram rather
+     than more whitespace around one. 900px keeps the 15px SVG labels above 17px at this root size. */
+  .rxDiagram {
+    max-width: 900px;
+  }
+
+  /* A step row runs title beside body at this width instead of stacking them, so the row uses the
+     column rather than leaving its right half empty. The title column is 26 characters, the body
+     keeps the measure, and a step with a command puts it above the body in the same column. */
+  html[class*='docs-doc-page'] .cdStepBtn {
+    grid-template-columns: minmax(0, 26ch) minmax(0, 1fr);
+    column-gap: var(--epic-space-16);
+    align-items: start;
+  }
+
+  html[class*='docs-doc-page'] .cdStepTitle {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  html[class*='docs-doc-page'] .cdStepCall {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  html[class*='docs-doc-page'] .cdStepBody {
+    grid-column: 2;
+    grid-row: 2;
+    max-width: var(--epic-measure);
+  }
+}

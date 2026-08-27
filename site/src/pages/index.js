@@ -489,6 +489,7 @@ function indexData() {
         [translate({id: 'homepage.index.guides.build', message: 'Build the binaries'}), '/guides/build'],
         [translate({id: 'homepage.index.guides.localNetwork', message: 'Run a local network'}), '/guides/local-network'],
         [translate({id: 'homepage.index.guides.firstTransfer', message: 'Your first transfer'}), '/guides/first-transfer'],
+        [translate({id: 'homepage.index.guides.localEpicbox', message: 'Run a local epicbox relay'}), '/guides/local-epicbox'],
         [translate({id: 'homepage.index.guides.mainnetSetup', message: 'Node and wallet setup'}), '/guides/mainnet-setup'],
         [translate({id: 'homepage.index.guides.walletOps', message: 'Wallet operations'}), '/guides/wallet-operations'],
         [translate({id: 'homepage.index.guides.backup', message: 'Back up and restore'}), '/guides/backup-and-restore'],

@@ -138,11 +138,12 @@ owner_api_listen_port = 3421   # Owner API, см. ниже
 use_tor_listener = false
 ```
 
-Порт Foreign определяется сетью, поэтому usernet уже сместил его от mainnet-значения. Порт Owner не
-смещается в зависимости от сети. Он равен <Ver k="ports.walletOwner" /> везде, поэтому второй кошелёк на той же машине всегда
-конфликтует по нему вне зависимости от цепочки. Установите `use_tor_listener = false` в обоих кошельках согласно
-[отключить слушатель Tor](/guides/mainnet-setup#turn-off-the-tor-listener). Обоим кошелькам также нужна секция `[epicbox]`, прежде чем транспорт epicbox
-заработает в этой цепочке; её настраивает [ваш первый перевод](/guides/first-transfer#the-same-transfer-over-epicbox).
+Порт Foreign определяется сетью, поэтому usernet уже сместил его относительно mainnet. Порт Owner не
+меняется в зависимости от сети. Он равен <Ver k="ports.walletOwner" /> везде, поэтому второй кошелёк на той же машине всегда
+конфликтует по этому порту независимо от того, в какой цепочке работает. Установите `use_tor_listener = false` в обоих
+кошельках согласно [отключить слушатель Tor](/guides/mainnet-setup#turn-off-the-tor-listener). Обоим кошелькам также нужна секция `[epicbox]`, прежде
+чем транспорт epicbox заработает в этой цепочке; это настраивается в [запустить локальный релей
+epicbox](/guides/local-epicbox).
 
 :::note[Wallets outside `~/.epic` need the node's API secret]
 

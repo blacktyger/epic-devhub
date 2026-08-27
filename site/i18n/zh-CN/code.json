@@ -1422,5 +1422,164 @@
   "sumToZero.stageLabel": {
     "message": "承诺算术",
     "description": "Spoken name for the sum-to-zero diagram, read before each step announcement"
+  },
+  "relayExchange.post.title": {
+    "message": "Alice 将 slate 发布到中继",
+    "description": "Step title: the sender hands an encrypted slate to the local relay"
+  },
+  "relayExchange.post.body": {
+    "message": "钱包预留将要花费的输入（input），将 slate 加密至 Bob 的密钥，并通过自身连接将其交给中继。",
+    "description": "Step body for the send"
+  },
+  "relayExchange.through.title": {
+    "message": "中继转发 slate",
+    "description": "Step title: the relay passes the slate straight to a subscribed recipient"
+  },
+  "relayExchange.through.body": {
+    "message": "Bob 的监听器已订阅，因此 slate 直接送达，而非进入队列。",
+    "description": "Step body for the passthrough"
+  },
+  "relayExchange.sign.title": {
+    "message": "Bob 签名并将回复发布回中继",
+    "description": "Step title: the receiver signs and returns the slate through the relay"
+  },
+  "relayExchange.sign.body": {
+    "message": "他添加自己的输出（output）和部分签名，将已签名的 slate 发布到中继，并确认已收到的 slate。Alice 的发送流程完成并退出。",
+    "description": "Step body for the receiver signing"
+  },
+  "relayExchange.queued.title": {
+    "message": "Bob 停止。回复等待中",
+    "description": "Step title: the signed slate sits in the relay queue"
+  },
+  "relayExchange.queued.body": {
+    "message": "Alice 的密钥无订阅，中继为其保留已签名的 slate。未送达的 slate 保留七天。",
+    "description": "Step body for the queued reply"
+  },
+  "relayExchange.collect.title": {
+    "message": "Alice 订阅并收取 slate",
+    "description": "Step title: the sender comes back and receives the queued reply"
+  },
+  "relayExchange.collect.body": {
+    "message": "中继在某个密钥订阅后立即释放该密钥最早未送达的 slate。在观测到的运行中，这发生在发送后 19 秒。",
+    "description": "Step body for collecting the reply"
+  },
+  "relayExchange.finalise.title": {
+    "message": "Alice 最终确认并广播",
+    "description": "Step title: the sender completes the transaction and broadcasts it"
+  },
+  "relayExchange.finalise.body": {
+    "message": "收取回复的监听器对交易进行最终确认，并通过节点广播。中继不接触链。",
+    "description": "Step body for finalising"
+  },
+  "relayExchange.confirmed.title": {
+    "message": "区块确认交易",
+    "description": "Step title: the transfer confirms and the receiver can spend"
+  },
+  "relayExchange.confirmed.body": {
+    "message": "Bob 无需监听任何内容即可读取 5.00000000 EPIC。Epicbox 接收方不绑定自身端口。",
+    "description": "Step body for the confirmation"
+  },
+  "relayExchange.stored.title": {
+    "message": "接收方未连接，中继存储 slate",
+    "description": "Step title: the slate is queued because the recipient is not connected"
+  },
+  "relayExchange.stored.body": {
+    "message": "Bob 的密钥无活跃套接字，slate 进入队列。发送无论如何均报告成功，因此请读取交易状态而非退出状态。",
+    "description": "Step body for a queued outbound slate"
+  },
+  "relayExchange.collectBob.title": {
+    "message": "Bob 订阅并收取 slate",
+    "description": "Step title: the receiver connects and is given the queued slate"
+  },
+  "relayExchange.collectBob.body": {
+    "message": "单个监听器独立运行。订阅时收到已排队的 slate，签名后发布回复并确认。",
+    "description": "Step body for the receiver collecting a queued slate"
+  },
+  "relayExchange.queuedAlt.title": {
+    "message": "Bob 停止。现在回复等待中",
+    "description": "Step title: the signed slate waits for the sender in turn"
+  },
+  "relayExchange.queuedAlt.body": {
+    "message": "队列按接收方串行排列：每次只有一个未完成的slate，在该密钥的下一次订阅时释放。",
+    "description": "Step body for the queued reply on the alternating route"
+  },
+  "relayExchange.collectAlt.title": {
+    "message": "Alice订阅并收取slate",
+    "description": "Step title: the sender connects and is given the signed slate"
+  },
+  "relayExchange.collectAlt.body": {
+    "message": "另一个监听器，同样单独运行。这是实际运行所经历的路径。",
+    "description": "Step body for the sender collecting on the alternating route"
+  },
+  "relayExchange.finaliseAlt.title": {
+    "message": "Alice最终确认并广播",
+    "description": "Step title: finalising on the alternating route"
+  },
+  "relayExchange.finaliseAlt.body": {
+    "message": "相同的最终确认，相同的节点，相同的结果。",
+    "description": "Step body for finalising on the alternating route"
+  },
+  "relayExchange.confirmedAlt.title": {
+    "message": "区块确认，两个监听器从未重叠",
+    "description": "Step title: the alternating route completes"
+  },
+  "relayExchange.confirmedAlt.body": {
+    "message": "每个钱包各监听一次，期间另一个钱包处于关闭状态。",
+    "description": "Step body for the end of the alternating route"
+  },
+  "relayExchange.label": {
+    "message": "通过localhost:3423上的中继进行转账，每次只有一个监听器。",
+    "description": "Caption under the local epicbox exchange diagram"
+  },
+  "relayExchange.stageLabel": {
+    "message": "通过本地中继进行Epicbox转账",
+    "description": "Accessible name announced with each step of the local epicbox diagram"
+  },
+  "relayExchange.route.alternating": {
+    "message": "每次一个",
+    "description": "Button choosing the route where the two wallets listen in turn"
+  },
+  "relayExchange.party.alice": {
+    "message": "Alice",
+    "description": "Label for the sending wallet in the local epicbox diagram"
+  },
+  "relayExchange.party.bob": {
+    "message": "Bob",
+    "description": "Label for the receiving wallet in the local epicbox diagram"
+  },
+  "relayExchange.relay": {
+    "message": "本地中继",
+    "description": "Label for the reader’s own epicbox relay in the diagram"
+  },
+  "relayExchange.relay.holding": {
+    "message": "持有slate中",
+    "description": "Relay state when it has an undelivered slate"
+  },
+  "relayExchange.relay.idle": {
+    "message": "空闲",
+    "description": "Relay state when it holds nothing"
+  },
+  "relayExchange.wallet.subscribed": {
+    "message": "已订阅",
+    "description": "Wallet state when its epicbox listener is connected"
+  },
+  "relayExchange.wallet.closed": {
+    "message": "未监听",
+    "description": "Wallet state when it has no epicbox listener"
+  },
+  "relayExchange.wallet.reserved": {
+    "message": "输入已预留",
+    "description": "Sender state while its outputs are locked for the transfer"
+  },
+  "relayExchange.node": {
+    "message": "usernet node",
+    "description": "Label for the local node in the local epicbox diagram"
+  },
+  "relayExchange.listening": {
+    "message": "listen -m epicbox",
+    "description": "Label over the strip showing which wallet is listening at each step"
+  },
+  "homepage.index.guides.localEpicbox": {
+    "message": "运行本地Epicbox中继"
   }
 }

@@ -7,6 +7,7 @@ import {JourneyNav, JourneyOverview, SlateLifecycle} from '@site/src/components/
 import {SlateRounds, HandshakeTrace} from '@site/src/components/Diagrams';
 import {SumToZero} from '@site/src/components/SumToZero';
 import {OutputLifecycle} from '@site/src/components/OutputLifecycle';
+import {RelayExchange} from '@site/src/components/RelayExchange';
 import {RpcGroup, RpcMethod, RpcConsole} from '@site/src/components/Rpc';
 import {Src, Fn, Repo, Ver} from '@site/src/components/Src';
 import PageActions from '@site/src/components/Assistant/PageActions';
@@ -73,6 +74,7 @@ export default {
   HandshakeTrace,
   SumToZero,
   OutputLifecycle,
+  RelayExchange,
   RpcGroup,
   RpcMethod,
   RpcConsole,

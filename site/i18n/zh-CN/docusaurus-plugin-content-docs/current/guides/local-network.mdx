@@ -120,7 +120,7 @@ owner_api_listen_port = 3421   # Owner API，见下文
 use_tor_listener = false
 ```
 
-Foreign端口由网络决定，usernet已将其从mainnet的端口移开。Owner端口不随网络变化，在所有网络上均为<Ver k="ports.walletOwner" />，因此同一台机器上的第二个钱包无论运行哪条链都会在该端口发生冲突。按照[关闭Tor监听器](/guides/mainnet-setup#turn-off-the-tor-listener)的说明，在两个钱包中均设置`use_tor_listener = false`。两个钱包还需要在epicbox传输方式在此链上正常工作之前添加`[epicbox]`部分，[你的第一次转账](/guides/first-transfer#the-same-transfer-over-epicbox)会完成该设置。
+Foreign端口由网络派生，因此usernet已将其从mainnet的端口移开。Owner端口不随网络变化，在所有网络中均为<Ver k="ports.walletOwner" />，因此同一台机器上的第二个钱包无论运行哪条链，都会在该端口发生冲突。按照[关闭Tor监听器](/guides/mainnet-setup#turn-off-the-tor-listener)中的说明，在两个钱包中均设置`use_tor_listener = false`。两个钱包还需要添加`[epicbox]`部分，epicbox传输方式才能在此链上正常工作，具体设置参见[运行本地epicbox中继](/guides/local-epicbox)。
 
 :::note[Wallets outside `~/.epic` need the node's API secret]
 

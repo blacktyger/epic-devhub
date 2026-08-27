@@ -119,22 +119,11 @@ reserved until she cancels.
 Also one command, but **both** wallets need a subscription. The signed slate comes back through the
 relay asynchronously rather than as a reply, so it is the sender's own listener that finalises.
 
-Point both wallets at a relay you run yourself. The wallet defaults to
+Point both wallets at a relay you run yourself:
+[run a local epicbox relay](/guides/local-epicbox) covers the relay, the `[epicbox]` block both wallets
+need, and a transfer with one listener at a time. The wallet's own default is
 <Ver k="epicboxDomain" /> on port <Ver k="ports.epicbox" />, which is the public mainnet relay, and a
 usernet wallet emits mainnet-form addresses because the address version bytes only branch for floonet.
-
-```toml title="wallet_alice/epic-wallet.toml and wallet_bob/epic-wallet.toml"
-[epicbox]
-epicbox_domain = "127.0.0.1"
-epicbox_port = 3423
-epicbox_protocol_unsecure = true
-```
-
-`epicbox_protocol_unsecure = true` makes the wallet connect over `ws://` instead of `wss://`
-(<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={158} />), which is what a local relay with
-no TLS in front of it serves. The relay compares the destination domain and port in every slate against
-its own configuration before storing it, so start it with `EPICBOX_DOMAIN=127.0.0.1` and
-`EPICBOX_PORT=3423` to match. [Run a relay](/api/epicbox#run-a-relay) has the deployment.
 
 ```bash
 # bob's address

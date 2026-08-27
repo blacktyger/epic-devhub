@@ -1772,5 +1772,164 @@
   "sumToZero.stageLabel": {
     "message": "Commitment arithmetic",
     "description": "Spoken name for the sum-to-zero diagram, read before each step announcement"
+  },
+  "relayExchange.post.title": {
+    "message": "Alice posts the slate to the relay",
+    "description": "Step title: the sender hands an encrypted slate to the local relay"
+  },
+  "relayExchange.post.body": {
+    "message": "The wallet reserves the inputs it will spend, encrypts the slate to Bob’s key and hands it to the relay over a connection of its own.",
+    "description": "Step body for the send"
+  },
+  "relayExchange.through.title": {
+    "message": "The relay forwards it",
+    "description": "Step title: the relay passes the slate straight to a subscribed recipient"
+  },
+  "relayExchange.through.body": {
+    "message": "Bob’s listener is subscribed, so the slate goes to it rather than into the queue.",
+    "description": "Step body for the passthrough"
+  },
+  "relayExchange.sign.title": {
+    "message": "Bob signs and posts the reply back",
+    "description": "Step title: the receiver signs and returns the slate through the relay"
+  },
+  "relayExchange.sign.body": {
+    "message": "He adds his output and his partial signature, posts the signed slate to the relay, and acknowledges the one he received. Alice’s send has finished and exits.",
+    "description": "Step body for the receiver signing"
+  },
+  "relayExchange.queued.title": {
+    "message": "Bob stops. The reply waits",
+    "description": "Step title: the signed slate sits in the relay queue"
+  },
+  "relayExchange.queued.body": {
+    "message": "Nothing is subscribed on Alice’s key, so the relay keeps the signed slate for her. An undelivered slate is held for seven days.",
+    "description": "Step body for the queued reply"
+  },
+  "relayExchange.collect.title": {
+    "message": "Alice subscribes and collects it",
+    "description": "Step title: the sender comes back and receives the queued reply"
+  },
+  "relayExchange.collect.body": {
+    "message": "The relay releases the oldest undelivered slate for a key as soon as that key subscribes. In the observed run that was 19 seconds after the send.",
+    "description": "Step body for collecting the reply"
+  },
+  "relayExchange.finalise.title": {
+    "message": "Alice finalises and posts",
+    "description": "Step title: the sender completes the transaction and broadcasts it"
+  },
+  "relayExchange.finalise.body": {
+    "message": "The listener that collected the reply finalises the transaction and posts it through the node. The relay does not touch the chain.",
+    "description": "Step body for finalising"
+  },
+  "relayExchange.confirmed.title": {
+    "message": "A block confirms it",
+    "description": "Step title: the transfer confirms and the receiver can spend"
+  },
+  "relayExchange.confirmed.body": {
+    "message": "Bob reads the 5.00000000 EPIC without listening for anything. An epicbox recipient binds no port of its own.",
+    "description": "Step body for the confirmation"
+  },
+  "relayExchange.stored.title": {
+    "message": "Nobody is subscribed, so the relay stores it",
+    "description": "Step title: the slate is queued because the recipient is not connected"
+  },
+  "relayExchange.stored.body": {
+    "message": "With no live socket for Bob’s key the slate goes into the queue. The send reports success either way, so read transaction state rather than the exit status.",
+    "description": "Step body for a queued outbound slate"
+  },
+  "relayExchange.collectBob.title": {
+    "message": "Bob subscribes and collects it",
+    "description": "Step title: the receiver connects and is given the queued slate"
+  },
+  "relayExchange.collectBob.body": {
+    "message": "One listener, running alone. He is given the queued slate on subscribe, signs it, posts the reply and acknowledges.",
+    "description": "Step body for the receiver collecting a queued slate"
+  },
+  "relayExchange.queuedAlt.title": {
+    "message": "Bob stops. Now the reply waits",
+    "description": "Step title: the signed slate waits for the sender in turn"
+  },
+  "relayExchange.queuedAlt.body": {
+    "message": "The queue is serial per recipient: one outstanding slate, released on the next subscription from that key.",
+    "description": "Step body for the queued reply on the alternating route"
+  },
+  "relayExchange.collectAlt.title": {
+    "message": "Alice subscribes and collects it",
+    "description": "Step title: the sender connects and is given the signed slate"
+  },
+  "relayExchange.collectAlt.body": {
+    "message": "The other listener, also running alone. This is the leg the observed run exercised.",
+    "description": "Step body for the sender collecting on the alternating route"
+  },
+  "relayExchange.finaliseAlt.title": {
+    "message": "Alice finalises and posts",
+    "description": "Step title: finalising on the alternating route"
+  },
+  "relayExchange.finaliseAlt.body": {
+    "message": "Same finalise, same node, same result.",
+    "description": "Step body for finalising on the alternating route"
+  },
+  "relayExchange.confirmedAlt.title": {
+    "message": "A block confirms it, and the listeners never overlapped",
+    "description": "Step title: the alternating route completes"
+  },
+  "relayExchange.confirmedAlt.body": {
+    "message": "Each wallet listened once, while the other was closed.",
+    "description": "Step body for the end of the alternating route"
+  },
+  "relayExchange.label": {
+    "message": "A transfer across a relay on localhost:3423, one listener at a time.",
+    "description": "Caption under the local epicbox exchange diagram"
+  },
+  "relayExchange.stageLabel": {
+    "message": "Epicbox transfer over a local relay",
+    "description": "Accessible name announced with each step of the local epicbox diagram"
+  },
+  "relayExchange.route.alternating": {
+    "message": "One at a time",
+    "description": "Button choosing the route where the two wallets listen in turn"
+  },
+  "relayExchange.party.alice": {
+    "message": "Alice",
+    "description": "Label for the sending wallet in the local epicbox diagram"
+  },
+  "relayExchange.party.bob": {
+    "message": "Bob",
+    "description": "Label for the receiving wallet in the local epicbox diagram"
+  },
+  "relayExchange.relay": {
+    "message": "Local relay",
+    "description": "Label for the reader’s own epicbox relay in the diagram"
+  },
+  "relayExchange.relay.holding": {
+    "message": "holding a slate",
+    "description": "Relay state when it has an undelivered slate"
+  },
+  "relayExchange.relay.idle": {
+    "message": "idle",
+    "description": "Relay state when it holds nothing"
+  },
+  "relayExchange.wallet.subscribed": {
+    "message": "subscribed",
+    "description": "Wallet state when its epicbox listener is connected"
+  },
+  "relayExchange.wallet.closed": {
+    "message": "not listening",
+    "description": "Wallet state when it has no epicbox listener"
+  },
+  "relayExchange.wallet.reserved": {
+    "message": "inputs reserved",
+    "description": "Sender state while its outputs are locked for the transfer"
+  },
+  "relayExchange.node": {
+    "message": "usernet node",
+    "description": "Label for the local node in the local epicbox diagram"
+  },
+  "relayExchange.listening": {
+    "message": "listen -m epicbox",
+    "description": "Label over the strip showing which wallet is listening at each step"
+  },
+  "homepage.index.guides.localEpicbox": {
+    "message": "Run a local epicbox relay"
   }
 }

@@ -90,6 +90,8 @@
         - link
       - listitem
         - link
+      - listitem
+        - link
   - navigation
     - heading [level=3]
     - list

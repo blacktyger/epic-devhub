@@ -1422,5 +1422,164 @@
   "sumToZero.stageLabel": {
     "message": "Арифметика обязательств",
     "description": "Spoken name for the sum-to-zero diagram, read before each step announcement"
+  },
+  "relayExchange.post.title": {
+    "message": "Алиса публикует слейт (slate) в релей",
+    "description": "Step title: the sender hands an encrypted slate to the local relay"
+  },
+  "relayExchange.post.body": {
+    "message": "Кошелёк резервирует входы для траты, шифрует слейт ключом Боба и передаёт его в релей через собственное соединение.",
+    "description": "Step body for the send"
+  },
+  "relayExchange.through.title": {
+    "message": "Релей пересылает его",
+    "description": "Step title: the relay passes the slate straight to a subscribed recipient"
+  },
+  "relayExchange.through.body": {
+    "message": "Слушатель Боба подписан, поэтому слейт передаётся ему, а не помещается в очередь.",
+    "description": "Step body for the passthrough"
+  },
+  "relayExchange.sign.title": {
+    "message": "Боб подписывает слейт и публикует ответ",
+    "description": "Step title: the receiver signs and returns the slate through the relay"
+  },
+  "relayExchange.sign.body": {
+    "message": "Он добавляет свой выход (output) и частичную подпись, публикует подписанный слейт в релей и подтверждает получение. Отправка Алисы завершена и выходит.",
+    "description": "Step body for the receiver signing"
+  },
+  "relayExchange.queued.title": {
+    "message": "Боб останавливается. Ответ ожидает",
+    "description": "Step title: the signed slate sits in the relay queue"
+  },
+  "relayExchange.queued.body": {
+    "message": "На ключ Алисы никто не подписан, поэтому релей хранит подписанный слейт для неё. Недоставленный слейт хранится семь дней.",
+    "description": "Step body for the queued reply"
+  },
+  "relayExchange.collect.title": {
+    "message": "Алиса подписывается и забирает его",
+    "description": "Step title: the sender comes back and receives the queued reply"
+  },
+  "relayExchange.collect.body": {
+    "message": "Релей отдаёт самый старый недоставленный слейт для ключа, как только этот ключ подписывается. В наблюдаемом запуске это произошло через 19 секунд после отправки.",
+    "description": "Step body for collecting the reply"
+  },
+  "relayExchange.finalise.title": {
+    "message": "Алиса финализирует и публикует",
+    "description": "Step title: the sender completes the transaction and broadcasts it"
+  },
+  "relayExchange.finalise.body": {
+    "message": "Слушатель, получивший ответ, финализирует транзакцию и публикует её через узел. Релей не взаимодействует с цепочкой.",
+    "description": "Step body for finalising"
+  },
+  "relayExchange.confirmed.title": {
+    "message": "Блок подтверждает транзакцию",
+    "description": "Step title: the transfer confirms and the receiver can spend"
+  },
+  "relayExchange.confirmed.body": {
+    "message": "Боб получает 5.00000000 EPIC без прослушивания чего-либо. Получатель epicbox не занимает собственный порт.",
+    "description": "Step body for the confirmation"
+  },
+  "relayExchange.stored.title": {
+    "message": "Никто не подписан, поэтому релей сохраняет слейт",
+    "description": "Step title: the slate is queued because the recipient is not connected"
+  },
+  "relayExchange.stored.body": {
+    "message": "При отсутствии активного сокета для ключа Боба слейт помещается в очередь. Отправка сообщает об успехе в любом случае, поэтому проверяйте состояние транзакции, а не код завершения.",
+    "description": "Step body for a queued outbound slate"
+  },
+  "relayExchange.collectBob.title": {
+    "message": "Боб подписывается и забирает слейт",
+    "description": "Step title: the receiver connects and is given the queued slate"
+  },
+  "relayExchange.collectBob.body": {
+    "message": "Один слушатель, работающий отдельно. При подписке ему передаётся слейт из очереди, он подписывает его, публикует ответ и подтверждает получение.",
+    "description": "Step body for the receiver collecting a queued slate"
+  },
+  "relayExchange.queuedAlt.title": {
+    "message": "Боб останавливается. Теперь ответ ожидает",
+    "description": "Step title: the signed slate waits for the sender in turn"
+  },
+  "relayExchange.queuedAlt.body": {
+    "message": "Очередь последовательная для каждого получателя: один незакрытый слейт (slate), освобождаемый при следующей подписке с этого ключа.",
+    "description": "Step body for the queued reply on the alternating route"
+  },
+  "relayExchange.collectAlt.title": {
+    "message": "Алиса подписывается и забирает его",
+    "description": "Step title: the sender connects and is given the signed slate"
+  },
+  "relayExchange.collectAlt.body": {
+    "message": "Второй слушатель, также работающий отдельно. Это этап, который выполнялся в наблюдаемом запуске.",
+    "description": "Step body for the sender collecting on the alternating route"
+  },
+  "relayExchange.finaliseAlt.title": {
+    "message": "Алиса финализирует и публикует",
+    "description": "Step title: finalising on the alternating route"
+  },
+  "relayExchange.finaliseAlt.body": {
+    "message": "Та же финализация, тот же узел, тот же результат.",
+    "description": "Step body for finalising on the alternating route"
+  },
+  "relayExchange.confirmedAlt.title": {
+    "message": "Блок подтверждает это, и слушатели ни разу не пересеклись",
+    "description": "Step title: the alternating route completes"
+  },
+  "relayExchange.confirmedAlt.body": {
+    "message": "Каждый кошелёк слушал один раз, пока другой был закрыт.",
+    "description": "Step body for the end of the alternating route"
+  },
+  "relayExchange.label": {
+    "message": "Перевод через релей на localhost:3423, по одному слушателю за раз.",
+    "description": "Caption under the local epicbox exchange diagram"
+  },
+  "relayExchange.stageLabel": {
+    "message": "Перевод через Epicbox по локальному релею",
+    "description": "Accessible name announced with each step of the local epicbox diagram"
+  },
+  "relayExchange.route.alternating": {
+    "message": "По одному за раз",
+    "description": "Button choosing the route where the two wallets listen in turn"
+  },
+  "relayExchange.party.alice": {
+    "message": "Алиса",
+    "description": "Label for the sending wallet in the local epicbox diagram"
+  },
+  "relayExchange.party.bob": {
+    "message": "Боб",
+    "description": "Label for the receiving wallet in the local epicbox diagram"
+  },
+  "relayExchange.relay": {
+    "message": "Локальный релей",
+    "description": "Label for the reader’s own epicbox relay in the diagram"
+  },
+  "relayExchange.relay.holding": {
+    "message": "удерживает слейт",
+    "description": "Relay state when it has an undelivered slate"
+  },
+  "relayExchange.relay.idle": {
+    "message": "простаивает",
+    "description": "Relay state when it holds nothing"
+  },
+  "relayExchange.wallet.subscribed": {
+    "message": "подписан",
+    "description": "Wallet state when its epicbox listener is connected"
+  },
+  "relayExchange.wallet.closed": {
+    "message": "не слушает",
+    "description": "Wallet state when it has no epicbox listener"
+  },
+  "relayExchange.wallet.reserved": {
+    "message": "входы зарезервированы",
+    "description": "Sender state while its outputs are locked for the transfer"
+  },
+  "relayExchange.node": {
+    "message": "usernet node",
+    "description": "Label for the local node in the local epicbox diagram"
+  },
+  "relayExchange.listening": {
+    "message": "listen -m epicbox",
+    "description": "Label over the strip showing which wallet is listening at each step"
+  },
+  "homepage.index.guides.localEpicbox": {
+    "message": "Запустить локальный релей Epicbox"
   }
 }

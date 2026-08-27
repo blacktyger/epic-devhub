@@ -149,6 +149,10 @@ const out = {};
     const routes = ['', '/ru', '/zh-CN'].flatMap((locale) => [
       `${locale}/concepts/mimblewimble`,
       `${locale}/concepts/outputs-and-locking`,
+      // The local epicbox exchange. Same frame, and it carries two more things that could move the
+      // figure's height while a reader is beside it: the relay's log line, whose length differs per
+      // step, and the strip of listening cells.
+      `${locale}/guides/local-epicbox`,
     ]);
     for (const route of routes) {
       await page.goto(`${server.origin}${route}`, {waitUntil: 'networkidle'});
@@ -985,14 +989,15 @@ const out = {};
       await page
         .locator('.ixSnippetHead .ixSnippetTab', {hasText: new RegExp(`^${product.trim()}$`)})
         .click();
-      const platforms = await page.locator('.ixSnippetPlatforms .ixSnippetTab').allTextContents();
+      const platformTabs = page.locator(
+        '.ixSnippetPlatforms .ixSnippetTab:not(.ixSnippetToggle)',
+      );
+      const platforms = await platformTabs.allTextContents();
       for (const platform of platforms) {
         const label = platform.trim();
         // Copy is in the same row as the platform switch, so it is excluded by name.
         if (/^copy/i.test(label)) continue;
-        await page
-          .locator('.ixSnippetPlatforms .ixSnippetTab', {hasText: new RegExp(`^${label}$`)})
-          .click();
+        await platformTabs.filter({hasText: new RegExp(`^${label}$`)}).click();
         variants.push({
           variant: `${product.trim()}/${label}`,
           masthead: await page.evaluate(
@@ -1007,6 +1012,29 @@ const out = {};
       }
     }
     out.quickStart = {variants};
+
+    // Fast sync is a toggle in the same row, not a platform, so it is excluded from the loop above
+    // and measured here. It is only enabled for the components that include the node, and it adds a
+    // sentence to the note, which is the other thing that could move .ixMain. Clicking a disabled
+    // control is what used to end this check: the locator waited out its 30-second timeout on the
+    // Wallet tab and the whole run failed.
+    const toggle = page.locator('.ixSnippetPlatforms .ixSnippetToggle');
+    if (await toggle.isEnabled()) {
+      await toggle.click();
+      variants.push({
+        variant: 'node/fast-sync',
+        masthead: await page.evaluate(() =>
+          Math.round(document.querySelector('.ixMast').getBoundingClientRect().height),
+        ),
+        mainTop: await page.evaluate(() =>
+          Math.round(
+            document.querySelector('.ixMain').getBoundingClientRect().top + window.scrollY,
+          ),
+        ),
+      });
+      await toggle.click();
+    }
+
     const heights = [...new Set(variants.map((v) => v.masthead))];
     if (variants.length < 2) {
       stickyProblems.push('landing: could not measure the quick-start variants');

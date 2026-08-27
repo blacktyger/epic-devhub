@@ -1,0 +1,206 @@
+---
+title: Запустить локальный релей epicbox
+description: Запустить Epicbox релей на своей машине и выполнить перевод через usernet, при этом одновременно слушает только один кошелёк.
+---
+
+# Запустить локальный релей epicbox
+
+Релей Epicbox на вашей машине и перевод между двумя usernet-кошельками через него.
+
+Linux. Также необходим стенд из [запуска локальной сети](/guides/local-network): узел, производящий блоки, `wallet_alice` с
+доступным к трате балансом, `wallet_bob`, а также Rust и Node.js для сборки и запуска релея.
+
+Развёртывание через compose, для запуска релея в Docker, описано в разделе [запустить релей](/api/epicbox#run-a-relay).
+
+<RelayExchange />
+
+<Unverified settles="running the send with no listener on either side, then starting Bob's.">
+
+**По одному за раз** — тот же релей в другом порядке. В прогоне, который описывает эта страница, Боб
+был подписан в момент отправки Алисой, поэтому очередь задействовалась только на обратном плече.
+
+</Unverified>
+
+## 1. Собрать вспомогательный инструмент адресов {/* #1-build-the-address-helper */}
+
+Релей вызывает `epicboxlib` для проверки подписи и адреса. Его Cargo-манифест зависит от `libwallet` кошелька через
+субмодуль, поэтому заполните его перед сборкой.
+
+```bash
+git clone https://github.com/EpicCash/epic-epicbox-docker.git ~/epicbox
+cd ~/epicbox
+git submodule update --init epicboxlib_source/epic-wallet
+cd epicboxlib_source
+CARGO_TARGET_DIR=~/epic-build/epicboxlib cargo build --release
+cp ~/epic-build/epicboxlib/release/epicboxlib ~/epicbox/
+```
+
+Проверьте, что бинарник отвечает:
+
+```bash
+cd ~/epicbox && ./epicboxlib verifyaddress foo bar
+false
+```
+
+## 2. Запустить MongoDB {/* #2-start-mongodb */}
+
+Релей хранит слейты (slate) в MongoDB. Официальный тарбол запускается от имени вашего пользователя.
+
+```bash
+cd ~/epicbox
+curl -sSL -o mongodb.tgz \
+  https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-6.0.26.tgz
+tar xzf mongodb.tgz && mv mongodb-linux-x86_64-ubuntu2204-6.0.26 mongodb
+mkdir -p data
+mongodb/bin/mongod --dbpath data --port 27019 --bind_ip 127.0.0.1 \
+  --fork --logpath mongod.log
+```
+
+```
+child process started successfully, parent exiting
+```
+
+## 3. Создать индексы слейтов {/* #3-create-the-slate-indexes */}
+
+Релей не создаёт их, а тарбол 6.0 не поставляет `mongosh`. Создайте их с помощью драйвера, который
+использует сам релей: порядок опустошения очереди, поиск при доставке и <Ver k="epicboxSlateExpiryDays" />-дневный срок истечения
+для `createdat`.
+
+```js title="~/epicbox/index-slates.mjs"
+import {MongoClient} from 'mongodb';
+
+const client = new MongoClient('mongodb://127.0.0.1:27019');
+await client.connect();
+const slates = client.db('epicbox').collection('slates');
+await slates.createIndex({queue: 1, made: 1, createdat: 1});
+await slates.createIndex({messageid: 1, made: 1});
+await slates.createIndex({createdat: 1}, {expireAfterSeconds: 604800});
+await client.close();
+```
+
+```bash
+npm install
+node index-slates.mjs
+```
+
+## 4. Запустить релей {/* #4-start-the-relay */}
+
+`epicbox_domain` и `epicbox_port` — это то, из чего формируется адрес кошелька; релей хранит только слейты, адресованные
+его собственному домену и порту (<Src repo="epicbox" path="app_mongo.js" line={582} />). Задайте `path_to_epicboxlib_exec_file` как абсолютный путь.
+
+```json title="~/epicbox/config.json"
+{
+  "mongo_url": "mongodb://127.0.0.1:27019",
+  "mongo_dbName": "epicbox",
+  "mongo_collection_name": "slates",
+  "epicbox_domain": "localhost",
+  "epicbox_port": 3423,
+  "local_epicbox_service_port": 3423,
+  "path_to_epicboxlib_exec_file": "/home/you/epicbox/epicboxlib",
+  "challenge_interval": 60000,
+  "debug": false,
+  "stats": true
+}
+```
+
+```bash
+node app_mongo.js --config config.json
+```
+
+```
+Epicbox ready to work.
+```
+
+Релей слушает на <Ver k="ports.epicboxLocal" />, что является собственным значением по умолчанию `local_epicbox_service_port`.
+
+## 5. Направить оба кошелька на него {/* #5-point-both-wallets-at-it */}
+
+Один и тот же блок в обоих каталогах кошельков, соответствующий конфигурации релея:
+
+```toml title="wallet_alice/epic-wallet.toml and wallet_bob/epic-wallet.toml"
+[epicbox]
+epicbox_domain = "localhost"
+epicbox_port = 3423
+epicbox_protocol_unsecure = true
+epicbox_address_index = 0
+```
+
+`epicbox_protocol_unsecure = true` заставляет кошелёк подключаться через `ws://` (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={158} />).
+
+Прочитайте адрес Боба и добавьте к нему порт:
+
+```bash
+cd wallet_bob && epic-wallet --usernet address
+esWNVrjr…@localhost
+```
+
+Отправьте на `esWNVrjr…@localhost:3423`. `address` выводит только домен (<Src repo="wallet" path="controller/src/command.rs" line={1360} />), а релей интерпретирует адресат без порта как
+<Ver k="ports.epicbox" /> (<Src repo="epicbox" path="app_mongo.js" line={581} />).
+
+## 6. Отправить, по одному слушателю за раз {/* #6-send-one-listener-at-a-time */}
+
+<Risk level="spend" /> При отправке входы (input) Алисы резервируются в момент формирования слейта. Они остаются
+зарезервированными до подтверждения перевода или до выполнения `cancel -i <id>`.
+
+```bash
+# wallet_bob
+epic-wallet --usernet listen -m epicbox
+```
+
+```bash
+# wallet_alice
+epic-wallet --usernet send -m epicbox \
+  -d esWNVrjr…@localhost:3423 --min_conf 3 5
+epic-wallet --usernet listen -m epicbox
+```
+
+Вторая команда завершает перевод. Подписанный слейт Боба возвращается через релей, а не в виде
+ответа, поэтому финализирует его собственная подписка Алисы:
+
+```
+INFO Finalize transaction (owner::finalize_tx)
+INFO Slate [563e2b1a-…] finalized successfully
+```
+
+Слушатель Боба может остановиться сразу после публикации ответа, а слушатель Алисы может запуститься
+после этого. Релей удерживает слейт каждой стороны до тех пор, пока эта сторона не подпишется.
+
+Затем прочитайте баланс в `wallet_bob`, не запуская слушателя:
+
+```bash
+epic-wallet --usernet info --min_conf 3
+```
+
+## Если слейт не доставлен {/* #if-the-slate-does-not-arrive */}
+
+| Симптом | Причина |
+| --- | --- |
+| `send` завершается примерно через 40 секунд с сообщением об успехе, но ничего не приходит | В адресе назначения не был указан порт, поэтому релей искал другой релей на <Ver k="ports.epicbox" /> |
+| Релей записывает слейт в лог, получатель его не получает | `epicbox_domain` или `epicbox_port` кошельков отличается от конфигурации релея |
+| Кошелёк переподключается каждые 5 секунд | Релей не запущен, или `epicbox_protocol_unsecure` не задан и кошелёк обращается к `wss://` |
+| Ничего не происходит, ошибок нигде нет | Слейт поставлен в очередь. Запустите слушатель получателя |
+| Релей никогда не выводит `Epicbox ready to work.` | MongoDB недоступна на 27019 |
+| Временны́е метки `txs` расходятся с логом релея | `txs` выводит UTC, лог релея выводит местное время |
+
+Если перевод застрял после этой таблицы, см. раздел [диагностировать застрявшую транзакцию](/guides/stuck-transactions).
+
+## Остановить {/* #stop-it */}
+
+```bash
+pkill -f app_mongo.js
+cd ~/epicbox && mongodb/bin/mongod --dbpath data --shutdown
+```
+
+Недоставленные слейты переживают перезапуск и истекают через <Ver k="epicboxSlateExpiryDays" /> дней после публикации. Удаление
+`~/epicbox/data` очищает их, после чего три индекса необходимо создать заново.
+
+## Далее {/* #next */}
+
+<CardGrid>
+  <Card title="Ваш первый перевод" to="/guides/first-transfer">
+    Тот же перевод через файловый и HTTP-транспорты.
+  </Card>
+  <Card title="Протокол релея Epicbox" to="/api/epicbox">
+    Типы сообщений, подтверждение и лимиты доставки.
+  </Card>
+</CardGrid>

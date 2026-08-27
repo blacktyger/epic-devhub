@@ -1,0 +1,195 @@
+---
+title: 运行本地epicbox中继
+description: 在本机运行一个epicbox中继，并通过它完成一次usernet转账，每次只有一个钱包处于监听状态。
+---
+
+# 运行本地epicbox中继
+
+在你自己的机器上运行一个epicbox中继，并通过它在两个usernet钱包之间完成一次转账。
+
+Linux。你还需要[运行本地网络](/guides/local-network)中的环境：一个正在出块的节点、`wallet_alice`（具有可花费余额）、`wallet_bob`，以及用于构建和运行中继的Rust和Node.js。
+
+如需在Docker中运行中继，compose部署方式请参见[run a relay](/api/epicbox#run-a-relay)。
+
+<RelayExchange />
+
+<Unverified settles="running the send with no listener on either side, then starting Bob's.">
+
+**每次一个**是同一个中继以不同顺序运行的情形。在本页记录的运行中，Bob在Alice发送时已订阅，因此队列仅在回复阶段被使用。
+
+</Unverified>
+
+## 1. 构建地址辅助工具 {/* #1-build-the-address-helper */}
+
+中继调用`epicboxlib`进行签名和地址校验。其Cargo清单通过子模块依赖钱包的`libwallet`，因此在构建前需先填充该子模块。
+
+```bash
+git clone https://github.com/EpicCash/epic-epicbox-docker.git ~/epicbox
+cd ~/epicbox
+git submodule update --init epicboxlib_source/epic-wallet
+cd epicboxlib_source
+CARGO_TARGET_DIR=~/epic-build/epicboxlib cargo build --release
+cp ~/epic-build/epicboxlib/release/epicboxlib ~/epicbox/
+```
+
+检查二进制文件是否响应：
+
+```bash
+cd ~/epicbox && ./epicboxlib verifyaddress foo bar
+false
+```
+
+## 2. 启动MongoDB {/* #2-start-mongodb */}
+
+中继将slate保存在MongoDB中。官方压缩包以当前用户身份运行。
+
+```bash
+cd ~/epicbox
+curl -sSL -o mongodb.tgz \
+  https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-6.0.26.tgz
+tar xzf mongodb.tgz && mv mongodb-linux-x86_64-ubuntu2204-6.0.26 mongodb
+mkdir -p data
+mongodb/bin/mongod --dbpath data --port 27019 --bind_ip 127.0.0.1 \
+  --fork --logpath mongod.log
+```
+
+```
+child process started successfully, parent exiting
+```
+
+## 3. 创建slate索引 {/* #3-create-the-slate-indexes */}
+
+中继不会自动创建索引，且6.0压缩包不附带`mongosh`。使用中继自身所用的驱动创建索引：队列排空顺序、投递查找，以及`createdat`上<Ver k="epicboxSlateExpiryDays" />天的过期设置。
+
+```js title="~/epicbox/index-slates.mjs"
+import {MongoClient} from 'mongodb';
+
+const client = new MongoClient('mongodb://127.0.0.1:27019');
+await client.connect();
+const slates = client.db('epicbox').collection('slates');
+await slates.createIndex({queue: 1, made: 1, createdat: 1});
+await slates.createIndex({messageid: 1, made: 1});
+await slates.createIndex({createdat: 1}, {expireAfterSeconds: 604800});
+await client.close();
+```
+
+```bash
+npm install
+node index-slates.mjs
+```
+
+## 4. 启动中继 {/* #4-start-the-relay */}
+
+`epicbox_domain`和`epicbox_port`是钱包地址的生成来源，中继只保留寻址到其自身域名和端口（<Src repo="epicbox" path="app_mongo.js" line={582} />）的slate。将`path_to_epicboxlib_exec_file`设置为绝对路径。
+
+```json title="~/epicbox/config.json"
+{
+  "mongo_url": "mongodb://127.0.0.1:27019",
+  "mongo_dbName": "epicbox",
+  "mongo_collection_name": "slates",
+  "epicbox_domain": "localhost",
+  "epicbox_port": 3423,
+  "local_epicbox_service_port": 3423,
+  "path_to_epicboxlib_exec_file": "/home/you/epicbox/epicboxlib",
+  "challenge_interval": 60000,
+  "debug": false,
+  "stats": true
+}
+```
+
+```bash
+node app_mongo.js --config config.json
+```
+
+```
+Epicbox ready to work.
+```
+
+中继监听<Ver k="ports.epicboxLocal" />，这是`local_epicbox_service_port`自身的默认值。
+
+## 5. 将两个钱包指向该中继 {/* #5-point-both-wallets-at-it */}
+
+两个钱包目录中使用相同的区块，与中继配置保持一致：
+
+```toml title="wallet_alice/epic-wallet.toml and wallet_bob/epic-wallet.toml"
+[epicbox]
+epicbox_domain = "localhost"
+epicbox_port = 3423
+epicbox_protocol_unsecure = true
+epicbox_address_index = 0
+```
+
+`epicbox_protocol_unsecure = true`使钱包通过`ws://`（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={158} />）连接。
+
+读取Bob的地址，并在其后附加端口：
+
+```bash
+cd wallet_bob && epic-wallet --usernet address
+esWNVrjr…@localhost
+```
+
+发送到`esWNVrjr…@localhost:3423`。`address`只打印域名（<Src repo="wallet" path="controller/src/command.rs" line={1360} />），中继将不带端口的目标地址读作<Ver k="ports.epicbox" />（<Src repo="epicbox" path="app_mongo.js" line={581} />）。
+
+## 6. 发送，每次仅一个监听器 {/* #6-send-one-listener-at-a-time */}
+
+<Risk level="spend" />发送操作在构建slate时会预留Alice的输入（input）。这些输入保持已预留状态，直到转账确认或她执行`cancel -i <id>`。
+
+```bash
+# wallet_bob
+epic-wallet --usernet listen -m epicbox
+```
+
+```bash
+# wallet_alice
+epic-wallet --usernet send -m epicbox \
+  -d esWNVrjr…@localhost:3423 --min_conf 3 5
+epic-wallet --usernet listen -m epicbox
+```
+
+第二条命令才是完成转账的操作。Bob签名后的slate通过中继返回，而非作为直接回复，因此由Alice自己的订阅来完成最终确认：
+
+```
+INFO Finalize transaction (owner::finalize_tx)
+INFO Slate [563e2b1a-…] finalized successfully
+```
+
+Bob的监听器在广播回复后即可停止，Alice的监听器可在此之后启动。中继会保留各方的slate，直到该方订阅为止。
+
+然后在`wallet_bob`中读取余额，此时无需任何监听器运行：
+
+```bash
+epic-wallet --usernet info --min_conf 3
+```
+
+## 若slate未到达 {/* #if-the-slate-does-not-arrive */}
+
+| 现象 | 原因 |
+| --- | --- |
+| `send`约40秒后返回并报告成功，但没有任何内容到达 | 目标地址没有端口，因此中继在<Ver k="ports.epicbox" />上查找其他中继 |
+| 中继记录了slate，但接收方从未收到 | 钱包的`epicbox_domain`或`epicbox_port`与中继的配置不一致 |
+| 钱包每5秒重新连接一次 | 中继未运行，或`epicbox_protocol_unsecure`未设置且钱包正在拨号`wss://` |
+| 无任何响应，且各处均无报错 | slate已入队，启动接收方的监听器 |
+| 中继从未打印`Epicbox ready to work.` | MongoDB在27019端口不可达 |
+| `txs`与中继日志的时间不一致 | `txs`打印UTC时间，中继日志打印本地时间 |
+
+若转账在该表格之后卡住，请参见[diagnose a stuck transaction](/guides/stuck-transactions)。
+
+## 停止运行 {/* #stop-it */}
+
+```bash
+pkill -f app_mongo.js
+cd ~/epicbox && mongodb/bin/mongod --dbpath data --shutdown
+```
+
+未投递的slate在重启后仍然保留，并在广播后<Ver k="epicboxSlateExpiryDays" />天过期。删除`~/epicbox/data`会清除这些slate，之后需重新创建三个索引。
+
+## 下一步{/* #next */}
+
+<CardGrid>
+  <Card title="你的第一笔转账" to="/guides/first-transfer">
+    通过文件和HTTP传输方式完成的相同转账。
+  </Card>
+  <Card title="Epicbox中继协议" to="/api/epicbox">
+    消息类型、确认机制及投递限制。
+  </Card>
+</CardGrid>

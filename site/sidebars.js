@@ -34,6 +34,7 @@ const sidebars = {
         'guides/build',
         'guides/local-network',
         'guides/first-transfer',
+        'guides/local-epicbox',
         {
           type: 'category',
           label: 'Connecting to mainnet',

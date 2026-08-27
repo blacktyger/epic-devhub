@@ -27,6 +27,9 @@ export const versions = {
   coinbaseMaturity: '1,440',
   epicBase: '100,000,000',
   smallestUnit: 'freeman',
+  // DEFAULT_BASE_FEE in core/src/libtx/mod.rs, which is consensus::MILLI_EPIC. Fee is this times the
+  // transaction's weight.
+  baseFee: '0.001',
   maxBlockWeight: '40,000',
   powVerificationThreshold: '1,000',
   checkpointCount: '12',
@@ -49,6 +52,9 @@ export const versions = {
     stratum: '3416',
     walletOwner: '3420',
     epicbox: '443',
+    // Upstream's own local_epicbox_service_port default, and what a relay run on one machine
+    // listens on. Not derived from the mainnet relay's port.
+    epicboxLocal: '3423',
   },
 
   // The date the factual claims were last checked against source.

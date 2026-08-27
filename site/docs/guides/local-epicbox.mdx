@@ -1,0 +1,215 @@
+---
+title: Run a local epicbox relay
+description: Run an epicbox relay on your own machine and complete a usernet transfer across it, with one wallet listening at a time.
+---
+
+# Run a local epicbox relay
+
+An epicbox relay on your own machine, and a transfer between your two usernet wallets across it.
+
+Linux. You also need the rig from [run a local network](/guides/local-network): a node producing
+blocks, `wallet_alice` with a spendable balance, `wallet_bob`, plus Rust and Node.js to build and run
+the relay.
+
+The compose deployment, for running the relay in Docker instead, is
+[run a relay](/api/epicbox#run-a-relay).
+
+<RelayExchange />
+
+<Unverified settles="running the send with no listener on either side, then starting Bob's.">
+
+**One at a time** is the same relay in a different order. In the run this page records, Bob was
+subscribed when Alice sent, so the queue was exercised on the reply leg only.
+
+</Unverified>
+
+## 1. Build the address helper {/* #1-build-the-address-helper */}
+
+The relay calls `epicboxlib` for signature and address checks. Its Cargo manifest depends on the
+wallet's `libwallet` through a submodule, so populate that before building.
+
+```bash
+git clone https://github.com/EpicCash/epic-epicbox-docker.git ~/epicbox
+cd ~/epicbox
+git submodule update --init epicboxlib_source/epic-wallet
+cd epicboxlib_source
+CARGO_TARGET_DIR=~/epic-build/epicboxlib cargo build --release
+cp ~/epic-build/epicboxlib/release/epicboxlib ~/epicbox/
+```
+
+Check the binary answers:
+
+```bash
+cd ~/epicbox && ./epicboxlib verifyaddress foo bar
+false
+```
+
+## 2. Start MongoDB {/* #2-start-mongodb */}
+
+The relay keeps slates in MongoDB. The official tarball runs as your own user.
+
+```bash
+cd ~/epicbox
+curl -sSL -o mongodb.tgz \
+  https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-6.0.26.tgz
+tar xzf mongodb.tgz && mv mongodb-linux-x86_64-ubuntu2204-6.0.26 mongodb
+mkdir -p data
+mongodb/bin/mongod --dbpath data --port 27019 --bind_ip 127.0.0.1 \
+  --fork --logpath mongod.log
+```
+
+```
+child process started successfully, parent exiting
+```
+
+## 3. Create the slate indexes {/* #3-create-the-slate-indexes */}
+
+The relay creates none, and the 6.0 tarball ships no `mongosh`. Create them with the driver the relay
+itself uses: queue drain order, the delivery lookup, and the <Ver k="epicboxSlateExpiryDays" />-day
+expiry on `createdat`.
+
+```js title="~/epicbox/index-slates.mjs"
+import {MongoClient} from 'mongodb';
+
+const client = new MongoClient('mongodb://127.0.0.1:27019');
+await client.connect();
+const slates = client.db('epicbox').collection('slates');
+await slates.createIndex({queue: 1, made: 1, createdat: 1});
+await slates.createIndex({messageid: 1, made: 1});
+await slates.createIndex({createdat: 1}, {expireAfterSeconds: 604800});
+await client.close();
+```
+
+```bash
+npm install
+node index-slates.mjs
+```
+
+## 4. Start the relay {/* #4-start-the-relay */}
+
+`epicbox_domain` and `epicbox_port` are what a wallet address is minted from, and the relay keeps only
+slates addressed to its own domain and port
+(<Src repo="epicbox" path="app_mongo.js" line={582} />). Set `path_to_epicboxlib_exec_file` to an
+absolute path.
+
+```json title="~/epicbox/config.json"
+{
+  "mongo_url": "mongodb://127.0.0.1:27019",
+  "mongo_dbName": "epicbox",
+  "mongo_collection_name": "slates",
+  "epicbox_domain": "localhost",
+  "epicbox_port": 3423,
+  "local_epicbox_service_port": 3423,
+  "path_to_epicboxlib_exec_file": "/home/you/epicbox/epicboxlib",
+  "challenge_interval": 60000,
+  "debug": false,
+  "stats": true
+}
+```
+
+```bash
+node app_mongo.js --config config.json
+```
+
+```
+Epicbox ready to work.
+```
+
+The relay listens on <Ver k="ports.epicboxLocal" />, which is `local_epicbox_service_port`'s own
+default.
+
+## 5. Point both wallets at it {/* #5-point-both-wallets-at-it */}
+
+The same block in both wallet directories, matching the relay's config:
+
+```toml title="wallet_alice/epic-wallet.toml and wallet_bob/epic-wallet.toml"
+[epicbox]
+epicbox_domain = "localhost"
+epicbox_port = 3423
+epicbox_protocol_unsecure = true
+epicbox_address_index = 0
+```
+
+`epicbox_protocol_unsecure = true` makes the wallet connect over `ws://`
+(<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={158} />).
+
+Read Bob's address, and add the port to it:
+
+```bash
+cd wallet_bob && epic-wallet --usernet address
+esWNVrjr…@localhost
+```
+
+Send to `esWNVrjr…@localhost:3423`. `address` prints the domain alone
+(<Src repo="wallet" path="controller/src/command.rs" line={1360} />), and the relay reads a
+destination with no port as <Ver k="ports.epicbox" />
+(<Src repo="epicbox" path="app_mongo.js" line={581} />).
+
+## 6. Send, one listener at a time {/* #6-send-one-listener-at-a-time */}
+
+<Risk level="spend" /> The send reserves Alice's inputs when it builds the slate. They stay reserved
+until the transfer confirms or she runs `cancel -i <id>`.
+
+```bash
+# wallet_bob
+epic-wallet --usernet listen -m epicbox
+```
+
+```bash
+# wallet_alice
+epic-wallet --usernet send -m epicbox \
+  -d esWNVrjr…@localhost:3423 --min_conf 3 5
+epic-wallet --usernet listen -m epicbox
+```
+
+The second command is what completes the transfer. Bob's signed slate comes back through the relay
+rather than as a reply, so it is Alice's own subscription that finalises it:
+
+```
+INFO Finalize transaction (owner::finalize_tx)
+INFO Slate [563e2b1a-…] finalized successfully
+```
+
+Bob's listener can stop as soon as it has posted the reply, and Alice's can start afterwards. The
+relay holds each side's slate until that side subscribes.
+
+Then read the balance in `wallet_bob`, with nothing listening:
+
+```bash
+epic-wallet --usernet info --min_conf 3
+```
+
+## If the slate does not arrive {/* #if-the-slate-does-not-arrive */}
+
+| Symptom | Cause |
+| --- | --- |
+| `send` returns after about 40 seconds reporting success, and nothing arrives | The destination had no port, so the relay looked for another relay on <Ver k="ports.epicbox" /> |
+| The relay logs the slate, the recipient never gets it | The wallets' `epicbox_domain` or `epicbox_port` differs from the relay's config |
+| A wallet reconnects every 5 seconds | The relay is not running, or `epicbox_protocol_unsecure` is unset and the wallet is dialling `wss://` |
+| Nothing happens, and no error anywhere | The slate is queued. Start the recipient's listener |
+| The relay never prints `Epicbox ready to work.` | MongoDB is not reachable on 27019 |
+| `txs` times disagree with the relay log | `txs` prints UTC, the relay log prints local time |
+
+A transfer stuck past that table is [diagnose a stuck transaction](/guides/stuck-transactions).
+
+## Stop it {/* #stop-it */}
+
+```bash
+pkill -f app_mongo.js
+cd ~/epicbox && mongodb/bin/mongod --dbpath data --shutdown
+```
+
+Undelivered slates survive a restart, and expire <Ver k="epicboxSlateExpiryDays" /> days after they
+were posted. Deleting `~/epicbox/data` clears them, and the three indexes then have to be created
+again.
+
+## Next {/* #next */}
+
+<CardGrid>
+  <Card title="Your first transfer" to="/guides/first-transfer">
+    The same transfer over the file and HTTP transports.
+  </Card>
+  <Card title="Epicbox relay protocol" to="/api/epicbox">
+    The message types, the acknowledgement, and the delivery limits.
+  </Card>
+</CardGrid>
