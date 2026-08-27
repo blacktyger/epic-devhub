@@ -7,15 +7,15 @@ description: 在本机运行一个epicbox中继，并通过它完成一次userne
 
 在你自己的机器上运行一个epicbox中继，并通过它在两个usernet钱包之间完成一次转账。
 
-Linux。你还需要[运行本地网络](/guides/local-network)中的环境：一个正在出块的节点、`wallet_alice`（具有可花费余额）、`wallet_bob`，以及用于构建和运行中继的Rust和Node.js。
+Linux，使用[运行本地网络](/guides/local-network)中的环境：一个正在出块的节点、`wallet_alice`（拥有可花费余额）以及`wallet_bob`。构建中继需要Rust和Node.js。
 
-如需在Docker中运行中继，compose部署方式请参见[run a relay](/api/epicbox#run-a-relay)。
+如需在Docker中运行：[运行中继](/api/epicbox#run-a-relay)。
 
 <RelayExchange />
 
 <Unverified settles="running the send with no listener on either side, then starting Bob's.">
 
-**每次一个**是同一个中继以不同顺序运行的情形。在本页记录的运行中，Bob在Alice发送时已订阅，因此队列仅在回复阶段被使用。
+**每次一个**与上述流程使用同一中继，只是顺序不同。在实测运行中，Alice发送时Bob已订阅，因此只有回复阶段的slate被排队。
 
 </Unverified>
 
@@ -105,7 +105,7 @@ node app_mongo.js --config config.json
 Epicbox ready to work.
 ```
 
-中继监听<Ver k="ports.epicboxLocal" />，这是`local_epicbox_service_port`自身的默认值。
+中继监听<Ver k="ports.epicboxLocal" />。
 
 ## 5. 将两个钱包指向该中继 {/* #5-point-both-wallets-at-it */}
 
@@ -128,7 +128,7 @@ cd wallet_bob && epic-wallet --usernet address
 esWNVrjr…@localhost
 ```
 
-发送到`esWNVrjr…@localhost:3423`。`address`只打印域名（<Src repo="wallet" path="controller/src/command.rs" line={1360} />），中继将不带端口的目标地址读作<Ver k="ports.epicbox" />（<Src repo="epicbox" path="app_mongo.js" line={581} />）。
+发送至`esWNVrjr…@localhost:3423`。`address`仅打印域名（<Src repo="wallet" path="controller/src/command.rs" line={1360} />），中继将不带端口的目标地址解析为<Ver k="ports.epicbox" />（<Src repo="epicbox" path="app_mongo.js" line={581} />）。
 
 ## 6. 发送，每次仅一个监听器 {/* #6-send-one-listener-at-a-time */}
 
@@ -155,7 +155,7 @@ INFO Slate [563e2b1a-…] finalized successfully
 
 Bob的监听器在广播回复后即可停止，Alice的监听器可在此之后启动。中继会保留各方的slate，直到该方订阅为止。
 
-然后在`wallet_bob`中读取余额，此时无需任何监听器运行：
+然后在`wallet_bob`中读取余额，此时无监听器运行：
 
 ```bash
 epic-wallet --usernet info --min_conf 3
@@ -166,13 +166,13 @@ epic-wallet --usernet info --min_conf 3
 | 现象 | 原因 |
 | --- | --- |
 | `send`约40秒后返回并报告成功，但没有任何内容到达 | 目标地址没有端口，因此中继在<Ver k="ports.epicbox" />上查找其他中继 |
-| 中继记录了slate，但接收方从未收到 | 钱包的`epicbox_domain`或`epicbox_port`与中继的配置不一致 |
+| 中继记录了slate，但接收方从未收到 | 钱包的`epicbox_domain`或`epicbox_port`与中继的配置不符 |
 | 钱包每5秒重新连接一次 | 中继未运行，或`epicbox_protocol_unsecure`未设置且钱包正在拨号`wss://` |
 | 无任何响应，且各处均无报错 | slate已入队，启动接收方的监听器 |
 | 中继从未打印`Epicbox ready to work.` | MongoDB在27019端口不可达 |
-| `txs`与中继日志的时间不一致 | `txs`打印UTC时间，中继日志打印本地时间 |
+| `txs`时间与中继日志不一致 | `txs`打印UTC时间，中继日志打印本地时间 |
 
-若转账在该表格之后卡住，请参见[diagnose a stuck transaction](/guides/stuck-transactions)。
+其他情况：[诊断卡住的交易](/guides/stuck-transactions)。
 
 ## 停止运行 {/* #stop-it */}
 
@@ -181,7 +181,7 @@ pkill -f app_mongo.js
 cd ~/epicbox && mongodb/bin/mongod --dbpath data --shutdown
 ```
 
-未投递的slate在重启后仍然保留，并在广播后<Ver k="epicboxSlateExpiryDays" />天过期。删除`~/epicbox/data`会清除这些slate，之后需重新创建三个索引。
+未投递的slate在重启后仍然保留，并在发布后<Ver k="epicboxSlateExpiryDays" />天过期。删除`~/epicbox/data`会清除它们，之后需要重新创建三个索引。
 
 ## 下一步{/* #next */}
 

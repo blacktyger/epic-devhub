@@ -8,7 +8,7 @@ description: mainnet上Epic钱包的日常命令，包括接收、发送、查�
 
 如何使用已设置好并连接到节点的钱包。此处所有操作均在mainnet上进行，因此无需网络参数，且每条涉及转账的命令均为真实操作。
 
-首先完成设置：[节点与钱包设置](/guides/mainnet-setup)。转账机制与你在[首次转账](/guides/first-transfer)中在本地链上运行的相同。
+首先完成设置：[节点与钱包设置](/guides/mainnet-setup)。转账机制与你在[首次转账](/guides/first-transfer)中在本地链上执行的操作相同。
 
 ## 读取钱包已知信息 {/* #read-what-the-wallet-knows */}
 
@@ -26,7 +26,7 @@ Currently Spendable     15.00000000
 
 金额以8位小数显示，因为1 EPIC等于<Ver k="epicBase" />个<Ver k="smallestUnit" />。值为零的行有时会被隐藏而不显示。
 
-`Total`与`Currently Spendable`之间存在差值是正常现象，原因有以下三种之一：Coinbase成熟期尚未到达、某笔转账正在进行中且已预留输入（input），或者确认数阈值尚未达到。[输出与锁定](/concepts/outputs-and-locking)说明了各种情况的具体含义。
+`Total`与`Currently Spendable`之间存在差值是正常现象，原因有三种：Coinbase成熟度尚未达到、转账正在进行中且已预留输入（input），或确认数阈值尚未满足。[输出与锁定](/concepts/outputs-and-locking)说明了各种情况的具体含义。
 
 `--min_conf`设置确认数阈值，即输出（output）被钱包视为可花费之前所需的最小深度。默认值为10，仅在三个子命令中声明：`send`（<Src repo="wallet" path="src/cmd/wallet_args.rs" line={143} />）、`pay`（<Src repo="wallet" path="src/cmd/wallet_args.rs" line={263} />）和`info`（<Src repo="wallet" path="src/cmd/wallet_args.rs" line={361} />）。没有对应的配置文件键，因此除非传入该参数，否则使用默认值。在`info`上，它会改变摘要报告中的`Currently Spendable`数值，可通过此方式检查给定阈值下的可用余额：
 
@@ -34,7 +34,7 @@ Currently Spendable     15.00000000
 epic-wallet info --min_conf 1
 ```
 
-Coinbase成熟期是独立的共识层下限，不受此参数影响。参见[发行时序](/mining/emission#timing)。
+Coinbase成熟度是独立的共识层下限，不受此参数影响。参见[发行时序](/mining/emission#timing)。
 
 ```bash
 epic-wallet txs
@@ -81,7 +81,7 @@ epic-wallet address
 
 epicbox地址由52个base58字符组成：`@`，后跟中继域名。它将slate路由到你的钱包。它不是链上账户，无法在链上查询，也不会暴露你的余额。损坏的地址在发送任何内容之前会在本地校验和检查时失败。
 
-你离线期间发送的slate会在你重新连接时投递。两个独立的限制约束中继保存slate的时长，且较短的那个并非存储过期时间，因此转账始终未到达的发送方应取消并重试，而不是无限期等待。参见[投递机制及其限制](/api/epicbox#delivery-and-its-limits)。
+你离线期间发送的slate在你重新连接时送达。中继保存slate的时长受两个独立限制约束，其中较短的一个并非存储过期时间，因此转账始终未到账的发送方应取消并重试，而不是无限期等待。参见[送达及其限制](/api/epicbox#delivery-and-its-limits)。
 
 若要处理slate文件而非监听：
 
@@ -96,7 +96,7 @@ epic-wallet receive -m file -i slate.tx
 epic-wallet send -m epicbox -d <recipient-address> <amount>
 ```
 
-<Risk level="spend" /> 这会在接收方执行任何操作之前立即预留你的输入（input）。参见[哪些操作会预留输出](/concepts/outputs-and-locking#what-reserves-outputs)。
+<Risk level="spend" /> 此操作在接收方执行任何操作之前立即预留你的输入（input）。参见[哪些操作会预留输出](/concepts/outputs-and-locking#what-reserves-outputs)。
 
 在确认前先查询手续费：
 
@@ -108,13 +108,13 @@ epic-wallet send -e -m epicbox -d <recipient-address> <amount>
 
 手续费取决于输入（input）和输出（output）的数量，而非固定费率，计算方式详见[保留多个可花费输出](#keep-more-than-one-spendable-output)。
 
-广播后，命令会轮询节点的内存池（mempool）以确认交易已到达；参见[发送操作似乎卡住](/guides/stuck-transactions#case-3-the-send-appears-to-hang)。使用`-m epicbox`时，双方均需订阅，因为对方签名后的slate通过中继返回，由你自己的监听器完成最终确认。
+广播后，命令会轮询节点的内存池（mempool）以确认交易已到达；参见[发送命令似乎卡住](/guides/stuck-transactions#case-3-the-send-appears-to-hang)。使用`-m epicbox`时，双方均需订阅，因为反签名的slate通过中继返回，由你自己的监听器完成最终确认。
 
 Epicbox使用slate V2，不支持支付证明。参见[传输方式](/concepts/transports#comparison)。
 
 ## 保留多个可花费输出 {/* #keep-more-than-one-spendable-output */}
 
-持有单个输出（output）的钱包一次只能执行一笔转账。发送操作会锁定该输出，并将找零写为未确认状态，因此在转账确认且找零达到`--min_conf`个确认数之前，没有任何余额可花费。参见[哪些情况会预留输出](/concepts/outputs-and-locking#what-reserves-outputs)。
+只持有单个输出（output）的钱包一次只能执行一笔转账。发送操作会锁定该输出并将找零记录为未确认状态，因此在转账确认且找零达到`--min_conf`个确认数之前，没有任何资金可花费。参见[哪些操作会预留输出](/concepts/outputs-and-locking#what-reserves-outputs)。
 
 通过向自己发送来拆分余额。`-m self`会锁定输入（input）并在一条命令（<Src repo="wallet" path="controller/src/command.rs" line={550} />）中将slate接收回同一钱包，`-d`指定目标账户，`-o`设置写入的找零输出数量：
 
@@ -122,9 +122,9 @@ Epicbox使用slate V2，不支持支付证明。参见[传输方式](/concepts/t
 epic-wallet send -m self -d default -o 3 10
 ```
 
-<Risk level="spend" /> 这是一笔链上转账，与其他发送操作一样，它会锁定所选输入直至确认。它将返回四个独立的输出。
+<Risk level="spend" /> 自转账会锁定所选输入（input），直至交易确认。
 
-该交易有一个输入、四个输出和一个内核（kernel）：10 EPIC返还至你自己的`default`账户，加上三个找零输出。一旦确认，可同时进行四笔转账，而不是一笔。
+该交易有一个输入（input）、四个输出（output）和一个内核（kernel）：10 EPIC转回`default`账户，加上三个找零输出。一旦确认，可同时进行四笔转账。
 
 ### 输出的手续费成本 {/* #what-an-output-costs */}
 
@@ -150,11 +150,11 @@ weight = max(4 × outputs + kernels − inputs, 1)
 | `smallest`，默认值 | 覆盖金额和手续费所需的最少输出 | 余额的其余部分保持可花费状态 |
 | `all` | 每个至少有`--min_conf`个确认数的输出 | 全部可花费余额在转账期间被锁定，手续费更低，并返还一个找零输出 |
 
-`all`执行合并操作。这是转移余额最低成本的方式，并将钱包恢复为持有单个输出的状态，因此频繁发送的钱包更适合使用`smallest`加定期拆分的方式。它还会在链上将已花费的输出相互关联；参见[InitTxArgs](/api/wallet-owner#inittxargs)。
+`all`返回单个找零输出（output），因此钱包再次只持有一个输出。它将已花费的输出在链上相互关联；参见[InitTxArgs](/api/wallet-owner#inittxargs)。
 
 ## 重新广播未获确认的已完成转账 {/* #repost-a-completed-transfer-that-never-confirmed */}
 
-已最终确认的交易在广播前会写入`wallet_data/saved_txs/`，因此无需重新构建即可再次广播。当转账完成了两轮交互但广播未到达节点时，即属于此情况。
+已最终确认的交易在广播前会写入`wallet_data/saved_txs/`，因此无需重新构建即可再次广播。这适用于转账已完成两轮交互但广播未到达节点的情况。
 
 ```bash
 epic-wallet txs                        # 查找未确认的已发送条目的 id
@@ -167,7 +167,7 @@ epic-wallet repost -i <id>
 | `-m <file>` | 将交易写入该文件，而非广播 |
 | `-f` | 直接广播，绕过Dandelion中继 |
 
-声明于<Src repo="wallet" path="src/cmd/wallet_args.rs" line={335} />。`repost`需要已存储的交易对象，因此仅适用于`saved_txs/`条目仍存在的转账。仅通过助记词恢复的钱包不包含任何此类记录。
+在<Src repo="wallet" path="src/cmd/wallet_args.rs" line={335} />处声明。`repost`需要已存储的交易对象，因此仅适用于`saved_txs/`条目仍存在的转账。仅通过助记词恢复的钱包不包含这些记录。
 
 ## 取消无法完成的转账 {/* #cancel-a-transfer-that-cannot-complete */}
 
@@ -178,7 +178,7 @@ epic-wallet txs                 # 查找未完成转账的 id
 epic-wallet cancel -i <id>
 ```
 
-参见[取消操作的前提条件](/concepts/outputs-and-locking#cancelling-has-preconditions)，以及[诊断卡住的交易](/guides/stuck-transactions)，了解当`cancel`拒绝时的处理方法。
+参见[取消操作的前提条件](/concepts/outputs-and-locking#cancelling-has-preconditions)，以及[诊断卡住的交易](/guides/stuck-transactions)，了解`cancel`拒绝执行时的处理方法。
 
 ## 修复与链不一致的钱包 {/* #repair-a-wallet-that-disagrees-with-the-chain */}
 
@@ -188,17 +188,17 @@ epic-wallet scan
 
 根据你的密钥重新扫描链，并重建本地的输出（output）视图。
 
-它不会释放已锁定的输出，因为锁定是本地记录，链对此一无所知。参见[哪些情况会释放它们](/concepts/outputs-and-locking#what-releases-them)。
+此操作不会释放已锁定的输出（output），因为锁定是本地记录，链对此一无所知。参见[哪些操作会释放锁定](/concepts/outputs-and-locking#what-releases-them)。
 
 :::warning[`scan --delete_unconfirmed` is a different thing]
 
-它会解锁已锁定的输出并删除其交易日志条目，因此它丢弃的是记录而非重建记录。请优先使用普通的`scan`。
+此操作会解锁已锁定的输出（output）并删除其交易日志条目，因此会丢弃记录而非重建记录。请优先使用普通的`scan`。
 
 :::
 
 ## 账户 {/* #accounts */}
 
-账户是绑定到钱包单一种子内某个派生路径的标签。每个钱包都有一个名为`default`的账户。
+账户是绑定到钱包单一种子文件内某个派生路径的标签。每个钱包都有一个名为`default`的账户。
 
 ```bash
 epic-wallet account            # 列出每个标签及其派生路径
@@ -206,9 +206,9 @@ epic-wallet account -c savings # 创建一个
 epic-wallet -a savings info    # 对其执行任意命令
 ```
 
-`-a`置于子命令之前，默认值为`default`。它为该次调用选择账户，并决定`send`从哪个账户花费，以及`receive`或epicbox监听器将款项记入哪个账户。
+`-a`位于子命令之前，默认值为`default`。它为当次调用选择账户，并决定`send`从哪个账户花费，以及`receive`或epicbox监听器将资金记入哪个账户。
 
-各账户共享恢复助记词、密码和备份，因此它们一同备份。参见[账户](/concepts/accounts)了解派生方案及每个账户单独持有的内容。
+各账户共享恢复助记词、密码和备份，因此一并备份。派生方案及各账户独立持有的内容详见[账户](/concepts/accounts)。
 
 ## 修改密码 {/* #change-the-password */}
 
@@ -216,7 +216,7 @@ epic-wallet -a savings info    # 对其执行任意命令
 epic-wallet change_password
 ```
 
-种子文件以新密码重新加密，助记词不变。`wallet.seed.bak`会被写入后删除；传入`--remove-backup`可保留它。参见[修改密码](/guides/backup-and-restore#changing-your-password)。
+种子文件以新密码重新加密，助记词不变。`wallet.seed.bak`会被写入后删除；传入`--remove-backup`可保留该文件。参见[修改密码](/guides/backup-and-restore#changing-your-password)。
 
 ## 下一步 {/* #next */}
 

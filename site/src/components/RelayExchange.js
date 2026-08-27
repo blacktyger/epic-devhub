@@ -203,7 +203,7 @@ function observed() {
       body: translate({
         id: 'relayExchange.confirmed.body',
         message:
-          'Bob reads the 5.00000000 EPIC without listening for anything. An epicbox recipient binds no port of its own.',
+          'Bob reads the 5.00000000 EPIC with no listener running. An epicbox recipient binds no port of its own.',
         description: 'Step body for the confirmation',
       }),
       source: 'wallet',
@@ -309,7 +309,7 @@ function alternating() {
       call: LISTEN,
       body: translate({
         id: 'relayExchange.collectAlt.body',
-        message: 'The other listener, also running alone. This is the leg the observed run exercised.',
+        message: 'The other listener, running alone. This is the leg the observed run exercised.',
         description: 'Step body for the sender collecting on the alternating route',
       }),
       source: 'relay',
@@ -332,7 +332,7 @@ function alternating() {
       }),
       body: translate({
         id: 'relayExchange.finaliseAlt.body',
-        message: 'Same finalise, same node, same result.',
+        message: 'Finalises and posts, as on the other route.',
         description: 'Step body for finalising on the alternating route',
       }),
       source: 'wallet',

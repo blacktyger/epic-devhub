@@ -7,19 +7,17 @@ description: Run an epicbox relay on your own machine and complete a usernet tra
 
 An epicbox relay on your own machine, and a transfer between your two usernet wallets across it.
 
-Linux. You also need the rig from [run a local network](/guides/local-network): a node producing
-blocks, `wallet_alice` with a spendable balance, `wallet_bob`, plus Rust and Node.js to build and run
-the relay.
+Linux, with the rig from [run a local network](/guides/local-network): a node producing blocks,
+`wallet_alice` with a spendable balance, and `wallet_bob`. Building the relay needs Rust and Node.js.
 
-The compose deployment, for running the relay in Docker instead, is
-[run a relay](/api/epicbox#run-a-relay).
+In Docker instead: [run a relay](/api/epicbox#run-a-relay).
 
 <RelayExchange />
 
 <Unverified settles="running the send with no listener on either side, then starting Bob's.">
 
-**One at a time** is the same relay in a different order. In the run this page records, Bob was
-subscribed when Alice sent, so the queue was exercised on the reply leg only.
+**One at a time** is the same relay in a different order. In the observed run Bob was subscribed when
+Alice sent, so only the reply leg was queued.
 
 </Unverified>
 
@@ -115,8 +113,7 @@ node app_mongo.js --config config.json
 Epicbox ready to work.
 ```
 
-The relay listens on <Ver k="ports.epicboxLocal" />, which is `local_epicbox_service_port`'s own
-default.
+The relay listens on <Ver k="ports.epicboxLocal" />.
 
 ## 5. Point both wallets at it {/* #5-point-both-wallets-at-it */}
 
@@ -190,7 +187,7 @@ epic-wallet --usernet info --min_conf 3
 | The relay never prints `Epicbox ready to work.` | MongoDB is not reachable on 27019 |
 | `txs` times disagree with the relay log | `txs` prints UTC, the relay log prints local time |
 
-A transfer stuck past that table is [diagnose a stuck transaction](/guides/stuck-transactions).
+Anything else: [diagnose a stuck transaction](/guides/stuck-transactions).
 
 ## Stop it {/* #stop-it */}
 

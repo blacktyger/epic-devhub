@@ -164,12 +164,10 @@ the destination account, and `-o` sets how many change outputs it writes:
 epic-wallet send -m self -d default -o 3 10
 ```
 
-<Risk level="spend" /> This is an on-chain transfer and it locks the selected inputs until it confirms,
-like any other send. It returns them as four independent outputs.
+<Risk level="spend" /> The self-send locks the selected inputs until it confirms.
 
-That transaction has one input, four outputs and one kernel: 10 EPIC paid back to your own `default`
-account plus three change outputs. Once it confirms, four transfers can be in flight at once instead of
-one.
+That transaction has one input, four outputs and one kernel: 10 EPIC paid back to the `default` account
+plus three change outputs. Once it confirms, four transfers can be in flight at once.
 
 ### What an output costs {/* #what-an-output-costs */}
 
@@ -198,9 +196,8 @@ Each additional output adds 0.004 EPIC. Each additional input removes 0.001, dow
 | `smallest`, the default | the fewest outputs that cover the amount and the fee | the rest of the balance stays spendable |
 | `all` | every output with at least `--min_conf` confirmations | the whole spendable balance is locked for the transfer, the fee is lower, and one change output comes back |
 
-`all` consolidates. It is the cheapest way to move a balance and it returns the wallet to holding one
-output, so a wallet that sends often is better served by `smallest` plus a periodic split. It also links
-the spent outputs to each other on chain; see [InitTxArgs](/api/wallet-owner#inittxargs).
+`all` returns a single change output, so the wallet is again holding one output. It links the spent
+outputs to each other on chain; see [InitTxArgs](/api/wallet-owner#inittxargs).
 
 ## Repost a completed transfer that never confirmed {/* #repost-a-completed-transfer-that-never-confirmed */}
 
