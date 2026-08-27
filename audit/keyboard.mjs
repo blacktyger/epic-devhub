@@ -52,6 +52,11 @@ const ROUTES = [
   '/concepts/interactive-transactions',
   '/reference/node-config',
   '/api/node/chain-reads',
+  // The two stepped concept demos. Each puts a dozen controls in the middle of a reading surface,
+  // between a paragraph and the next heading, which is exactly where a tab stop that goes nowhere
+  // would be worst.
+  '/concepts/mimblewimble',
+  '/concepts/outputs-and-locking',
 ];
 
 const FOCUSABLE = [

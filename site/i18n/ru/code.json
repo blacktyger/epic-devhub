@@ -341,7 +341,7 @@
     "description": "Node tab label in quick start"
   },
   "homepage.quickstart.nodeTitle": {
-    "message": "Запустить узел",
+    "message": "Собрать и запустить узел",
     "description": "Node quick start title"
   },
   "homepage.quickstart.walletLabel": {
@@ -349,7 +349,7 @@
     "description": "Wallet tab label in quick start"
   },
   "homepage.quickstart.walletTitle": {
-    "message": "Создать кошелёк",
+    "message": "Собрать кошелёк",
     "description": "Wallet quick start title"
   },
   "homepage.quickstart.heading": {
@@ -358,7 +358,7 @@
   },
   "homepage.quickstart.softwareAriaLabel": {
     "message": "Программное обеспечение",
-    "description": "Aria label for the node/wallet tab group"
+    "description": "Aria label for the component tab group"
   },
   "homepage.quickstart.platformAriaLabel": {
     "message": "Платформа",
@@ -371,6 +371,50 @@
   "homepage.quickstart.copy": {
     "message": "Копировать",
     "description": "Copy button label"
+  },
+  "homepage.quickstart.minerLabel": {
+    "message": "Майнер",
+    "description": "Miner tab label in quick start"
+  },
+  "homepage.quickstart.minerTitle": {
+    "message": "Собрать майнер",
+    "description": "Miner quick start title"
+  },
+  "homepage.quickstart.fastSync": {
+    "message": "Быстрая синхронизация",
+    "description": "Label for the fast sync toggle"
+  },
+  "homepage.quickstart.fastSyncHint": {
+    "message": "Загрузить снимок цепочки вместо валидации с генезиса.",
+    "description": "Tooltip for the fast sync toggle"
+  },
+  "homepage.quickstart.fastSyncNA": {
+    "message": "Применяется только при включённом узле.",
+    "description": "Tooltip shown when fast sync does not apply"
+  },
+  "homepage.quickstart.fastSyncNote": {
+    "message": "Если снимок недоступен, установка всё равно завершается успешно, и установщик выводит инструкцию по ручной начальной загрузке.",
+    "description": "Note explaining what happens when the snapshot cannot be fetched"
+  },
+  "homepage.quickstart.sourceNote": {
+    "message": "Сборка из зафиксированных источников — никаких готовых бинарников не загружается.",
+    "description": "Note explaining that the installer builds from source"
+  },
+  "homepage.quickstart.buildLink": {
+    "message": "Ручная сборка",
+    "description": "Link to the build from source guide"
+  },
+  "homepage.quickstart.readScript": {
+    "message": "Читать скрипт",
+    "description": "Link to read the installer source before running it"
+  },
+  "homepage.quickstart.allLabel": {
+    "message": "Все",
+    "description": "Tab label for building all three components"
+  },
+  "homepage.quickstart.allTitle": {
+    "message": "Собрать узел, кошелёк и майнер",
+    "description": "Title for the all components option"
   },
   "homepage.journey.kicker": {
     "message": "Путь разработчика",
@@ -1098,5 +1142,285 @@
   "toc.sectionCount.other": {
     "message": "разделов",
     "description": "Noun after the table-of-contents count, when there is more than one"
+  },
+  "conceptDemo.play": {
+    "message": "Воспроизвести",
+    "description": "Button that starts stepping a concept demo on its own"
+  },
+  "conceptDemo.pause": {
+    "message": "Пауза",
+    "description": "Button that stops a concept demo stepping on its own"
+  },
+  "conceptDemo.sequence": {
+    "message": "Шаги",
+    "description": "Accessible name for the list of steps under a concept demo"
+  },
+  "conceptDemo.routes": {
+    "message": "Что происходит вместо этого",
+    "description": "Accessible name for the group of buttons choosing an alternative path through a concept demo"
+  },
+  "conceptDemo.live": {
+    "message": "Шаг {current} из {total}. {title}",
+    "description": "Announced to a screen reader when a concept demo changes step"
+  },
+  "outputLifecycle.state.unconfirmed": {
+    "message": "виден, ещё не подтверждён",
+    "description": "One-line explanation of the Unconfirmed output status. Do not translate the status name itself."
+  },
+  "outputLifecycle.state.unspent": {
+    "message": "единственный статус, доступный к трате",
+    "description": "One-line explanation of the Unspent output status"
+  },
+  "outputLifecycle.state.locked": {
+    "message": "зарезервирован отправкой",
+    "description": "One-line explanation of the Locked output status"
+  },
+  "outputLifecycle.state.spent": {
+    "message": "использован подтверждённой транзакцией",
+    "description": "One-line explanation of the Spent output status"
+  },
+  "outputLifecycle.state.deleted": {
+    "message": "удалён деструктивным пересканированием",
+    "description": "One-line explanation of the Deleted output status"
+  },
+  "outputLifecycle.holder.input": {
+    "message": "вход",
+    "description": "Label on the output being spent, shown inside whichever status box it is in"
+  },
+  "outputLifecycle.holder.change": {
+    "message": "сдача",
+    "description": "Label on the change output, shown inside whichever status box it is in"
+  },
+  "outputLifecycle.step.held.title": {
+    "message": "Один подтверждённый выход",
+    "description": "Output lifecycle step 1 heading"
+  },
+  "outputLifecycle.step.held.body": {
+    "message": "Кошелёк содержит один выход (output) {total} EPIC. Unspent — единственный статус, доступный к трате, поэтому вся сумма доступна.",
+    "description": "Output lifecycle step 1 detail. Unspent is a status name and stays as written."
+  },
+  "outputLifecycle.step.init.title": {
+    "message": "Отправка выбирает входы",
+    "description": "Output lifecycle step 2 heading"
+  },
+  "outputLifecycle.step.init.body": {
+    "message": "Кошелёк выбирает выходы для траты и собирает первый слейт (slate). На диске ничего не изменилось, баланс не сдвинулся.",
+    "description": "Output lifecycle step 2 detail"
+  },
+  "outputLifecycle.step.lock.title": {
+    "message": "И резервирует их",
+    "description": "Output lifecycle step 3 heading"
+  },
+  "outputLifecycle.step.lock.body": {
+    "message": "Вход (input) становится Locked, а сдача {change} записывается как Unconfirmed. И отправленная сумма, и сдача теперь недоступны — именно поэтому отправка {pay} из выхода (output) {total} не оставляет ничего доступного к трате, а не {remainder}.",
+    "description": "Output lifecycle step 3 detail. Locked and Unconfirmed are status names and stay as written."
+  },
+  "outputLifecycle.step.confirm.title": {
+    "message": "Перевод подтверждается",
+    "description": "Output lifecycle step 4 heading"
+  },
+  "outputLifecycle.step.confirm.body": {
+    "message": "Вход становится Spent, а сдача становится Unspent. Она по-прежнему недоступна к трате: minimum_confirmations по умолчанию равно {minConf}, а у этого выхода одно подтверждение.",
+    "description": "Output lifecycle step 4 detail. Spent, Unspent and minimum_confirmations stay as written."
+  },
+  "outputLifecycle.step.mature.title": {
+    "message": "{minConf} блоков спустя",
+    "description": "Output lifecycle step 5 heading"
+  },
+  "outputLifecycle.step.mature.body": {
+    "message": "Сдача набирает minimum_confirmations и становится доступной к трате: {change} EPIC, примерно через десять минут после подтверждения перевода. Вход остаётся в записях кошелька со статусом Spent.",
+    "description": "Output lifecycle step 5 detail"
+  },
+  "outputLifecycle.step.stalled.title": {
+    "message": "Получатель не отвечает",
+    "description": "Output lifecycle stalled step heading"
+  },
+  "outputLifecycle.step.stalled.body": {
+    "message": "Транзакция так и не была собрана, поэтому ничего не может быть добыто и ничего не может быть потеряно. Вход остаётся Locked, а сдача остаётся unconfirmed. Таймаута и фоновой очистки нет; перезапуск кошелька ничего не меняет, поскольку состояние хранится на диске.",
+    "description": "Output lifecycle stalled step detail"
+  },
+  "outputLifecycle.route.cancel": {
+    "message": "Перевод так и не завершается",
+    "description": "Button showing what happens when a transfer stalls and is cancelled"
+  },
+  "outputLifecycle.step.cancel.title": {
+    "message": "Отмена освобождает их",
+    "description": "Output lifecycle cancel step heading"
+  },
+  "outputLifecycle.step.cancel.body": {
+    "message": "Заблокированные входы возвращаются в Unspent, а неподтверждённая сдача удаляется. Требуется доступный, синхронизированный узел, и это работает только пока перевод остаётся в статусе TxSentCreated: как только узел был замечен с этой транзакцией в мемпуле, выбора уже нет — остаётся только ждать.",
+    "description": "Output lifecycle cancel step detail. Locked, Unspent and TxSentCreated stay as written."
+  },
+  "outputLifecycle.route.scan": {
+    "message": "Пересканирование очищает его",
+    "description": "Button showing what a destructive rescan does to a stalled transfer"
+  },
+  "outputLifecycle.step.scan.title": {
+    "message": "Деструктивное пересканирование выполняет обе задачи",
+    "description": "Output lifecycle rescan step heading"
+  },
+  "outputLifecycle.step.scan.body": {
+    "message": "Сканирование разблокирует каждый заблокированный выход (output), который всё ещё находится в UTXO-сете, возвращает его в Unspent и отменяет запись в журнале транзакций, которая его зарезервировала. Затем удаляются неподтверждённые выходы, отсутствующие в UTXO-сете, — то есть сдача.",
+    "description": "Output lifecycle rescan step detail"
+  },
+  "outputLifecycle.step.history.title": {
+    "message": "Deleted — статус истории",
+    "description": "Output lifecycle history step heading"
+  },
+  "outputLifecycle.step.history.body": {
+    "message": "Удалённый выход записывается в таблицу истории выходов со статусом Deleted и удаляется из таблицы активных выходов, поэтому он больше никогда не появляется в списке выходов. Это единственный способ, которым выход достигает статуса Deleted.",
+    "description": "Output lifecycle history step detail"
+  },
+  "outputLifecycle.caption": {
+    "message": "Один перевод (transfer), прослеженный через состояния выходов (outputs), с пересчётом сводки баланса на каждом шаге. Переходите по шагам или выбирайте, что происходит при незавершении.",
+    "description": "Caption under the output lifecycle diagram"
+  },
+  "outputLifecycle.stageLabel": {
+    "message": "Состояния выходов и баланс",
+    "description": "Spoken name for the output lifecycle diagram, read before each step announcement"
+  },
+  "outputLifecycle.summaryHead": {
+    "message": "как выводит {command}",
+    "description": "Heading over the balance panel. The command name stays as it is."
+  },
+  "sumToZero.side.inputs": {
+    "message": "входы",
+    "description": "Heading over the input commitments in the sum-to-zero diagram"
+  },
+  "sumToZero.side.outputs": {
+    "message": "выходы + комиссия",
+    "description": "Heading over the output commitments in the sum-to-zero diagram"
+  },
+  "sumToZero.term.spent": {
+    "message": "расходуемый выход",
+    "description": "Note on the single input commitment"
+  },
+  "sumToZero.term.receiver": {
+    "message": "получателю",
+    "description": "Note on the output commitment that pays the receiver"
+  },
+  "sumToZero.term.change": {
+    "message": "сдача",
+    "description": "Note on the output commitment that returns change to the sender"
+  },
+  "sumToZero.term.fee": {
+    "message": "комиссия",
+    "description": "Note on the fee term"
+  },
+  "sumToZero.term.noBlinding": {
+    "message": "нет ослепляющего фактора",
+    "description": "Says the fee is committed without a blinding factor, so it has no curve-point half"
+  },
+  "sumToZero.row.valueSide": {
+    "message": "сторона значений",
+    "description": "Label for the row of the equation carrying the amounts"
+  },
+  "sumToZero.row.blindingSide": {
+    "message": "сторона ослепления",
+    "description": "Label for the row of the equation carrying the blinding factors"
+  },
+  "sumToZero.row.residual": {
+    "message": "остаток",
+    "description": "Label for what is left once the value side cancels"
+  },
+  "sumToZero.outcome.balances": {
+    "message": "обязательство к нулю, и подпись может его удовлетворить",
+    "description": "Outcome shown when the transaction balances"
+  },
+  "sumToZero.outcome.rejected": {
+    "message": "KernelSumMismatch: ни одна подпись не может его удовлетворить, и транзакция отклоняется",
+    "description": "Outcome shown when the transaction does not balance. Keep KernelSumMismatch as written."
+  },
+  "sumToZero.term.input": {
+    "message": "вход (input) {n}",
+    "description": "Note on one of several input commitments"
+  },
+  "sumToZero.step.values.title": {
+    "message": "Две стороны, которые должны совпасть",
+    "description": "Sum-to-zero step 1 heading"
+  },
+  "sumToZero.step.values.body": {
+    "message": "Кошелёк тратит {total} EPIC. {pay} уходит получателю, {change} возвращается как сдача, {fee} — комиссия. Эти числа в открытом виде существуют только внутри двух кошельков, и изменение числа входов ничего не меняет в проверке.",
+    "description": "Sum-to-zero step 1 detail"
+  },
+  "sumToZero.step.commit.title": {
+    "message": "Каждая сумма становится точкой кривой",
+    "description": "Sum-to-zero step 2 heading"
+  },
+  "sumToZero.step.commit.body": {
+    "message": "Выход — это обязательство Педерсена (Pedersen commitment), v·H + r·G, где v — сумма, а r — ослепляющий фактор (blinding factor), известный только его владельцу. Цепочка хранит точку. Комиссия — исключение: она фиксируется без ослепляющего фактора, поэтому затрагивает только сторону значений.",
+    "description": "Sum-to-zero step 2 detail. Keep v·H + r·G as written."
+  },
+  "sumToZero.step.sum.title": {
+    "message": "Верификатор складывает точки",
+    "description": "Sum-to-zero step 3 heading"
+  },
+  "sumToZero.step.sum.body": {
+    "message": "Каждый выход плюс комиссия минус каждый вход. Ничего не расшифровывается и расшифровывать не нужно: обязательства складываются так же, как числа внутри них, поэтому три входа — это просто три дополнительных слагаемых, а не дополнительная работа.",
+    "description": "Sum-to-zero step 3 detail"
+  },
+  "sumToZero.step.cancel.title": {
+    "message": "Сторона значений исчезает",
+    "description": "Sum-to-zero step 4 heading"
+  },
+  "sumToZero.step.cancel.body": {
+    "message": "Суммы сбалансированы, поэтому каждый член H сокращается независимо от того, как были разделены входы. Узел узнаёт, что они сбалансированы, и больше ничего о них не узнаёт.",
+    "description": "Sum-to-zero step 4 detail"
+  },
+  "sumToZero.step.excess.title": {
+    "message": "То, что остаётся, не несёт никакой ценности",
+    "description": "Sum-to-zero step 5 heading"
+  },
+  "sumToZero.step.excess.body": {
+    "message": "Остаток — это ослепляющие факторы (blinding factors) выходов минус ослепляющие факторы входов, умноженные на G: точка кривой с нулевой компонентой значения, то есть обязательство (commitment) к нулю. Это избыток ядра (kernel excess), и он один на транзакцию, а не один на вход. Подпись превышения (excess signature) над ним доказывает, что обе стороны знали эти ослепляющие факторы.",
+    "description": "Sum-to-zero step 5 detail. G is a curve generator and stays as written."
+  },
+  "sumToZero.step.verify.title": {
+    "message": "Узел сравнивает две суммы",
+    "description": "Sum-to-zero step 6 heading"
+  },
+  "sumToZero.step.verify.body": {
+    "message": "Сумма обязательств должна равняться избыткам ядер плюс смещение ядра. Для блока превышение отрицательное, а не положительное: вычитаются награда за блок и сбор фонда — и это единственное место, где новая ценность может войти в цепочку.",
+    "description": "Sum-to-zero step 6 detail"
+  },
+  "sumToZero.route.inflate": {
+    "message": "Попробовать инфляцию",
+    "description": "Button that shows what happens when a sender writes themselves more change than they should"
+  },
+  "sumToZero.step.inflate.title": {
+    "message": "Записать себе больше сдачи",
+    "description": "Sum-to-zero inflation step heading"
+  },
+  "sumToZero.step.inflate.body": {
+    "message": "Отправитель записывает {inflated} в выход сдачи вместо {change}. Обязательство сформировано корректно, доказательство диапазона (range proof) по-прежнему подтверждает, что значение неотрицательно, и снаружи ничто не выглядит иначе.",
+    "description": "Sum-to-zero inflation step detail"
+  },
+  "sumToZero.step.reject.title": {
+    "message": "Сторона значений не достигает нуля",
+    "description": "Sum-to-zero rejection step heading"
+  },
+  "sumToZero.step.reject.body": {
+    "message": "Сторона значений равна {delta}, поэтому остаток по-прежнему несёт {delta} ценности. Никакой ослепляющий фактор не превратит это в обязательство к нулю, поэтому никакая подпись его не удовлетворит и транзакция отклоняется. Узел никогда не узнаёт сумму. Он узнаёт лишь то, что они не сбалансированы.",
+    "description": "Sum-to-zero rejection step detail"
+  },
+  "sumToZero.mode.single": {
+    "message": "Один вход",
+    "description": "Button choosing a transaction with a single input"
+  },
+  "sumToZero.mode.multi": {
+    "message": "Три входа",
+    "description": "Button choosing a transaction with three inputs"
+  },
+  "sumToZero.mode.group": {
+    "message": "Количество входов",
+    "description": "Accessible name for the buttons choosing how many inputs the transaction has"
+  },
+  "sumToZero.caption": {
+    "message": "Транзакция, балансирующая к нулю. Переключайте шаги, меняйте количество входов или попробуйте раздуть сдачу и посмотрите, как проверка отклоняет её.",
+    "description": "Caption under the sum-to-zero diagram"
+  },
+  "sumToZero.stageLabel": {
+    "message": "Арифметика обязательств",
+    "description": "Spoken name for the sum-to-zero diagram, read before each step announcement"
   }
 }

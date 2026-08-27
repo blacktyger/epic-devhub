@@ -11,17 +11,19 @@ Epic是一条MimbleWimble链。Epic交易不包含地址、脚本或可读金额
 
 透明链为每笔支付记录发送方、接收方和金额。Epic不记录上述任何信息。
 
-**输出**是一个Pedersen承诺，曲线上的点，形式为`v·H + r·G`，其中`v`是金额，`r`是盲化因子。任何人都可以在不获知任何`v`的情况下验证一组承诺是否平衡。每个输出附带一个**范围证明**（range proof），证明金额非负，从而防止通货膨胀。
+**输出**（output）是一个Pedersen 承诺（commitment），是形如`v·H + r·G`的曲线点，其中`v`为金额，`r`为盲化因子（blinding factor）。任何人都可以在不获知任何`v`的情况下验证一组承诺是否平衡。每个输出附带一个范围证明（range proof），用于证明金额非负，从而防止通货膨胀。
 
-**内核**（kernel）携带超额签名（excess signature），并根据其功能变体携带手续费和锁定高度。共有三种变体：`Plain`携带手续费，`HeightLocked`携带手续费和锁定高度，`Coinbase`两者均不携带（<Src repo="node" path="core/src/core/transaction.rs" line={39} />）。`Plain`内核序列化为106字节，包含1字节功能字节、8字节手续费、33字节超额承诺和64字节签名，`HeightLocked`为锁定高度额外增加8字节（<Src repo="node" path="core/src/core/transaction.rs" line={113} />）。内核是链的永久部分，因此链的增长跟踪的是用户数量，而非历史交易总数。
+<SumToZero />
+
+**内核**（kernel）携带超额签名（excess signature），并根据其功能变体携带手续费和锁定高度。共有三种变体：`Plain`携带手续费，`HeightLocked`携带手续费和锁定高度，`Coinbase`两者均不携带（<Src repo="node" path="core/src/core/transaction.rs" line={39} />）。`Plain`内核序列化为106字节，由1个功能字节、8字节手续费、33字节超额承诺和64字节签名组成，`HeightLocked`额外增加8字节用于锁定高度（<Src repo="node" path="core/src/core/transaction.rs" line={113} />）。内核是链上的永久部分，因此链的增长取决于用户数量，而非历史交易总数。
 
 已花费的输出通过cut-through机制移除。一旦某个输出被创建并花费，该对输出相互抵消，验证当前状态时两者均不再需要。cut-through的时间范围为10,080个区块，即以60秒为目标出块时间的一周。
 
-实际结果是**没有可查询的交易历史**。无法向链查询某一方收到了什么。你自己的记录是唯一记录谁向你付款的凭据。从这一角度处理充值入账的方法，请参阅[交易所集成](/guides/exchange-integration)。
+实际结果是**没有可查询的交易历史**。无法向链询问某一方收到了什么。你自己的记录是唯一能说明谁向你付款的依据。在此前提下如何处理充值入账，请参阅[交易所集成](/guides/exchange-integration)。
 
 ## 无地址机制 {/* #there-are-no-addresses */}
 
-Epic有看起来像地址的标识符。形如`esYQ…@epicbox.epiccash.com`的epicbox地址是真实可用的，但它不是其他链上所说的"地址"。
+Epic有看起来像地址的标识符。形如`esYQ…@epicbox.epiccash.com`的epicbox地址是真实可用的，但它不是其他链上所说的那种地址。
 
 它们是**钱包之间消息的路由标识符**。它们告知你的钱包将部分构建的交易发送到何处，以便对方完成其部分。链对它们一无所知。没有任何输出会被"支付到"某个epicbox地址。
 
@@ -29,11 +31,11 @@ Epic有看起来像地址的标识符。形如`esYQ…@epicbox.epiccash.com`的e
 
 **发送不是单方面行为。**向一个未在监听的钱包发送消息，本身不会产生任何效果。
 
-**输入错误的地址不会消耗资金，但仍可能将款项发送给错误的一方。**损坏的epicbox地址会导致base58校验和验证失败，钱包在发送任何内容之前即拒绝该地址。一个格式正确但属于其他钱包的地址，其行为与任何其他接收方相同。如果该钱包正在监听，转账完成，资金归对方所有。如果没有钱包在监听，转账永远不会完成，你的输入将保持已预留状态，直到你取消。请参阅[释放方式](/concepts/outputs-and-locking#what-releases-them)。
+**输入错误的地址不会导致资金消失，但仍可能将资金发送给错误的一方。** 损坏的epicbox地址会在base58校验和验证时失败，钱包在发送任何内容之前即拒绝该地址。一个格式正确但属于其他钱包的地址，其行为与任何其他接收方相同。如果该钱包正在监听，转账即完成，资金归对方所有。如果没有任何监听器，转账永远不会完成，你的输入（input）将保持已预留状态，直到你取消为止。请参阅[释放方式](/concepts/outputs-and-locking#what-releases-them)。
 
 ## 单位 {/* #units */}
 
-1 EPIC等于100,000,000个基本单位。最小单位称为**freeman**。所有API均以freeman的整数形式接受和返回金额，因此0.1 EPIC为`10000000`。
+1 EPIC等于100,000,000个基本单位，最小单位称为**freeman**。所有API均以freeman的整数形式接受和返回金额，因此0.1 EPIC为`10000000`。
 
 ## 与Grin的关系 {/* #relationship-to-grin */}
 
@@ -42,7 +44,7 @@ Epic最初是Grin的分叉，共享MimbleWimble的基本原理。它在以下几
 | 领域 | Epic |
 | --- | --- |
 | 工作量证明 | 三种算法按共识设定的每纪元比例并发运行。参见[工作量证明](/mining/proof-of-work) |
-| 发行 | 分阶段纪元，且有终止。参见[发行](/mining/emission) |
+| 发行 | 阶梯式纪元，且有终止。参见[发行](/mining/emission) |
 | 区块奖励 | 基金会按比例收取递减的税费 |
 | 默认传输方式 | Epicbox，一种存储转发中继。参见[协议](/api/epicbox) |
 | Tor | 钱包和节点均可在构建时捆绑Tor专家包 |

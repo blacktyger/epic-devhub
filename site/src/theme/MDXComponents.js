@@ -5,6 +5,8 @@ import TabItem from '@theme/TabItem';
 import {Risk, Card, CardGrid, Unverified} from '@site/src/components/Epic';
 import {JourneyNav, JourneyOverview, SlateLifecycle} from '@site/src/components/Journey';
 import {SlateRounds, HandshakeTrace} from '@site/src/components/Diagrams';
+import {SumToZero} from '@site/src/components/SumToZero';
+import {OutputLifecycle} from '@site/src/components/OutputLifecycle';
 import {RpcGroup, RpcMethod, RpcConsole} from '@site/src/components/Rpc';
 import {Src, Fn, Repo, Ver} from '@site/src/components/Src';
 import PageActions from '@site/src/components/Assistant/PageActions';
@@ -69,6 +71,8 @@ export default {
   SlateLifecycle,
   SlateRounds,
   HandshakeTrace,
+  SumToZero,
+  OutputLifecycle,
   RpcGroup,
   RpcMethod,
   RpcConsole,

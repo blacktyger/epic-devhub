@@ -100,6 +100,10 @@ const out = {};
   for (const route of [
     '/concepts/interactive-transactions',
     '/examples/wallet-connect',
+    // The two stepped concept demos. They follow the same figure contract: the board is decoration
+    // and the step list is the content.
+    '/concepts/mimblewimble',
+    '/concepts/outputs-and-locking',
   ]) {
     await page.goto(`${server.origin}${route}`, {waitUntil: 'domcontentloaded'});
     out.diagrams[route] = await page.evaluate(() => {
@@ -121,6 +125,102 @@ const out = {};
     });
   }
   await ctx.close();
+}
+
+// 5. The stepped concept demos, which are the only figures here that change while a reader is
+//    beside them. Two things are asserted rather than measured, because both have bitten this site
+//    already: stepping must not change the figure's height, and a chip that is placed by measured
+//    transform must stay inside the status box it belongs to.
+//
+//    The height assertion is the same defect the slate diagram had on the landing page, where a step
+//    list grew and shrank by up to 197px on a timer and moved the section below it. These demos hold
+//    their height by construction, and this is what proves the construction still holds.
+{
+  const problems = [];
+  out.conceptDemos = {};
+  for (const width of [1440, 375]) {
+    const ctx = await browser.newContext({
+      viewport: {width, height: 900},
+      colorScheme: 'dark',
+    });
+    const page = await ctx.newPage();
+    // Every locale, because a translated string is the likeliest thing to overflow a board or change
+    // a figure's height, and the boards claim to hold at any string length.
+    const routes = ['', '/ru', '/zh-CN'].flatMap((locale) => [
+      `${locale}/concepts/mimblewimble`,
+      `${locale}/concepts/outputs-and-locking`,
+    ]);
+    for (const route of routes) {
+      await page.goto(`${server.origin}${route}`, {waitUntil: 'networkidle'});
+      const figure = page.locator('figure.cdDemo').first();
+      await figure.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(600);
+
+      const first = await page.evaluate(() => {
+        const fig = document.querySelector('figure.cdDemo');
+        const board = fig.querySelector('.cdStage > *');
+        return {
+          height: Math.round(fig.getBoundingClientRect().height),
+          steps: fig.querySelectorAll('ol.epicFigureSteps > li').length,
+          caption: Boolean(fig.querySelector('figcaption')?.textContent?.trim()),
+          stageHidden: fig.querySelector('.cdStage')?.getAttribute('aria-hidden') === 'true',
+          boardOverflow: board ? board.scrollWidth - board.clientWidth : 0,
+        };
+      });
+
+      // Step to the end through the list's own controls, which is what a reader does.
+      const buttons = figure.locator('.cdStepBtn');
+      const count = await buttons.count();
+      await buttons.nth(count - 1).click();
+      // Longer than the slowest transition in the section, so nothing is measured mid-flight.
+      await page.waitForTimeout(900);
+
+      const last = await page.evaluate(() => {
+        const fig = document.querySelector('figure.cdDemo');
+        const chips = [...fig.querySelectorAll('.lcChip')].map((chip) => {
+          const box = chip.closest('.lcState').getBoundingClientRect();
+          const r = chip.getBoundingClientRect();
+          return {
+            state: chip.dataset.in,
+            escapes: Math.max(
+              0,
+              Math.round(
+                Math.max(box.left - r.left, r.right - box.right, box.top - r.top, r.bottom - box.bottom),
+              ),
+            ),
+          };
+        });
+        return {
+          height: Math.round(fig.getBoundingClientRect().height),
+          announced: (fig.querySelector('[aria-live]')?.textContent ?? '').trim().length > 0,
+          current: fig.querySelectorAll('[aria-current="step"]').length,
+          chips,
+        };
+      });
+
+      const key = `${route} @${width}`;
+      out.conceptDemos[key] = {...first, ...last, drift: last.height - first.height};
+
+      if (first.steps < 5) problems.push(`${key}: ${first.steps} steps in the text list, expected at least 5`);
+      if (!first.caption) problems.push(`${key}: the figure has no caption`);
+      if (!first.stageHidden) problems.push(`${key}: the board is not aria-hidden, so the list is duplicated to a screen reader`);
+      if (first.boardOverflow > 2) problems.push(`${key}: the board overflows its column by ${first.boardOverflow}px`);
+      if (Math.abs(last.height - first.height) > 2) {
+        problems.push(
+          `${key}: stepping changes the figure height by ${last.height - first.height}px, so the page moves under the reader`,
+        );
+      }
+      if (!last.announced) problems.push(`${key}: nothing in the live region after stepping`);
+      if (last.current !== 1) problems.push(`${key}: ${last.current} steps marked current, expected 1`);
+      for (const chip of last.chips) {
+        if (chip.escapes > 1) {
+          problems.push(`${key}: the ${chip.state} chip sits ${chip.escapes}px outside its status box`);
+        }
+      }
+    }
+    await ctx.close();
+  }
+  out.conceptDemos.problems = problems;
 }
 
 // 4. Every route at 375px, checking nothing scrolls sideways any more.
@@ -1079,9 +1179,10 @@ console.log(JSON.stringify(out, null, 2));
 
 // The sticky and alignment assertions gate, because they are the only checks here with a
 // pass/fail answer rather than a measurement for a human to read.
-if (out.sticky?.problems?.length) {
-  console.log(`\n${out.sticky.problems.length} layout problem(s):`);
-  for (const p of out.sticky.problems) console.log(`  - ${p}`);
+const gated = [...(out.sticky?.problems ?? []), ...(out.conceptDemos?.problems ?? [])];
+if (gated.length) {
+  console.log(`\n${gated.length} layout problem(s):`);
+  for (const p of gated) console.log(`  - ${p}`);
   process.exit(1);
 }
-console.log('\nsticky chrome and left-edge alignment hold on every route checked');
+console.log('\nsticky chrome, left-edge alignment and the stepped concept demos hold on every route checked');

@@ -82,7 +82,15 @@ const CONTROLS = [
  */
 const INTERACTIVE = 'button, [role=button], [role=tab], summary, select';
 
-const ROUTES = ['/', '/guides/build', '/api/node/chain-reads', '/downloads'];
+const ROUTES = [
+  '/',
+  '/guides/build',
+  '/api/node/chain-reads',
+  '/downloads',
+  // A concept demo puts a row of toggles and a dozen step buttons inside a reading surface, and
+  // those step buttons are the densest controls on the site that a reader is meant to hit.
+  '/concepts/outputs-and-locking',
+];
 
 const live = process.argv.includes('--live');
 const server = live ? {origin: DEV_ORIGIN, close: async () => {}} : await serveBuild(BUILD, PORTS.scratch);

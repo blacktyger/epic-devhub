@@ -341,7 +341,7 @@
     "description": "Node tab label in quick start"
   },
   "homepage.quickstart.nodeTitle": {
-    "message": "运行节点",
+    "message": "构建并运行节点",
     "description": "Node quick start title"
   },
   "homepage.quickstart.walletLabel": {
@@ -349,7 +349,7 @@
     "description": "Wallet tab label in quick start"
   },
   "homepage.quickstart.walletTitle": {
-    "message": "创建钱包",
+    "message": "构建钱包",
     "description": "Wallet quick start title"
   },
   "homepage.quickstart.heading": {
@@ -358,7 +358,7 @@
   },
   "homepage.quickstart.softwareAriaLabel": {
     "message": "软件",
-    "description": "Aria label for the node/wallet tab group"
+    "description": "Aria label for the component tab group"
   },
   "homepage.quickstart.platformAriaLabel": {
     "message": "平台",
@@ -371,6 +371,50 @@
   "homepage.quickstart.copy": {
     "message": "复制",
     "description": "Copy button label"
+  },
+  "homepage.quickstart.minerLabel": {
+    "message": "矿工",
+    "description": "Miner tab label in quick start"
+  },
+  "homepage.quickstart.minerTitle": {
+    "message": "构建矿工",
+    "description": "Miner quick start title"
+  },
+  "homepage.quickstart.fastSync": {
+    "message": "快速同步",
+    "description": "Label for the fast sync toggle"
+  },
+  "homepage.quickstart.fastSyncHint": {
+    "message": "下载链快照，而非从创世区块开始验证。",
+    "description": "Tooltip for the fast sync toggle"
+  },
+  "homepage.quickstart.fastSyncNA": {
+    "message": "仅在包含节点时适用。",
+    "description": "Tooltip shown when fast sync does not apply"
+  },
+  "homepage.quickstart.fastSyncNote": {
+    "message": "若无法获取快照，安装仍会成功，安装程序将打印手动引导的方法。",
+    "description": "Note explaining what happens when the snapshot cannot be fetched"
+  },
+  "homepage.quickstart.sourceNote": {
+    "message": "从固定源码构建，不下载任何预编译文件。",
+    "description": "Note explaining that the installer builds from source"
+  },
+  "homepage.quickstart.buildLink": {
+    "message": "手动构建",
+    "description": "Link to the build from source guide"
+  },
+  "homepage.quickstart.readScript": {
+    "message": "查看脚本",
+    "description": "Link to read the installer source before running it"
+  },
+  "homepage.quickstart.allLabel": {
+    "message": "全部",
+    "description": "Tab label for building all three components"
+  },
+  "homepage.quickstart.allTitle": {
+    "message": "构建节点、钱包和矿工",
+    "description": "Title for the all components option"
   },
   "homepage.journey.kicker": {
     "message": "开发者之旅",
@@ -1098,5 +1142,285 @@
   "toc.sectionCount.other": {
     "message": "节",
     "description": "Noun after the table-of-contents count, when there is more than one"
+  },
+  "conceptDemo.play": {
+    "message": "播放",
+    "description": "Button that starts stepping a concept demo on its own"
+  },
+  "conceptDemo.pause": {
+    "message": "暂停",
+    "description": "Button that stops a concept demo stepping on its own"
+  },
+  "conceptDemo.sequence": {
+    "message": "步骤",
+    "description": "Accessible name for the list of steps under a concept demo"
+  },
+  "conceptDemo.routes": {
+    "message": "其他路径",
+    "description": "Accessible name for the group of buttons choosing an alternative path through a concept demo"
+  },
+  "conceptDemo.live": {
+    "message": "第{current}步，共{total}步。{title}",
+    "description": "Announced to a screen reader when a concept demo changes step"
+  },
+  "outputLifecycle.state.unconfirmed": {
+    "message": "已发现，尚未埋入",
+    "description": "One-line explanation of the Unconfirmed output status. Do not translate the status name itself."
+  },
+  "outputLifecycle.state.unspent": {
+    "message": "唯一可花费的状态",
+    "description": "One-line explanation of the Unspent output status"
+  },
+  "outputLifecycle.state.locked": {
+    "message": "已被发送操作预留",
+    "description": "One-line explanation of the Locked output status"
+  },
+  "outputLifecycle.state.spent": {
+    "message": "已被已确认的交易消耗",
+    "description": "One-line explanation of the Spent output status"
+  },
+  "outputLifecycle.state.deleted": {
+    "message": "已被破坏性重新扫描移除",
+    "description": "One-line explanation of the Deleted output status"
+  },
+  "outputLifecycle.holder.input": {
+    "message": "输入（input）",
+    "description": "Label on the output being spent, shown inside whichever status box it is in"
+  },
+  "outputLifecycle.holder.change": {
+    "message": "找零",
+    "description": "Label on the change output, shown inside whichever status box it is in"
+  },
+  "outputLifecycle.step.held.title": {
+    "message": "一个已确认的输出（output）",
+    "description": "Output lifecycle step 1 heading"
+  },
+  "outputLifecycle.step.held.body": {
+    "message": "钱包持有单个{total} EPIC输出（output）。Unspent是唯一可花费的状态，因此全部余额均可使用。",
+    "description": "Output lifecycle step 1 detail. Unspent is a status name and stays as written."
+  },
+  "outputLifecycle.step.init.title": {
+    "message": "发送操作选取其输入（inputs）",
+    "description": "Output lifecycle step 2 heading"
+  },
+  "outputLifecycle.step.init.body": {
+    "message": "钱包选择要花费的输出并构建第一个slate。磁盘上尚无任何变化，余额也未移动。",
+    "description": "Output lifecycle step 2 detail"
+  },
+  "outputLifecycle.step.lock.title": {
+    "message": "并预留它们",
+    "description": "Output lifecycle step 3 heading"
+  },
+  "outputLifecycle.step.lock.body": {
+    "message": "该输入（input）变为Locked，{change}找零被写入为Unconfirmed。已发送金额和找零均暂时不可用，这就是为什么从{total}输出中发送{pay}后没有可花费余额，而非{remainder}。",
+    "description": "Output lifecycle step 3 detail. Locked and Unconfirmed are status names and stay as written."
+  },
+  "outputLifecycle.step.confirm.title": {
+    "message": "转账已确认",
+    "description": "Output lifecycle step 4 heading"
+  },
+  "outputLifecycle.step.confirm.body": {
+    "message": "该输入变为Spent，找零变为Unspent。此时仍不可花费：minimum_confirmations默认值为{minConf}，而该输出目前只有一个确认数。",
+    "description": "Output lifecycle step 4 detail. Spent, Unspent and minimum_confirmations stay as written."
+  },
+  "outputLifecycle.step.mature.title": {
+    "message": "{minConf}个区块后",
+    "description": "Output lifecycle step 5 heading"
+  },
+  "outputLifecycle.step.mature.body": {
+    "message": "找零达到minimum_confirmations要求，变为可花费：{change} EPIC，约在转账确认后十分钟。该输入在钱包记录中保持为Spent状态。",
+    "description": "Output lifecycle step 5 detail"
+  },
+  "outputLifecycle.step.stalled.title": {
+    "message": "接收方始终未响应",
+    "description": "Output lifecycle stalled step heading"
+  },
+  "outputLifecycle.step.stalled.body": {
+    "message": "从未构建任何交易，因此没有任何内容可被挖矿，也不会有任何损失。输入（input）保持已锁定状态，找零保持未确认状态。没有超时机制，也没有后台清理，重启钱包不会改变任何状态，因为状态已写入磁盘。",
+    "description": "Output lifecycle stalled step detail"
+  },
+  "outputLifecycle.route.cancel": {
+    "message": "永远不会完成",
+    "description": "Button showing what happens when a transfer stalls and is cancelled"
+  },
+  "outputLifecycle.step.cancel.title": {
+    "message": "取消操作会释放它们",
+    "description": "Output lifecycle cancel step heading"
+  },
+  "outputLifecycle.step.cancel.body": {
+    "message": "已锁定的输入恢复为Unspent，未确认的找零被丢弃。此操作需要一个可访问且已同步的节点，且仅在转账仍处于TxSentCreated状态时有效：一旦节点已被发现将其保存在内存池（mempool）中，你只能等待，而无法主动选择。",
+    "description": "Output lifecycle cancel step detail. Locked, Unspent and TxSentCreated stay as written."
+  },
+  "outputLifecycle.route.scan": {
+    "message": "重新扫描可清除它",
+    "description": "Button showing what a destructive rescan does to a stalled transfer"
+  },
+  "outputLifecycle.step.scan.title": {
+    "message": "破坏性重新扫描同时完成两项工作",
+    "description": "Output lifecycle rescan step heading"
+  },
+  "outputLifecycle.step.scan.body": {
+    "message": "扫描会解锁UTXO集合中仍存在的所有已锁定输出，将其恢复为Unspent，并取消预留它的交易日志条目。然后删除不在UTXO集合中的未确认输出，即找零。",
+    "description": "Output lifecycle rescan step detail"
+  },
+  "outputLifecycle.step.history.title": {
+    "message": "Deleted是一种历史状态",
+    "description": "Output lifecycle history step heading"
+  },
+  "outputLifecycle.step.history.body": {
+    "message": "已删除的输出以Deleted状态写入输出历史表，并从活跃输出表中移除，因此不再出现在任何输出列表中。这是输出到达Deleted状态的唯一途径。",
+    "description": "Output lifecycle history step detail"
+  },
+  "outputLifecycle.caption": {
+    "message": "一笔转账，跟踪其输出状态的完整流转，并在每一步重新计算余额摘要。逐步查看，或选择未完成时的处理方式。",
+    "description": "Caption under the output lifecycle diagram"
+  },
+  "outputLifecycle.stageLabel": {
+    "message": "输出状态与余额",
+    "description": "Spoken name for the output lifecycle diagram, read before each step announcement"
+  },
+  "outputLifecycle.summaryHead": {
+    "message": "{command}的打印结果",
+    "description": "Heading over the balance panel. The command name stays as it is."
+  },
+  "sumToZero.side.inputs": {
+    "message": "输入",
+    "description": "Heading over the input commitments in the sum-to-zero diagram"
+  },
+  "sumToZero.side.outputs": {
+    "message": "输出 + 手续费",
+    "description": "Heading over the output commitments in the sum-to-zero diagram"
+  },
+  "sumToZero.term.spent": {
+    "message": "被花费的输出",
+    "description": "Note on the single input commitment"
+  },
+  "sumToZero.term.receiver": {
+    "message": "至接收方",
+    "description": "Note on the output commitment that pays the receiver"
+  },
+  "sumToZero.term.change": {
+    "message": "找零",
+    "description": "Note on the output commitment that returns change to the sender"
+  },
+  "sumToZero.term.fee": {
+    "message": "手续费",
+    "description": "Note on the fee term"
+  },
+  "sumToZero.term.noBlinding": {
+    "message": "无盲化因子",
+    "description": "Says the fee is committed without a blinding factor, so it has no curve-point half"
+  },
+  "sumToZero.row.valueSide": {
+    "message": "金额侧",
+    "description": "Label for the row of the equation carrying the amounts"
+  },
+  "sumToZero.row.blindingSide": {
+    "message": "盲化因子（blinding factor）侧",
+    "description": "Label for the row of the equation carrying the blinding factors"
+  },
+  "sumToZero.row.residual": {
+    "message": "残差",
+    "description": "Label for what is left once the value side cancels"
+  },
+  "sumToZero.outcome.balances": {
+    "message": "对零的承诺（commitment），且签名可满足它",
+    "description": "Outcome shown when the transaction balances"
+  },
+  "sumToZero.outcome.rejected": {
+    "message": "KernelSumMismatch：没有签名可满足它，交易被拒绝",
+    "description": "Outcome shown when the transaction does not balance. Keep KernelSumMismatch as written."
+  },
+  "sumToZero.term.input": {
+    "message": "输入（input）{n}",
+    "description": "Note on one of several input commitments"
+  },
+  "sumToZero.step.values.title": {
+    "message": "必须匹配的两侧",
+    "description": "Sum-to-zero step 1 heading"
+  },
+  "sumToZero.step.values.body": {
+    "message": "钱包花费{total} EPIC。{pay}发送给接收方，{change}作为找零返回，{fee}为手续费。这些数字仅以明文形式存在于两个钱包内部，改变输入数量不影响该校验。",
+    "description": "Sum-to-zero step 1 detail"
+  },
+  "sumToZero.step.commit.title": {
+    "message": "每个金额变为曲线上的点",
+    "description": "Sum-to-zero step 2 heading"
+  },
+  "sumToZero.step.commit.body": {
+    "message": "输出是一个Pedersen 承诺，v·H + r·G，其中v为金额，r为仅其所有者知晓的盲化因子。链上存储该点。手续费是例外：它在没有盲化因子的情况下承诺，因此只涉及价值侧。",
+    "description": "Sum-to-zero step 2 detail. Keep v·H + r·G as written."
+  },
+  "sumToZero.step.sum.title": {
+    "message": "验证方对各点求和",
+    "description": "Sum-to-zero step 3 heading"
+  },
+  "sumToZero.step.sum.body": {
+    "message": "每个输出加上手续费，减去每个输入。无需解密，也无需解密：承诺的加法与其内部数字的加法相同，因此三个输入只是多三项，而非额外的工作量。",
+    "description": "Sum-to-zero step 3 detail"
+  },
+  "sumToZero.step.cancel.title": {
+    "message": "价值侧消失",
+    "description": "Sum-to-zero step 4 heading"
+  },
+  "sumToZero.step.cancel.body": {
+    "message": "金额平衡，因此无论输入如何拆分，所有H项均抵消。节点得知它们平衡，对其他信息一无所知。",
+    "description": "Sum-to-zero step 4 detail"
+  },
+  "sumToZero.step.excess.title": {
+    "message": "剩余部分不携带任何价值",
+    "description": "Sum-to-zero step 5 heading"
+  },
+  "sumToZero.step.excess.body": {
+    "message": "残差是输出盲化因子减去输入盲化因子，再乘以G：一个价值分量为零的曲线点，即对零的承诺。这就是内核（kernel）超额，每笔交易只有一个而非每个输入一个。对其的内核签名证明双方共同知晓这些盲化因子。",
+    "description": "Sum-to-zero step 5 detail. G is a curve generator and stays as written."
+  },
+  "sumToZero.step.verify.title": {
+    "message": "节点比较两个总和",
+    "description": "Sum-to-zero step 6 heading"
+  },
+  "sumToZero.step.verify.body": {
+    "message": "承诺总和必须等于内核超额加上内核偏移量。对于区块，超出量为负而非正，需减去区块奖励和基金会征收额，这是新价值进入链的唯一途径。",
+    "description": "Sum-to-zero step 6 detail"
+  },
+  "sumToZero.route.inflate": {
+    "message": "尝试通货膨胀",
+    "description": "Button that shows what happens when a sender writes themselves more change than they should"
+  },
+  "sumToZero.step.inflate.title": {
+    "message": "给自己多写找零",
+    "description": "Sum-to-zero inflation step heading"
+  },
+  "sumToZero.step.inflate.body": {
+    "message": "发送方将找零输出（output）写为{inflated}而非{change}。承诺（commitment）格式正确，范围证明（range proof）仍能证明该值非负，从外部看与正常输出毫无区别。",
+    "description": "Sum-to-zero inflation step detail"
+  },
+  "sumToZero.step.reject.title": {
+    "message": "价值端未归零",
+    "description": "Sum-to-zero rejection step heading"
+  },
+  "sumToZero.step.reject.body": {
+    "message": "价值端合计为{delta}，残差仍携带{delta}的价值。没有任何盲化因子（blinding factor）能将其转化为对零的承诺，因此没有签名能满足该条件，交易被拒绝。节点从不获知金额，只知道两端不平衡。",
+    "description": "Sum-to-zero rejection step detail"
+  },
+  "sumToZero.mode.single": {
+    "message": "单个输入",
+    "description": "Button choosing a transaction with a single input"
+  },
+  "sumToZero.mode.multi": {
+    "message": "三个输入",
+    "description": "Button choosing a transaction with three inputs"
+  },
+  "sumToZero.mode.group": {
+    "message": "输入数量",
+    "description": "Accessible name for the buttons choosing how many inputs the transaction has"
+  },
+  "sumToZero.caption": {
+    "message": "一笔归零的交易。逐步演示，切换输入（input）数量，或尝试虚增找零，观察验证拒绝的过程。",
+    "description": "Caption under the sum-to-zero diagram"
+  },
+  "sumToZero.stageLabel": {
+    "message": "承诺算术",
+    "description": "Spoken name for the sum-to-zero diagram, read before each step announcement"
   }
 }

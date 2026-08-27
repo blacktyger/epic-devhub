@@ -358,7 +358,7 @@
   },
   "homepage.quickstart.softwareAriaLabel": {
     "message": "Software",
-    "description": "Aria label for the node/wallet tab group"
+    "description": "Aria label for the component tab group"
   },
   "homepage.quickstart.platformAriaLabel": {
     "message": "Platform",
@@ -1492,5 +1492,285 @@
   "toc.sectionCount.other": {
     "message": "sections",
     "description": "Noun after the table-of-contents count, when there is more than one"
+  },
+  "conceptDemo.play": {
+    "message": "Play",
+    "description": "Button that starts stepping a concept demo on its own"
+  },
+  "conceptDemo.pause": {
+    "message": "Pause",
+    "description": "Button that stops a concept demo stepping on its own"
+  },
+  "conceptDemo.sequence": {
+    "message": "Steps",
+    "description": "Accessible name for the list of steps under a concept demo"
+  },
+  "conceptDemo.routes": {
+    "message": "What happens instead",
+    "description": "Accessible name for the group of buttons choosing an alternative path through a concept demo"
+  },
+  "conceptDemo.live": {
+    "message": "Step {current} of {total}. {title}",
+    "description": "Announced to a screen reader when a concept demo changes step"
+  },
+  "outputLifecycle.state.unconfirmed": {
+    "message": "seen, not yet buried",
+    "description": "One-line explanation of the Unconfirmed output status. Do not translate the status name itself."
+  },
+  "outputLifecycle.state.unspent": {
+    "message": "the only spendable status",
+    "description": "One-line explanation of the Unspent output status"
+  },
+  "outputLifecycle.state.locked": {
+    "message": "reserved by a send",
+    "description": "One-line explanation of the Locked output status"
+  },
+  "outputLifecycle.state.spent": {
+    "message": "consumed by a confirmed transaction",
+    "description": "One-line explanation of the Spent output status"
+  },
+  "outputLifecycle.state.deleted": {
+    "message": "removed by a destructive rescan",
+    "description": "One-line explanation of the Deleted output status"
+  },
+  "outputLifecycle.holder.input": {
+    "message": "input",
+    "description": "Label on the output being spent, shown inside whichever status box it is in"
+  },
+  "outputLifecycle.holder.change": {
+    "message": "change",
+    "description": "Label on the change output, shown inside whichever status box it is in"
+  },
+  "outputLifecycle.step.held.title": {
+    "message": "One confirmed output",
+    "description": "Output lifecycle step 1 heading"
+  },
+  "outputLifecycle.step.held.body": {
+    "message": "The wallet holds a single {total} EPIC output. Unspent is the only spendable status, so all of it is available.",
+    "description": "Output lifecycle step 1 detail. Unspent is a status name and stays as written."
+  },
+  "outputLifecycle.step.init.title": {
+    "message": "The send picks its inputs",
+    "description": "Output lifecycle step 2 heading"
+  },
+  "outputLifecycle.step.init.body": {
+    "message": "The wallet selects which outputs to spend and builds the first slate. Nothing has changed on disk yet and the balance has not moved.",
+    "description": "Output lifecycle step 2 detail"
+  },
+  "outputLifecycle.step.lock.title": {
+    "message": "And reserves them",
+    "description": "Output lifecycle step 3 heading"
+  },
+  "outputLifecycle.step.lock.body": {
+    "message": "The input becomes Locked and the {change} change is written as Unconfirmed. Both the amount sent and the change are now unavailable, which is why sending {pay} from a {total} output leaves nothing spendable rather than {remainder}.",
+    "description": "Output lifecycle step 3 detail. Locked and Unconfirmed are status names and stay as written."
+  },
+  "outputLifecycle.step.confirm.title": {
+    "message": "The transfer confirms",
+    "description": "Output lifecycle step 4 heading"
+  },
+  "outputLifecycle.step.confirm.body": {
+    "message": "The input becomes Spent, and the change becomes Unspent. It is still not spendable: minimum_confirmations defaults to {minConf} and this output has one.",
+    "description": "Output lifecycle step 4 detail. Spent, Unspent and minimum_confirmations stay as written."
+  },
+  "outputLifecycle.step.mature.title": {
+    "message": "{minConf} blocks later",
+    "description": "Output lifecycle step 5 heading"
+  },
+  "outputLifecycle.step.mature.body": {
+    "message": "The change clears minimum_confirmations and becomes spendable: {change} EPIC, roughly ten minutes after the transfer confirmed. The input stays in the wallet records as Spent.",
+    "description": "Output lifecycle step 5 detail"
+  },
+  "outputLifecycle.step.stalled.title": {
+    "message": "The receiver never answers",
+    "description": "Output lifecycle stalled step heading"
+  },
+  "outputLifecycle.step.stalled.body": {
+    "message": "No transaction was ever built, so nothing can be mined and nothing can be lost. The input stays Locked and the change stays unconfirmed. There is no timeout and no background cleanup, and restarting the wallet changes nothing, because the state is on disk.",
+    "description": "Output lifecycle stalled step detail"
+  },
+  "outputLifecycle.route.cancel": {
+    "message": "It never completes",
+    "description": "Button showing what happens when a transfer stalls and is cancelled"
+  },
+  "outputLifecycle.step.cancel.title": {
+    "message": "Cancelling releases them",
+    "description": "Output lifecycle cancel step heading"
+  },
+  "outputLifecycle.step.cancel.body": {
+    "message": "Locked inputs go back to Unspent and the unconfirmed change is discarded. It needs a reachable, synced node, and it only works while the transfer is still TxSentCreated: once the node has been seen holding it in the mempool, you are waiting rather than choosing.",
+    "description": "Output lifecycle cancel step detail. Locked, Unspent and TxSentCreated stay as written."
+  },
+  "outputLifecycle.route.scan": {
+    "message": "A rescan clears it",
+    "description": "Button showing what a destructive rescan does to a stalled transfer"
+  },
+  "outputLifecycle.step.scan.title": {
+    "message": "A destructive rescan does both jobs",
+    "description": "Output lifecycle rescan step heading"
+  },
+  "outputLifecycle.step.scan.body": {
+    "message": "The scan unlocks every locked output that is still in the UTXO set, returns it to Unspent and cancels the transaction log entry that reserved it. Then it deletes the unconfirmed outputs that are not in the UTXO set, which is the change.",
+    "description": "Output lifecycle rescan step detail"
+  },
+  "outputLifecycle.step.history.title": {
+    "message": "Deleted is a history status",
+    "description": "Output lifecycle history step heading"
+  },
+  "outputLifecycle.step.history.body": {
+    "message": "A deleted output is written to the output history table with status Deleted and removed from the live output table, so it never appears in an output list again. That is the only way an output reaches Deleted.",
+    "description": "Output lifecycle history step detail"
+  },
+  "outputLifecycle.caption": {
+    "message": "One transfer, followed through the output states, with the balance summary recomputed at each step. Step it, or pick what happens when it does not complete.",
+    "description": "Caption under the output lifecycle diagram"
+  },
+  "outputLifecycle.stageLabel": {
+    "message": "Output states and balance",
+    "description": "Spoken name for the output lifecycle diagram, read before each step announcement"
+  },
+  "outputLifecycle.summaryHead": {
+    "message": "as {command} prints it",
+    "description": "Heading over the balance panel. The command name stays as it is."
+  },
+  "sumToZero.side.inputs": {
+    "message": "inputs",
+    "description": "Heading over the input commitments in the sum-to-zero diagram"
+  },
+  "sumToZero.side.outputs": {
+    "message": "outputs + fee",
+    "description": "Heading over the output commitments in the sum-to-zero diagram"
+  },
+  "sumToZero.term.spent": {
+    "message": "the output being spent",
+    "description": "Note on the single input commitment"
+  },
+  "sumToZero.term.receiver": {
+    "message": "to the receiver",
+    "description": "Note on the output commitment that pays the receiver"
+  },
+  "sumToZero.term.change": {
+    "message": "change",
+    "description": "Note on the output commitment that returns change to the sender"
+  },
+  "sumToZero.term.fee": {
+    "message": "fee",
+    "description": "Note on the fee term"
+  },
+  "sumToZero.term.noBlinding": {
+    "message": "no blinding factor",
+    "description": "Says the fee is committed without a blinding factor, so it has no curve-point half"
+  },
+  "sumToZero.row.valueSide": {
+    "message": "value side",
+    "description": "Label for the row of the equation carrying the amounts"
+  },
+  "sumToZero.row.blindingSide": {
+    "message": "blinding side",
+    "description": "Label for the row of the equation carrying the blinding factors"
+  },
+  "sumToZero.row.residual": {
+    "message": "residual",
+    "description": "Label for what is left once the value side cancels"
+  },
+  "sumToZero.outcome.balances": {
+    "message": "a commitment to zero, and a signature can satisfy it",
+    "description": "Outcome shown when the transaction balances"
+  },
+  "sumToZero.outcome.rejected": {
+    "message": "KernelSumMismatch: no signature can satisfy it, and the transaction is rejected",
+    "description": "Outcome shown when the transaction does not balance. Keep KernelSumMismatch as written."
+  },
+  "sumToZero.term.input": {
+    "message": "input {n}",
+    "description": "Note on one of several input commitments"
+  },
+  "sumToZero.step.values.title": {
+    "message": "Two sides that have to match",
+    "description": "Sum-to-zero step 1 heading"
+  },
+  "sumToZero.step.values.body": {
+    "message": "The wallet spends {total} EPIC. {pay} goes to the receiver, {change} comes back as change, {fee} is the fee. Those numbers exist in plain form only inside the two wallets, and switching the input count changes nothing about the check.",
+    "description": "Sum-to-zero step 1 detail"
+  },
+  "sumToZero.step.commit.title": {
+    "message": "Every amount becomes a curve point",
+    "description": "Sum-to-zero step 2 heading"
+  },
+  "sumToZero.step.commit.body": {
+    "message": "An output is a Pedersen commitment, v·H + r·G, where v is the amount and r is a blinding factor only its owner knows. The chain stores the point. The fee is the exception: it is committed with no blinding factor, so it only ever touches the value side.",
+    "description": "Sum-to-zero step 2 detail. Keep v·H + r·G as written."
+  },
+  "sumToZero.step.sum.title": {
+    "message": "The verifier adds the points up",
+    "description": "Sum-to-zero step 3 heading"
+  },
+  "sumToZero.step.sum.body": {
+    "message": "Every output, plus the fee, minus every input. Nothing is decrypted and nothing needs to be: commitments add the same way the numbers inside them do, so three inputs are three more terms rather than extra work.",
+    "description": "Sum-to-zero step 3 detail"
+  },
+  "sumToZero.step.cancel.title": {
+    "message": "The value side disappears",
+    "description": "Sum-to-zero step 4 heading"
+  },
+  "sumToZero.step.cancel.body": {
+    "message": "The amounts balance, so every H term cancels however the inputs were split. The node learns that they balance and learns nothing else about them.",
+    "description": "Sum-to-zero step 4 detail"
+  },
+  "sumToZero.step.excess.title": {
+    "message": "What is left carries no value",
+    "description": "Sum-to-zero step 5 heading"
+  },
+  "sumToZero.step.excess.body": {
+    "message": "The residual is the output blinding factors minus the input ones, multiplied by G: a curve point with a zero value component, which is a commitment to zero. That is the kernel excess, and there is one per transaction rather than one per input. The kernel signature over it proves the two parties between them knew those blinding factors.",
+    "description": "Sum-to-zero step 5 detail. G is a curve generator and stays as written."
+  },
+  "sumToZero.step.verify.title": {
+    "message": "The node compares the two sums",
+    "description": "Sum-to-zero step 6 heading"
+  },
+  "sumToZero.step.verify.body": {
+    "message": "The commitment sum has to equal the kernel excesses plus the kernel offset. For a block the overage is negative instead of positive, subtracting the block reward and the foundation levy, and that is the only place new value can enter the chain.",
+    "description": "Sum-to-zero step 6 detail"
+  },
+  "sumToZero.route.inflate": {
+    "message": "Try to inflate",
+    "description": "Button that shows what happens when a sender writes themselves more change than they should"
+  },
+  "sumToZero.step.inflate.title": {
+    "message": "Write yourself more change",
+    "description": "Sum-to-zero inflation step heading"
+  },
+  "sumToZero.step.inflate.body": {
+    "message": "The sender writes {inflated} into the change output instead of {change}. The commitment is well formed, the range proof still proves the value is not negative, and nothing about it looks different from outside.",
+    "description": "Sum-to-zero inflation step detail"
+  },
+  "sumToZero.step.reject.title": {
+    "message": "The value side does not reach zero",
+    "description": "Sum-to-zero rejection step heading"
+  },
+  "sumToZero.step.reject.body": {
+    "message": "The value side comes to {delta}, so the residual still carries {delta} of value. No blinding factor turns that into a commitment to zero, so no signature satisfies it and the transaction is rejected. The node never learns an amount. It only learns that they do not balance.",
+    "description": "Sum-to-zero rejection step detail"
+  },
+  "sumToZero.mode.single": {
+    "message": "One input",
+    "description": "Button choosing a transaction with a single input"
+  },
+  "sumToZero.mode.multi": {
+    "message": "Three inputs",
+    "description": "Button choosing a transaction with three inputs"
+  },
+  "sumToZero.mode.group": {
+    "message": "Number of inputs",
+    "description": "Accessible name for the buttons choosing how many inputs the transaction has"
+  },
+  "sumToZero.caption": {
+    "message": "A transaction balancing to zero. Step it, switch the input count, or try to inflate the change and watch the check refuse.",
+    "description": "Caption under the sum-to-zero diagram"
+  },
+  "sumToZero.stageLabel": {
+    "message": "Commitment arithmetic",
+    "description": "Spoken name for the sum-to-zero diagram, read before each step announcement"
   }
 }

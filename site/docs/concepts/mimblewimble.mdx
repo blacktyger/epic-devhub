@@ -20,6 +20,8 @@ and `r` is a blinding factor. Anyone can verify that a set of commitments balanc
 `v`. A **range proof** accompanies each output, proving the value is not negative, which is what
 prevents inflation.
 
+<SumToZero />
+
 A **kernel** carries the excess signature and, depending on its feature variant, a fee and a lock
 height. There are three variants. `Plain` carries a fee, `HeightLocked` carries a fee and a lock
 height, and `Coinbase` carries neither

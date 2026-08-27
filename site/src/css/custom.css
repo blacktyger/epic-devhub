@@ -4793,3 +4793,627 @@ html[class*='docs-doc-id-examples/'],
   height: 0.8333rem;
   color: var(--ifm-color-content-secondary);
 }
+
+
+/* ============================================================ Concept demos
+ *
+ * Two stepped diagrams: the commitment arithmetic on /concepts/mimblewimble and the output states on
+ * /concepts/outputs-and-locking. Components in src/components/ConceptDemo.js, SumToZero.js and
+ * OutputLifecycle.js, where the reasoning for the structure is written down.
+ *
+ * Three rules hold this section together, and all three are about the same failure: a diagram that
+ * moves the page under a reader, or overflows, or overlaps itself, in some locale nobody looked at.
+ *
+ *   1. Nothing reserves space in pixels or ems for text. Every reservation is by construction: an
+ *      element a later step reveals is already occupying its slot, at opacity 0, from step one.
+ *   2. No breakpoint decides a layout. Both boards wrap with auto-fit and min(100%, …), so they hold
+ *      at any width, any root font size and any translated string length.
+ *   3. Padding, margin and gap come from --epic-space-*, and control heights from --epic-control-*.
+ *      audit/controls.mjs measures the rendered result and fails on anything off the scale.
+ *
+ * Motion is a transition on transform, opacity, width or colour, switched by one data-phase attribute
+ * on the board. Under prefers-reduced-motion every duration collapses at the bottom of this section
+ * and each state is still fully drawn, because the phases set final values rather than animating
+ * content in from nothing.
+ */
+
+.cdDemo {
+  container-type: inline-size;
+}
+
+.cdStage {
+  background: var(--epic-s2);
+  border: 1px solid var(--epic-line);
+  padding: var(--epic-space-16);
+}
+
+/* Controls sit between the caption and the sequence, which is the order they are used in: read what
+   this is, choose a route, then read the steps. */
+.cdControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--epic-space-8);
+  margin-top: var(--epic-space-12);
+}
+
+.cdToggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--epic-space-4);
+}
+
+.cdToggle,
+.cdPlay {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--epic-control-sm);
+  gap: var(--epic-space-4);
+  padding: 0 var(--epic-space-8);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  color: var(--ifm-color-content-secondary);
+  background: transparent;
+  border: 1px solid var(--epic-line);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.cdToggle:hover,
+.cdPlay:hover {
+  color: var(--ifm-font-color-base);
+  border-color: var(--epic-line-strong);
+}
+
+.cdToggle:focus-visible,
+.cdPlay:focus-visible,
+.cdStepBtn:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 1px;
+}
+
+.cdToggle.isOn {
+  color: var(--ifm-color-primary);
+  border-color: var(--epic-gold-deep);
+  background: rgba(246, 212, 113, 0.08);
+}
+
+[data-theme='light'] .cdToggle.isOn {
+  background: rgba(201, 138, 62, 0.1);
+}
+
+/* The play control is pushed to the end of the row so the route and mode choices, which are the point
+   of the row, wrap together and stay first at every width. */
+.cdPlay {
+  margin-inline-start: auto;
+}
+
+.cdPlayIcon {
+  width: 11px;
+  height: 11px;
+  flex: none;
+  fill: currentColor;
+}
+
+/* The sequence. Every step is present at every moment; stepping moves the mark. */
+.cdStep {
+  align-items: start;
+}
+
+.cdStepBtn {
+  display: grid;
+  gap: var(--epic-space-2);
+  width: 100%;
+  padding: var(--epic-space-4) var(--epic-space-8);
+  margin-inline-start: calc(var(--epic-space-8) * -1);
+  text-align: start;
+  background: transparent;
+  border: none;
+  border-inline-start: 2px solid transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.cdStepBtn:hover {
+  background: var(--epic-s2);
+}
+
+.cdStep.isCurrent .cdStepBtn {
+  border-inline-start-color: var(--ifm-color-primary);
+  background: var(--epic-s2);
+}
+
+.cdStepTitle {
+  font-weight: 600;
+}
+
+.cdStep.isPast .cdStepTitle,
+.cdStep.isPast .cdStepBody {
+  color: var(--ifm-color-content-secondary);
+}
+
+.cdStepBody {
+  color: var(--ifm-color-content-secondary);
+  font-size: 0.9rem;
+}
+
+.cdStep.isCurrent .cdStepBody {
+  color: var(--ifm-font-color-base);
+}
+
+.cdStepCall {
+  justify-self: start;
+  font-size: 0.72rem;
+  padding: 0 var(--epic-space-4);
+}
+
+/* ---- The sum is zero ------------------------------------------------------ */
+.szBoard {
+  display: grid;
+  gap: var(--epic-space-16);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.78rem;
+}
+
+/* Inputs and outputs side by side while there is room, stacked when there is not, with no breakpoint
+   to get wrong. 17rem is the width at which a commitment row still fits on one line in English and
+   wraps cleanly in a longer language. */
+.szTerms {
+  display: grid;
+  gap: var(--epic-space-12);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+}
+
+.szGroup {
+  display: grid;
+  gap: var(--epic-space-6);
+  align-content: start;
+  min-width: 0;
+}
+
+.szKind,
+.szScaleKind,
+.szWorkKind {
+  font-size: var(--epic-t-micro);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ifm-color-content-secondary);
+}
+
+.szTerm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--epic-space-8);
+  padding: var(--epic-space-6) var(--epic-space-8);
+  background: var(--epic-s3);
+  border: 1px solid var(--epic-line-strong);
+  transition:
+    border-color var(--epic-dur) var(--epic-ease),
+    background var(--epic-dur) var(--epic-ease);
+}
+
+.szTerm[data-flag='bad'] {
+  border-color: var(--epic-demo-bad);
+  background: var(--epic-demo-bad-tint);
+}
+
+/* The two halves of a commitment are separate elements so the value half can be struck out on its
+   own. That split is the whole idea of the diagram. */
+.szValue {
+  color: var(--ifm-font-color-base);
+  transition: color var(--epic-dur) var(--epic-ease);
+}
+
+.szBlind {
+  color: var(--ifm-color-primary);
+}
+
+.szNote {
+  margin-inline-start: auto;
+  font-size: var(--epic-t-micro);
+  color: var(--ifm-color-content-secondary);
+}
+
+/* Before the second step the amounts are plain numbers: the curve terms are not there yet. */
+.szBoard[data-phase='values'] .szGen,
+.szBoard[data-phase='values'] .szBlind {
+  opacity: 0;
+}
+
+.szGen,
+.szBlind {
+  transition: opacity var(--epic-dur) var(--epic-ease);
+}
+
+.szBoard[data-phase='cancel'] .szValue,
+.szBoard[data-phase='excess'] .szValue,
+.szBoard[data-phase='verify'] .szValue {
+  color: var(--ifm-color-content-secondary);
+  text-decoration: line-through;
+  text-decoration-color: var(--epic-gold-deep);
+}
+
+/* One scale, two bars that have to be the same length, and an overhang when they are not. */
+.szScale {
+  display: grid;
+  gap: var(--epic-space-4);
+}
+
+.szScaleRow {
+  display: grid;
+  grid-template-columns: minmax(0, 7rem) minmax(0, 1fr);
+  gap: 0 var(--epic-space-8);
+  align-items: center;
+}
+
+.szTrack {
+  display: flex;
+  align-items: stretch;
+  height: 0.75rem;
+  background: var(--epic-s1);
+  border: 1px solid var(--epic-line);
+}
+
+.szFill {
+  display: block;
+  background: var(--epic-gold-deep);
+  transition: width 0.62s var(--epic-ease);
+}
+
+.szFillIn {
+  background: var(--epic-line-strong);
+}
+
+.szOver {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  background: var(--epic-demo-bad);
+  color: var(--epic-s1);
+  font-size: 0.5rem;
+  font-weight: 700;
+  transition: width 0.62s var(--epic-ease);
+}
+
+/* The arithmetic and the residual are revealed by step, and both hold their space from the first
+   step so nothing below them moves when they arrive. */
+.szWork,
+.szResidual {
+  opacity: 0;
+  transition: opacity 0.38s var(--epic-ease);
+}
+
+.szBoard[data-phase='sum'] .szWork,
+.szBoard[data-phase='cancel'] .szWork,
+.szBoard[data-phase='excess'] .szWork,
+.szBoard[data-phase='verify'] .szWork,
+.szBoard[data-phase='inflate'] .szWork,
+.szBoard[data-phase='reject'] .szWork {
+  opacity: 1;
+}
+
+.szBoard[data-phase='excess'] .szResidual,
+.szBoard[data-phase='verify'] .szResidual,
+.szBoard[data-phase='reject'] .szResidual {
+  opacity: 1;
+}
+
+.szWork {
+  display: grid;
+  gap: var(--epic-space-4);
+  padding: var(--epic-space-8);
+  background: var(--epic-s1);
+  border: 1px solid var(--epic-line);
+}
+
+.szWorkRow {
+  display: grid;
+  grid-template-columns: minmax(0, 7rem) minmax(0, 1fr) auto;
+  gap: 0 var(--epic-space-8);
+  align-items: baseline;
+}
+
+.szWorkExpr {
+  color: var(--ifm-color-content-secondary);
+}
+
+/* In a narrow column the expression is the longest thing on the board, and in a three-column row it
+ * wrapped to four lines with the result floating at the top right of them. Below 30rem of container
+ * the expression takes its own full-width line under the label and the result, which is where a
+ * reader looks for it anyway. A container query rather than a viewport one, because what decides this
+ * is how wide the figure is, and the figure is narrower than the viewport on every route. */
+@container (max-width: 30rem) {
+  .szWorkRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .szWorkExpr {
+    grid-column: 1 / -1;
+  }
+}
+
+.szWorkResult {
+  color: var(--ifm-font-color-base);
+  transition: color var(--epic-dur) var(--epic-ease);
+}
+
+.szBoard[data-phase='cancel'] .szWorkValue .szWorkResult,
+.szBoard[data-phase='excess'] .szWorkValue .szWorkResult,
+.szBoard[data-phase='verify'] .szWorkValue .szWorkResult {
+  color: var(--ifm-color-primary);
+}
+
+.szBoard[data-phase='reject'] .szWorkValue .szWorkResult {
+  color: var(--epic-demo-bad);
+}
+
+.szWorkBlind .szWorkResult {
+  color: var(--ifm-color-primary);
+}
+
+.szResidual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--epic-space-8);
+  padding: var(--epic-space-8);
+  border: 1px solid var(--epic-gold-deep);
+  background: rgba(246, 212, 113, 0.06);
+  color: var(--ifm-color-primary);
+  transition:
+    opacity 0.38s var(--epic-ease),
+    border-color var(--epic-dur) var(--epic-ease),
+    background var(--epic-dur) var(--epic-ease),
+    color var(--epic-dur) var(--epic-ease);
+}
+
+.szBoard[data-phase='reject'] .szResidual {
+  border-color: var(--epic-demo-bad);
+  background: var(--epic-demo-bad-tint);
+  color: var(--epic-demo-bad);
+}
+
+.szResidualOutcome {
+  font-size: var(--epic-t-micro);
+  color: var(--ifm-color-content-secondary);
+}
+
+.szBoard[data-phase='reject'] .szResidualOutcome {
+  color: var(--epic-demo-bad);
+}
+
+/* ---- Output lifecycle ---------------------------------------------------- */
+.lcBoard {
+  display: grid;
+  gap: var(--epic-space-16);
+}
+
+/* The states run in one row and the summary sits under them, rather than side by side.
+ *
+ * Side by side was the first arrangement and it was wrong for a measured reason: the documentation
+ * column is about 46rem, so a two-column board left the states about 25rem, and five boxes at their
+ * 7.5rem minimum wrapped three-and-two. A lifecycle that wraps mid-sequence reads as two groups
+ * rather than one order. Full width fits all five at any documentation width, and wraps to two or
+ * three per row on a phone, where a single row would be unreadable anyway. */
+.lcSummary {
+  max-width: 26rem;
+}
+
+.lcStates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr));
+  gap: var(--epic-space-6);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lcState {
+  display: grid;
+  gap: var(--epic-space-4);
+  /* The status, its note and the slot spread over the box, so the slot sits at the same height in
+     every box however many lines a translated note takes. A chip is placed by measured transform,
+     so a slot that moved per box would put the chips on different lines. */
+  align-content: space-between;
+  padding: var(--epic-space-8);
+  background: var(--epic-s3);
+  border: 1px solid var(--epic-line-strong);
+  transition:
+    border-color var(--epic-dur) var(--epic-ease),
+    background var(--epic-dur) var(--epic-ease);
+}
+
+.lcState[data-active='true'] {
+  border-color: var(--epic-gold-deep);
+  background: rgba(246, 212, 113, 0.06);
+}
+
+[data-theme='light'] .lcState[data-active='true'] {
+  background: rgba(201, 138, 62, 0.08);
+}
+
+.lcStateName {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--ifm-font-color-base);
+}
+
+.lcState[data-active='true'] .lcStateName {
+  color: var(--ifm-color-primary);
+}
+
+.lcStateNote {
+  font-style: normal;
+  font-size: var(--epic-t-micro);
+  line-height: 1.4;
+  color: var(--ifm-color-content-secondary);
+}
+
+/* Reserves the space a chip needs whether or not one is here, so a box does not change size when a
+   chip arrives. --epic-control-lg is the closest step on the scale to a two-line chip. */
+.lcSlot {
+  min-height: var(--epic-control-lg);
+  display: grid;
+  align-content: end;
+}
+
+.lcChip {
+  display: grid;
+  gap: 0;
+  padding: var(--epic-space-4);
+  background: var(--epic-s1);
+  border: 1px solid var(--epic-gold-deep);
+  font-family: var(--ifm-font-family-monospace);
+  line-height: 1.25;
+  /* The chip is a real child of its status box, so nothing here positions it. The transform is what
+     FLIP releases after a reparent, and it is the only thing that animates. */
+  transition: transform 0.56s var(--epic-ease);
+}
+
+.lcChip b {
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+.lcChip span {
+  font-size: 0.56rem;
+  color: var(--ifm-color-content-secondary);
+}
+
+.lcChip[data-in='Locked'] {
+  border-color: var(--epic-demo-warn);
+}
+
+.lcChip[data-in='Spent'] {
+  border-color: var(--epic-line-strong);
+}
+
+/* Deleted exists only in the output history table, so the chip is drawn as an outline with nothing
+   solid behind it. */
+.lcChip[data-in='Deleted'] {
+  border-style: dashed;
+  border-color: var(--epic-line-strong);
+  background: transparent;
+}
+
+.lcSummary {
+  background: var(--epic-s1);
+  border: 1px solid var(--epic-line-strong);
+  min-width: 0;
+}
+
+.lcSummaryHead {
+  padding: var(--epic-space-6) var(--epic-space-8);
+  border-bottom: 1px solid var(--epic-line);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: var(--epic-t-micro);
+  color: var(--ifm-color-content-secondary);
+}
+
+.lcRows {
+  display: grid;
+  margin: 0;
+  padding: var(--epic-space-4) var(--epic-space-8) var(--epic-space-8);
+  font-family: var(--ifm-font-family-monospace);
+}
+
+.lcRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 var(--epic-space-8);
+  padding-block: var(--epic-space-2);
+  align-items: baseline;
+}
+
+.lcRow dt {
+  font-size: var(--epic-t-micro);
+  color: var(--ifm-color-content-secondary);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.lcRowSuffix {
+  margin-inline-start: var(--epic-space-4);
+}
+
+.lcRow dd {
+  margin: 0;
+}
+
+.lcRow b {
+  font-size: 0.72rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ifm-font-color-base);
+  transition: color var(--epic-dur) var(--epic-ease);
+}
+
+.lcRow[data-zero='true'] b {
+  color: var(--ifm-color-content-secondary);
+}
+
+.lcRowTotal {
+  border-top: 1px solid var(--epic-line);
+  margin-top: var(--epic-space-4);
+  padding-top: var(--epic-space-6);
+}
+
+.lcRowTotal dt {
+  color: var(--ifm-font-color-base);
+}
+
+.lcRowTotal b {
+  color: var(--ifm-color-primary);
+}
+
+.lcRowTotal[data-zero='true'] b {
+  color: var(--epic-demo-bad);
+}
+
+/* Two local colours, because the palette has no state colours of its own and these two carry
+   meaning: a transaction the chain refuses, and a holding that is reserved rather than lost. Values
+   are the ones the risk labels already use per theme, so their contrast is already established. */
+:root {
+  --epic-demo-bad: #b02020;
+  --epic-demo-bad-tint: rgba(176, 32, 32, 0.08);
+  --epic-demo-warn: #7a4a12;
+}
+
+[data-theme='dark'] {
+  --epic-demo-bad: #f08a8a;
+  --epic-demo-bad-tint: rgba(240, 138, 138, 0.08);
+  --epic-demo-warn: #f0c274;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Neutralised means every state is fully drawn and fully operable, not merely un-animated. The
+     phases above set final values rather than animating anything in from nothing, so removing the
+     durations leaves the diagram complete. */
+  .szFill,
+  .szOver,
+  .szValue,
+  .szGen,
+  .szBlind,
+  .szTerm,
+  .szWork,
+  .szResidual,
+  .szWorkResult,
+  .lcChip,
+  .lcState,
+  .lcRow b,
+  .cdToggle,
+  .cdPlay,
+  .cdStepBtn {
+    transition-duration: 0.001ms;
+  }
+}
