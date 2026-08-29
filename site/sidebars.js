@@ -5,6 +5,11 @@
  * This is the main structural break from the site it replaces, which led with the node
  * and buried the transaction model.
  *
+ * No category sets `collapsed`, so every one starts closed and Docusaurus opens only the branch
+ * holding the current page. Fully expanded, the tree is 40 links and a reader arriving at one page
+ * has to scan all of them to find where they are. `autoCollapseCategories` stays false in
+ * docusaurus.config.js, so opening a second category does not shut the first.
+ *
  * @type {import('@docusaurus/plugin-content-docs').SidebarsConfig}
  */
 const sidebars = {
@@ -13,7 +18,6 @@ const sidebars = {
     {
       type: 'category',
       label: 'Concepts',
-      collapsed: false,
       link: {type: 'doc', id: 'concepts/mimblewimble'},
       items: [
         'concepts/mimblewimble',
@@ -28,7 +32,6 @@ const sidebars = {
     {
       type: 'category',
       label: 'Guides',
-      collapsed: false,
       items: [
         // A chain, in order. Each page assumes the one before it and does not repeat it.
         'guides/build',
@@ -38,7 +41,6 @@ const sidebars = {
         {
           type: 'category',
           label: 'Connecting to mainnet',
-          collapsed: false,
           items: [
             'guides/mainnet-setup',
             'guides/wallet-operations',
@@ -51,7 +53,6 @@ const sidebars = {
     {
       type: 'category',
       label: 'Code examples',
-      collapsed: false,
       link: {type: 'doc', id: 'examples/index'},
       items: ['examples/node-api', 'examples/wallet-connect', 'examples/send-receive'],
     },
@@ -61,13 +62,11 @@ const sidebars = {
     {
       type: 'category',
       label: 'API reference',
-      collapsed: false,
       link: {type: 'doc', id: 'api/index'},
       items: [
         {
           type: 'category',
           label: 'Node API',
-          collapsed: false,
           link: {type: 'doc', id: 'api/node'},
           items: [
             'api/node/chain-reads',
@@ -79,7 +78,6 @@ const sidebars = {
         {
           type: 'category',
           label: 'Wallet Owner API v3',
-          collapsed: false,
           link: {type: 'doc', id: 'api/wallet-owner'},
           items: [
             'api/wallet/session',
