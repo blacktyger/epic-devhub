@@ -58,7 +58,12 @@ const sidebars = {
     },
     // Between the examples and the raw API: a reader who has decided to write code meets the
     // client that shortens it before the surface it wraps.
-    'sdk',
+    {
+      type: 'category',
+      label: 'Python SDK',
+      link: {type: 'doc', id: 'sdk/index'},
+      items: ['sdk/cli', 'sdk/dashboard'],
+    },
     {
       type: 'category',
       label: 'API reference',

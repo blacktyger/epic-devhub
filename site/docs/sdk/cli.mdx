@@ -1,0 +1,217 @@
+---
+title: SDK command line
+sidebar_label: Command line
+description: "The epic and epic-sdk commands: reading a node and wallet, sending, listening on a relay, and building a local Epic environment."
+---
+
+# SDK command line
+
+Two commands come with the package. `epic` drives Epic software that is already running. `epic-sdk`
+installs and runs it.
+
+Both need the `cli` extra:
+
+```bash
+uv sync --extra cli
+```
+
+Data goes to stdout and everything else to stderr, so a pipe carries the result alone. `--json` on
+any read emits one JSON document per line. Exit status is 0 on success, 1 when Epic received the
+call and refused it, 2 when the call did not arrive, and 64 for a usage error.
+
+## Where `epic` reads its settings {/* #where-epic-reads-its-settings */}
+
+A flag wins over an environment variable, which wins over the default.
+
+| Setting | Flag, or environment variable | Default |
+| --- | --- | --- |
+| Node URL | `--url`, `EPIC_NODE_URL` | `http://127.0.0.1:3413` |
+| Node API secret | `--api-secret-file`, `EPIC_NODE_API_SECRET` | none |
+| Wallet URL | `--url`, `EPIC_WALLET_URL` | `http://127.0.0.1:3420/v3/owner` |
+| Wallet API secret | `--api-secret-file`, `EPIC_WALLET_API_SECRET` | none |
+| Wallet password | `--password-file`, `EPIC_WALLET_PASSWORD` | prompt, when stdin is a terminal |
+| Relay URL | `--url`, `EPIC_EPICBOX_URL` | none |
+
+A password or a secret is read from an environment variable or from the file a `--*-file` flag names.
+Passing one as a flag value exits 64.
+
+## `epic node` {/* #epic-node */}
+
+### `epic node height` {/* #epic-node-height */}
+
+Prints the chain height.
+
+```bash
+epic node height
+epic node height --url https://node.example:3413 --json
+```
+
+### `epic node status` {/* #epic-node-status */}
+
+Prints height, total difficulty, version and sync state.
+
+```bash
+epic node status --json
+```
+
+Both take `--url`, `--api-secret-file` and `--json`.
+
+## `epic wallet` {/* #epic-wallet */}
+
+Every command here takes `--url`, `--api-secret-file`, `--password-file` and `--json`.
+
+### `epic wallet balance` {/* #epic-wallet-balance */}
+
+Prints spendable, total, awaiting confirmation, awaiting finalization, immature and locked.
+
+```bash
+EPIC_WALLET_PASSWORD=... epic wallet balance --json
+```
+
+### `epic wallet address` {/* #epic-wallet-address */}
+
+Prints the wallet's epicbox address, port included.
+
+### `epic wallet txs` {/* #epic-wallet-txs */}
+
+Lists transactions with their slate id, state and amount.
+
+### `epic wallet send` {/* #epic-wallet-send */}
+
+Sends over epicbox and waits for both rounds.
+
+```bash
+epic wallet send 1.5 esYG...@epicbox.epiccash.com:443
+epic wallet send 1.5 esYG...@epicbox.epiccash.com:443 --dry-run
+```
+
+| Option | Purpose |
+| --- | --- |
+| `--dry-run` | Quotes the fee and sends nothing. |
+| `--yes` | Skips the confirmation prompt. |
+| `--message` | A message carried in the slate. |
+
+<Risk level="spend" /> Without `--dry-run` and without `--yes` the command asks for confirmation, and
+refuses when stdin is not a terminal. The amount is a decimal string of EPIC.
+
+## `epic epicbox listen` {/* #epic-epicbox-listen */}
+
+Subscribes to a relay and prints each slate as it arrives, reconnecting for as long as it runs.
+
+```bash
+epic epicbox listen --url wss://epicbox.epiccash.com --key-file ./relay.key
+epic epicbox listen --ephemeral --count 1 --json
+```
+
+| Option | Purpose |
+| --- | --- |
+| `--key-file` | A 32-byte secp256k1 scalar as hex. Determines the address that receives. |
+| `--ephemeral` | Generates a throwaway key instead. |
+| `--count` | Stops after this many slates. `0` runs until interrupted. |
+| `--decrypt` | Decrypts arriving slates. On by default. |
+
+One of `--key-file` or `--ephemeral` is required.
+
+## `epic quirks list` {/* #epic-quirks-list */}
+
+Lists the Epic behaviours the client accounts for, and which of them it handles.
+
+```bash
+epic quirks list --status unhandled --json
+```
+
+## `epic-sdk` {/* #epic-sdk */}
+
+`epic-sdk` builds and runs a local Epic environment: it finds or fetches binaries, writes their
+configs, creates wallets, and supervises the processes.
+
+Every command takes `--root` for the environment directory, `EPIC_DEV_ROOT` in the environment, or
+`~/emulator` by default. `--chain` selects the network and only `user` is set up. `--json` prints
+machine-readable output, `--dry-run` decides and reports without changing anything, and `--yes`
+answers every question.
+
+### Creating an environment {/* #creating-an-environment */}
+
+```bash
+epic-sdk env doctor                   # can this machine run one
+epic-sdk env new ~/epic-lab --yes     # build one
+epic-sdk env status --json            # what exists and what is running
+epic-sdk env path                     # root, bin, chain data, logs, manifest
+```
+
+`env new` inspects the machine, obtains the binaries, generates the node and miner configuration,
+creates each wallet with its own sealed password, sets up the relay, and starts everything once to
+verify it. It is interactive unless `--yes`.
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `--components` | asks | Any of `node`, `wallet`, `miner`, `relay`. |
+| `--wallets` | `alice,bob` | Instance names. The first receives mining rewards. |
+| `--prefer` | `auto` | `release` downloads, `source` compiles. |
+| `--threads` | `4` | RandomX mining threads. |
+| `--relay-path` | | An existing `epic-relay` checkout. |
+| `--offline` | | Uses only what is already on the machine. |
+
+A release download takes seconds. A source build takes ten to thirty minutes per component.
+
+### Working with an existing tree {/* #working-with-an-existing-tree */}
+
+```bash
+epic-sdk env adopt                    # write env.json for a tree built by hand
+epic-sdk env sync --dry-run           # report where configs and env.json disagree
+epic-sdk env sync                      # write the environment's values back
+epic-sdk env add-wallets carol,dave
+epic-sdk env outputs alice --into 4   # pay a wallet to itself to reshape its outputs
+```
+
+`env adopt` records wallets it finds as discovered, and a discovered wallet is never opened or
+started. `env outputs` needs the wallet's Owner API and its listener both running.
+
+<Risk level="spend" /> `env outputs` sends the wallet to itself. It is a real transaction with a real
+fee.
+
+### Binaries and releases {/* #binaries-and-releases */}
+
+```bash
+epic-sdk bin find                     # every Epic binary on this machine, with versions
+epic-sdk bin check                    # installed against upstream
+epic-sdk bin add ~/build/epic         # adopt one you already have
+epic-sdk bin install node wallet      # download them
+epic-sdk bin install node --source    # compile instead
+epic-sdk release list --component node
+```
+
+A download is verified against its SHA-256 before it is used.
+
+### The relay {/* #the-relay */}
+
+```bash
+epic-sdk relay setup --domain localhost --port 3423
+epic-sdk relay wallet-config --json   # point every wallet at it, print their addresses
+```
+
+`relay setup` needs `uv` on the machine, and clones `epic-relay` when no checkout is given.
+
+### Credentials {/* #credentials */}
+
+Wallet passwords generated by `env new` are sealed against a per-machine identity.
+
+```bash
+epic-sdk keys status                  # which store holds the private half
+epic-sdk keys init --require-keystore # create it, refusing the file fallback
+epic-sdk env secrets                  # list sealed entries, revealing nothing
+epic-sdk env secrets show alice       # print one value
+```
+
+`env secrets show` is the only command that prints a credential, and it writes that value to stdout
+alone.
+
+### The dashboard {/* #the-dashboard */}
+
+```bash
+epic-sdk serve --root ~/epic-lab
+```
+
+Covered on [the dashboard](/sdk/dashboard).
+
+<JourneyNav stage="integrate" />

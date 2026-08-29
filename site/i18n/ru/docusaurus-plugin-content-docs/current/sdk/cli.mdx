@@ -1,0 +1,218 @@
+---
+title: SDK command line
+sidebar_label: Командная строка
+description: "Команды epic и epic-sdk: чтение узла и кошелька, отправка, прослушивание на релее и сборка локального окружения Epic."
+---
+
+# SDK command line
+
+В пакет входят две команды. `epic` управляет уже запущенным программным обеспечением Epic. `epic-sdk`
+устанавливает и запускает его.
+
+Обе требуют дополнения `cli`:
+
+```bash
+uv sync --extra cli
+```
+
+Данные поступают в stdout, всё остальное — в stderr, поэтому через пайп передаётся только результат.
+`--json` при любом чтении выводит по одному JSON-документу на строку. Код завершения: 0 — успех, 1 —
+Epic получил вызов и отклонил его, 2 — вызов не дошёл, 64 — ошибка использования.
+
+## Откуда `epic` читает настройки {/* #where-epic-reads-its-settings */}
+
+Флаг имеет приоритет над переменной окружения, которая имеет приоритет над значением по умолчанию.
+
+| Настройка | Флаг или переменная окружения | Default |
+| --- | --- | --- |
+| URL узла | `--url`, `EPIC_NODE_URL` | `http://127.0.0.1:3413` |
+| Секрет API узла | `--api-secret-file`, `EPIC_NODE_API_SECRET` | none |
+| URL кошелька | `--url`, `EPIC_WALLET_URL` | `http://127.0.0.1:3420/v3/owner` |
+| Секрет API кошелька | `--api-secret-file`, `EPIC_WALLET_API_SECRET` | none |
+| Пароль кошелька | `--password-file`, `EPIC_WALLET_PASSWORD` | запрос, когда stdin — терминал |
+| URL релея | `--url`, `EPIC_EPICBOX_URL` | none |
+
+Пароль или секрет считывается из переменной окружения либо из файла, указанного флагом `--*-file`.
+Передача значения через флаг завершается с кодом 64.
+
+## `epic node` {/* #epic-node */}
+
+### `epic node height` {/* #epic-node-height */}
+
+Выводит высоту блока цепочки.
+
+```bash
+epic node height
+epic node height --url https://node.example:3413 --json
+```
+
+### `epic node status` {/* #epic-node-status */}
+
+Выводит высоту блока, суммарную сложность, версию и состояние синхронизации.
+
+```bash
+epic node status --json
+```
+
+Обе принимают `--url`, `--api-secret-file` и `--json`.
+
+## `epic wallet` {/* #epic-wallet */}
+
+Каждая команда здесь принимает `--url`, `--api-secret-file`, `--password-file` и `--json`.
+
+### `epic wallet balance` {/* #epic-wallet-balance */}
+
+Выводит доступно к трате, итого, ожидает подтверждения, ожидает финализации, незрелые и
+заблокированные средства.
+
+```bash
+EPIC_WALLET_PASSWORD=... epic wallet balance --json
+```
+
+### `epic wallet address` {/* #epic-wallet-address */}
+
+Выводит адрес epicbox кошелька вместе с портом.
+
+### `epic wallet txs` {/* #epic-wallet-txs */}
+
+Выводит список транзакций с их slate id, состоянием и суммой.
+
+### `epic wallet send` {/* #epic-wallet-send */}
+
+Отправляет через epicbox и ожидает оба раунда.
+
+```bash
+epic wallet send 1.5 esYG...@epicbox.epiccash.com:443
+epic wallet send 1.5 esYG...@epicbox.epiccash.com:443 --dry-run
+```
+
+| Опция | Назначение |
+| --- | --- |
+| `--dry-run` | Показывает комиссию, ничего не отправляет. |
+| `--yes` | Пропускает запрос подтверждения. |
+| `--message` | Сообщение, передаваемое в слейте (slate). |
+
+<Risk level="spend" /> Без `--dry-run` и без `--yes` команда запрашивает подтверждение и отказывает, если stdin не является
+терминалом. Сумма задаётся десятичной строкой в EPIC.
+
+## `epic epicbox listen` {/* #epic-epicbox-listen */}
+
+Подписывается на релей и выводит каждый слейт (slate) по мере поступления, переподключаясь на всё
+время работы.
+
+```bash
+epic epicbox listen --url wss://epicbox.epiccash.com --key-file ./relay.key
+epic epicbox listen --ephemeral --count 1 --json
+```
+
+| Опция | Назначение |
+| --- | --- |
+| `--key-file` | 32-байтовый скаляр secp256k1 в hex. Определяет адрес получателя. |
+| `--ephemeral` | Генерирует одноразовый ключ. |
+| `--count` | Останавливается после указанного числа слейтов. `0` работает до прерывания. |
+| `--decrypt` | Расшифровывает входящие слейты. Включено по умолчанию. |
+
+Требуется одно из `--key-file` или `--ephemeral`.
+
+## `epic quirks list` {/* #epic-quirks-list */}
+
+Выводит список поведений Epic, которые учитывает клиент, и указывает, какие из них он обрабатывает.
+
+```bash
+epic quirks list --status unhandled --json
+```
+
+## `epic-sdk` {/* #epic-sdk */}
+
+`epic-sdk` собирает и запускает локальное окружение Epic: находит или загружает бинарники, записывает их
+конфигурации, создаёт кошельки и управляет процессами.
+
+Каждая команда принимает `--root` для каталога окружения, `EPIC_DEV_ROOT` в окружении или `~/emulator` по умолчанию. `--chain`
+выбирает сеть, и настраивается только `user`. `--json` выводит машиночитаемый вывод, `--dry-run` принимает
+решения и сообщает о них без внесения изменений, а `--yes` отвечает утвердительно на каждый вопрос.
+
+### Создание окружения {/* #creating-an-environment */}
+
+```bash
+epic-sdk env doctor                   # может ли эта машина запустить один
+epic-sdk env new ~/epic-lab --yes     # собрать один
+epic-sdk env status --json            # что существует и что запущено
+epic-sdk env path                     # корень, bin, данные цепочки, логи, манифест
+```
+
+`env new` проверяет машину, получает бинарники, генерирует конфигурацию узла и майнера, создаёт каждый
+кошелёк с собственным запечатанным паролем, настраивает релей и однократно запускает всё для
+проверки. Работает в интерактивном режиме, если не задан `--yes`.
+
+| Опция | Default | Назначение |
+| --- | --- | --- |
+| `--components` | запрашивает | Любое из `node`, `wallet`, `miner`, `relay`. |
+| `--wallets` | `alice,bob` | Имена экземпляров. Первый получает награды за майнинг. |
+| `--prefer` | `auto` | `release` скачивает, `source` компилирует. |
+| `--threads` | `4` | Потоки майнинга RandomX. |
+| `--relay-path` |  | Существующий чекаут `epic-relay`. |
+| `--offline` |  | Использует только то, что уже есть на машине. |
+
+Загрузка релиза занимает секунды. Сборка из исходников занимает от десяти до тридцати минут на
+каждый компонент.
+
+### Работа с существующим деревом {/* #working-with-an-existing-tree */}
+
+```bash
+epic-sdk env adopt                    # записать env.json для дерева, собранного вручную
+epic-sdk env sync --dry-run           # сообщить о расхождениях между конфигами и env.json
+epic-sdk env sync                      # записать значения окружения обратно
+epic-sdk env add-wallets carol,dave
+epic-sdk env outputs alice --into 4   # отправить кошелёк самому себе, чтобы перераспределить его выходы
+```
+
+`env adopt` регистрирует найденные кошельки как обнаруженные, и обнаруженный кошелёк никогда не
+открывается и не запускается. `env outputs` требует, чтобы Owner API кошелька и его слушатель были запущены.
+
+<Risk level="spend" /> `env outputs` отправляет кошелёк самому себе. Это реальная транзакция с реальной комиссией.
+
+### Бинарники и релизы {/* #binaries-and-releases */}
+
+```bash
+epic-sdk bin find                     # все бинарники Epic на этой машине с версиями
+epic-sdk bin check                    # установлено относительно upstream
+epic-sdk bin add ~/build/epic         # принять уже имеющийся
+epic-sdk bin install node wallet      # скачать их
+epic-sdk bin install node --source    # скомпилировать вместо этого
+epic-sdk release list --component node
+```
+
+Загрузка проверяется по SHA-256 перед использованием.
+
+### Релей {/* #the-relay */}
+
+```bash
+epic-sdk relay setup --domain localhost --port 3423
+epic-sdk relay wallet-config --json   # указать каждый кошелёк на него и вывести их адреса
+```
+
+`relay setup` требует наличия `uv` на машине и клонирует `epic-relay`, если не указан существующий checkout.
+
+### Учётные данные {/* #credentials */}
+
+Пароли кошельков, сгенерированные `env new`, запечатаны с привязкой к идентификатору конкретной машины.
+
+```bash
+epic-sdk keys status                  # какое хранилище содержит приватную часть
+epic-sdk keys init --require-keystore # создать его, запретив резервный вариант с файлом
+epic-sdk env secrets                  # перечислить запечатанные записи, не раскрывая ничего
+epic-sdk env secrets show alice       # вывести одно значение
+```
+
+`env secrets show` — единственная команда, которая выводит учётные данные, и записывает это значение только в
+stdout.
+
+### Дашборд {/* #the-dashboard */}
+
+```bash
+epic-sdk serve --root ~/epic-lab
+```
+
+Описано на [панели управления](/sdk/dashboard).
+
+<JourneyNav stage="integrate" />

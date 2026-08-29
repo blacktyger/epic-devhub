@@ -1,0 +1,203 @@
+---
+title: SDK命令行
+sidebar_label: 命令行
+description: epic 和 epic-sdk 命令：读取节点和钱包、发送、在中继上监听，以及构建本地 Epic 环境。
+---
+
+# SDK命令行
+
+该软件包包含两个命令。`epic`用于驱动已在运行的Epic软件。`epic-sdk`负责安装并运行它。
+
+两者都需要`cli`额外依赖：
+
+```bash
+uv sync --extra cli
+```
+
+数据输出到stdout，其他所有内容输出到stderr，因此管道只传递结果本身。`--json`在任何读取操作上每行输出一个JSON文档。成功时退出状态为0，Epic收到调用但拒绝时为1，调用未到达时为2，用法错误时为64。
+
+## `epic`从哪里读取配置{/* #where-epic-reads-its-settings */}
+
+参数优先于环境变量，环境变量优先于默认值。
+
+| 设置 | 参数或环境变量 | Default |
+| --- | --- | --- |
+| 节点URL | `--url`, `EPIC_NODE_URL` | `http://127.0.0.1:3413` |
+| 节点API密钥 | `--api-secret-file`, `EPIC_NODE_API_SECRET` | 无 |
+| 钱包URL | `--url`, `EPIC_WALLET_URL` | `http://127.0.0.1:3420/v3/owner` |
+| 钱包API密钥 | `--api-secret-file`, `EPIC_WALLET_API_SECRET` | 无 |
+| 钱包密码 | `--password-file`, `EPIC_WALLET_PASSWORD` | 当stdin为终端时提示 |
+| 中继URL | `--url`, `EPIC_EPICBOX_URL` | 无 |
+
+密码或机密从环境变量或`--*-file`参数指定的文件中读取。将其作为参数值传入会以64退出。
+
+## `epic node` {/* #epic-node */}
+
+### `epic node height` {/* #epic-node-height */}
+
+打印链高度。
+
+```bash
+epic node height
+epic node height --url https://node.example:3413 --json
+```
+
+### `epic node status` {/* #epic-node-status */}
+
+打印区块高度、总难度、版本和同步状态。
+
+```bash
+epic node status --json
+```
+
+两者均接受`--url`、`--api-secret-file`和`--json`。
+
+## `epic wallet` {/* #epic-wallet */}
+
+此处每个命令均接受`--url`、`--api-secret-file`、`--password-file`和`--json`。
+
+### `epic wallet balance` {/* #epic-wallet-balance */}
+
+打印可花费、总计、待确认、待最终确认、未成熟和已锁定余额。
+
+```bash
+EPIC_WALLET_PASSWORD=... epic wallet balance --json
+```
+
+### `epic wallet address` {/* #epic-wallet-address */}
+
+打印钱包的epicbox地址，包含端口。
+
+### `epic wallet txs` {/* #epic-wallet-txs */}
+
+列出交易及其slate id、状态和金额。
+
+### `epic wallet send` {/* #epic-wallet-send */}
+
+通过epicbox发送并等待两轮完成。
+
+```bash
+epic wallet send 1.5 esYG...@epicbox.epiccash.com:443
+epic wallet send 1.5 esYG...@epicbox.epiccash.com:443 --dry-run
+```
+
+| 选项 | 用途 |
+| --- | --- |
+| `--dry-run` | 仅显示手续费报价，不发送任何内容。 |
+| `--yes` | 跳过确认提示。 |
+| `--message` | 携带在slate中的消息。 |
+
+<Risk level="spend" />若不带`--dry-run`且不带`--yes`，命令会请求确认，当stdin不是终端时拒绝执行。金额为EPIC的十进制字符串。
+
+## `epic epicbox listen` {/* #epic-epicbox-listen */}
+
+订阅中继并在每个slate到达时打印，持续重连直至运行结束。
+
+```bash
+epic epicbox listen --url wss://epicbox.epiccash.com --key-file ./relay.key
+epic epicbox listen --ephemeral --count 1 --json
+```
+
+| 选项 | 用途 |
+| --- | --- |
+| `--key-file` | 以十六进制表示的32字节secp256k1标量，用于确定接收地址。 |
+| `--ephemeral` | 生成一次性临时密钥。 |
+| `--count` | 处理指定数量的slate后停止。`0`表示持续运行直到中断。 |
+| `--decrypt` | 解密到达的slate，默认开启。 |
+
+`--key-file`或`--ephemeral`中必须指定一个。
+
+## `epic quirks list` {/* #epic-quirks-list */}
+
+列出客户端所处理的Epic行为，以及其中哪些已被处理。
+
+```bash
+epic quirks list --status unhandled --json
+```
+
+## `epic-sdk` {/* #epic-sdk */}
+
+`epic-sdk`构建并运行本地Epic环境：查找或获取二进制文件，写入其配置，创建钱包，并监管各进程。
+
+每个命令均接受`--root`指定环境目录，环境中为`EPIC_DEV_ROOT`，默认值为`~/emulator`。`--chain`选择网络，且仅设置`user`。`--json`打印机器可读输出，`--dry-run`在不做任何更改的情况下决策并报告，`--yes`对所有问题自动应答。
+
+### 创建环境{/* #creating-an-environment */}
+
+```bash
+epic-sdk env doctor                   # 此机器是否可以运行一个
+epic-sdk env new ~/epic-lab --yes     # 构建一个
+epic-sdk env status --json            # 存在什么以及正在运行什么
+epic-sdk env path                     # 根目录、bin、链数据、日志、清单
+```
+
+`env new`检查机器、获取二进制文件、生成节点和矿工配置、为每个钱包创建独立的密封密码、设置中继，并启动一次以验证。除非指定`--yes`，否则为交互式。
+
+| 选项 | Default | 用途 |
+| --- | --- | --- |
+| `--components` | 询问 | `node`、`wallet`、`miner`、`relay`中的任意一个。 |
+| `--wallets` | `alice,bob` | 实例名称，第一个接收挖矿奖励。 |
+| `--prefer` | `auto` | `release`下载，`source`编译。 |
+| `--threads` | `4` | RandomX挖矿线程数。 |
+| `--relay-path` |  | 已有的`epic-relay`检出目录。 |
+| `--offline` |  | 仅使用机器上已有的内容。 |
+
+下载发布版本只需数秒。每个组件的源码构建需要十到三十分钟。
+
+### 使用现有代码树{/* #working-with-an-existing-tree */}
+
+```bash
+epic-sdk env adopt                    # 为手动构建的目录树写入env.json
+epic-sdk env sync --dry-run           # 报告配置文件与env.json之间的差异
+epic-sdk env sync                      # 将环境值写回
+epic-sdk env add-wallets carol,dave
+epic-sdk env outputs alice --into 4   # 向钱包自身支付以重组其输出
+```
+
+`env adopt`将找到的钱包记录为已发现，已发现的钱包不会被打开或启动。`env outputs`需要钱包的Owner API及其监听器同时运行。
+
+<Risk level="spend" />`env outputs`将钱包发送给自身。这是一笔真实的交易，收取真实的手续费。
+
+### 二进制文件与发布版本{/* #binaries-and-releases */}
+
+```bash
+epic-sdk bin find                     # 此机器上的所有Epic二进制文件及其版本
+epic-sdk bin check                    # 与上游版本对比安装情况
+epic-sdk bin add ~/build/epic         # 采用已有的一个
+epic-sdk bin install node wallet      # 下载它们
+epic-sdk bin install node --source    # 改为编译
+epic-sdk release list --component node
+```
+
+下载文件在使用前会通过其SHA-256进行校验和验证。
+
+### 中继{/* #the-relay */}
+
+```bash
+epic-sdk relay setup --domain localhost --port 3423
+epic-sdk relay wallet-config --json   # 将所有钱包指向该节点并打印其地址
+```
+
+`relay setup`需要机器上安装`uv`，并在未提供检出时克隆`epic-relay`。
+
+### 凭据{/* #credentials */}
+
+由`env new`生成的钱包密码针对每台机器的身份进行密封。
+
+```bash
+epic-sdk keys status                  # 哪个存储持有私钥部分
+epic-sdk keys init --require-keystore # 创建它，拒绝文件回退
+epic-sdk env secrets                  # 列出已封存的条目，不泄露任何内容
+epic-sdk env secrets show alice       # 打印单个值
+```
+
+`env secrets show`是唯一打印凭据的命令，且仅将该值写入stdout。
+
+### 仪表板{/* #the-dashboard */}
+
+```bash
+epic-sdk serve --root ~/epic-lab
+```
+
+详见[仪表板](/sdk/dashboard)。
+
+<JourneyNav stage="integrate" />

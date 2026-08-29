@@ -1,6 +1,6 @@
 ---
 title: Python SDK
-sidebar_label: Python SDK
+sidebar_label: Overview
 description: epic-python-sdk, a typed async Python client for the Epic Cash node, the wallet Owner API v3 and the epicbox relay.
 ---
 
@@ -211,34 +211,16 @@ pickles. The `epic` command reads credentials from the environment or from a fil
 
 Which surface takes which credential is on [authentication](/api/authentication).
 
-## Command line {/* #command-line */}
+## Where to go next {/* #where-to-go-next */}
 
-The `epic` command wraps the same clients, noun then verb. Every read accepts `--json`.
-
-```bash
-epic node height
-epic node status --json
-epic wallet balance
-epic wallet address
-epic wallet txs --json
-epic wallet send 1.5 esYG...@epicbox.epiccash.com:443
-epic epicbox listen
-```
-
-## A local chain {/* #a-local-chain */}
-
-`epictk` fetches release binaries, writes the configs a local chain needs, and supervises the
-processes. `epicdash` serves a web interface over it.
-
-```bash
-epic-sdk env new ~/epic-lab     # binaries, configs, wallets, a chain
-epic-sdk env doctor             # check an existing one
-epic-sdk serve --root ~/epic-lab
-```
-
-The dashboard serves on `127.0.0.1`, port <Ver k="ports.sdkDashboard" />, and binds loopback;
-`--host` changes the interface. It performs no spending operations.
-
-Building the same chain from source is on [run a local network](/guides/local-network).
+<CardGrid>
+  <Card title="Command line" to="/sdk/cli">
+    The `epic` and `epic-sdk` commands, their options, and how each one reads a credential.
+  </Card>
+  <Card title="Dashboard" to="/sdk/dashboard">
+    What `epic-sdk serve` puts in a browser: processes, wallets, config, transfers and a block
+    explorer.
+  </Card>
+</CardGrid>
 
 <JourneyNav stage="integrate" />

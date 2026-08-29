@@ -1,0 +1,86 @@
+---
+title: SDK 控制台
+sidebar_label: 控制台
+description: epic-sdk serve，一个基于本地Epic环境的浏览器界面：进程、钱包、配置、转账及区块浏览器。
+---
+
+# SDK 控制台
+
+`epic-sdk serve`为本地Epic环境提供浏览器界面。它启动和停止节点、钱包监听器、矿工和中继，读取余额，编辑配置文件，并运行Epic命令。
+
+```bash
+uv sync --extra cli --extra service
+epic-sdk serve --root ~/epic-lab
+```
+
+它在`127.0.0.1`、端口<Ver k="ports.sdkDashboard" />上提供服务。
+
+| 选项 | Default | 用途 |
+| --- | --- | --- |
+| `--root` | `~/emulator` | 环境目录。`EPIC_DEV_ROOT`的作用相同。 |
+| `--port` | <Ver k="ports.sdkDashboard" /> | `EPIC_DASHBOARD_PORT`的作用相同。 |
+| `--host` | `127.0.0.1` | 绑定地址。 |
+| `--open` |  | 打开浏览器。 |
+| `--allow-send` |  | 挂载转账选项卡。仅限usernet。 |
+
+它可以在有或没有环境的情况下启动。若没有环境，可通过Network标签页创建一个。
+
+没有`--allow-send`时，转账路由不会挂载，因此界面发出的任何请求都不会移动资金。有`--allow-send`时，每个转账请求都会检查链是否为usernet。钱包密码在服务器进程中仅为一次Owner API调用解封，且永远不会出现在响应中。
+
+## 进程 {/* #processes */}
+
+默认标签页，每个进程对应一张卡片：节点、钱包监听器、钱包Owner API、矿工和中继。每张卡片包含Start、Stop、Restart、当前状态及其日志。
+
+Start all和Stop all位于页头。Start all按依赖顺序启动，Stop all按相反顺序停止。
+
+第二个面板列出机器上运行的所有Epic进程，包括不由本环境启动的进程，并可按名称终止某个进程。日志面板跟踪所选进程并持续滚动。
+
+由`epic-sdk`创建的钱包在此处启动和读取。从现有目录树接管的钱包会列出其控件不可用的原因，且永远不会被打开。
+
+## 钱包 {/* #wallets */}
+
+每行对应一个钱包实例：名称、角色、是否由环境管理、其Owner API和监听器的状态，以及可花费余额和总余额。Update刷新单个钱包从节点获取的余额。
+
+读取余额时，若Owner API正在运行则使用Owner API，否则使用`epic-wallet`二进制文件。
+
+## 网络 {/* #network */}
+
+本机持有的环境列表，以及创建新环境的表单。两种模式：local（拥有自己的节点）和remote（仅钱包，连接到其他地方的节点）。
+
+它还包含软件清单（与上游对比已安装版本，旁边有安装操作）、针对钱包所指向节点的可达性探测、远程节点的存储机密（仅报告是否存在，不予显示），以及针对远程环境中钱包的`epic-wallet init`（两步流程）。
+
+长时间操作作为任务运行。输出面板在运行时流式显示内容，Stop可终止任务。
+
+## 配置 {/* #config */}
+
+环境的TOML文件，每个文件对应一个子标签页：节点、矿工以及每个钱包。每个子标签页显示经过过滤器解析后的设置和原始文本。
+
+编辑操作写入一个键并通过解析器回读，因此之后显示的值即为文件当前保存的值。定义环境的键（包括`chain_type`和`db_root`）将被拒绝修改。
+
+## 转账 {/* #transfer */}
+
+当`epic-sdk serve --allow-send`启动服务器且链为usernet时显示。
+
+发送方和接收方从环境的钱包中选择。表单接受金额、epicbox或file传输方式以及消息。可用性表格说明当前哪些传输方式可以承载此次转账，审核步骤显示将要发送的内容，本次会话的转账记录列于下方。
+
+<Risk level="spend" />此处的转账是在环境所运行的链上的真实交易，包含手续费。
+
+## 浏览器 {/* #explorer */}
+
+本地链上的区块浏览器：区块高度、出块时间、供应量、UTXO数量、交易数量、最新区块和内核（kernel），以及按区块高度、区块哈希、内核（kernel）超额或承诺（commitment）进行搜索。
+
+它读取PostgreSQL索引，因此需要`explorer`扩展：
+
+```bash
+uv sync --extra cli --extra service --extra explorer
+```
+
+仪表板的其余部分无需该扩展即可正常使用。
+
+## 控制台 {/* #console */}
+
+<kbd>Ctrl</kbd> + <kbd>&#96;</kbd>打开一个抽屉，可按名称运行Epic命令：`epic-sdk`、`epic`、节点、`epic-wallet`和`epic-miner`。它解析输入的命令并在运行前显示将要执行的内容，提供补全建议，并从二进制文件本身回答`--help`。
+
+它不运行任何shell，也不接受路径。需要花费资金的命令需要在服务器上设置`--allow-send`，密码参数将被拒绝。
+
+<JourneyNav stage="integrate" />

@@ -1,12 +1,12 @@
 ---
 title: Python SDK
-sidebar_label: Python SDK
+sidebar_label: 概述
 description: epic-python-sdk，一个用于Epic Cash节点、钱包Owner API v3和epicbox中继的类型化异步Python客户端。
 ---
 
 # Python SDK
 
-`epic-python-sdk`是一个为节点、钱包Owner API v3及epicbox中继提供的带类型异步Python客户端。它驱动已在运行的Epic软件，自身不持有任何密钥。
+`epic-python-sdk`是一个为节点、钱包的Owner API v3以及epicbox中继提供的带类型异步Python客户端。它驱动已在运行的Epic软件，自身不持有任何密钥。
 
 :::info[Pre-release]
 
@@ -14,15 +14,15 @@ description: epic-python-sdk，一个用于Epic Cash节点、钱包Owner API v3�
 
 :::
 
-## 软件包内容 {/* #what-is-in-the-package */}
+## 包内容 {/* #what-is-in-the-package */}
 
 一个wheel，三个可导入的包。
 
 | 导入 | 提供 | 扩展项 |
 | --- | --- | --- |
-| `epic` | `NodeClient`、`WalletClient`、`EpicboxClient`及`epic`命令。 | 无 |
-| `epictk` | 获取发布版本二进制文件、写入配置文件、布局链，并管理节点、钱包和矿工进程。`epic-sdk`命令。 | `[cli]` |
-| `epicdash` | 基于`epictk`的Web界面：进程、余额、转账及本地链区块浏览器。 | `[cli,service]` |
+| `epic` | `NodeClient`、`WalletClient`、`EpicboxClient`以及`epic`命令。 | 无 |
+| `epictk` | 获取发布版本二进制文件、写入配置、布局链，并监管节点、钱包和矿工进程。`epic-sdk`命令。 | `[cli]` |
+| `epicdash` | 基于`epictk`的Web界面：进程、余额、转账以及本地链的区块浏览器。 | `[cli,service]` |
 
 `epic`无需编译器即可安装。所有密码学原语均来自`cryptography`。
 
@@ -59,7 +59,7 @@ async def main():
 asyncio.run(main())
 ```
 
-`NodeClient`默认绑定到回环地址，端口为<Ver k="ports.nodeApi" />。
+`NodeClient`默认绑定到端口<Ver k="ports.nodeApi" />的回环地址。
 
 `is_synced()`将本地链顶端与对等节点集合进行比较，`tolerance`是本地链顶端允许落后的区块数。
 
@@ -81,7 +81,7 @@ async with WalletClient(url, password=password) as wallet:
     print(await wallet.get_address())
 ```
 
-Owner API在每个网络上均使用端口<Ver k="ports.walletOwner" />。`get_address()`返回epicbox地址，包含端口号。
+Owner API在所有网络上均使用端口<Ver k="ports.walletOwner" />。`get_address()`返回epicbox地址，包含端口号。
 
 ### 发送 {/* #send */}
 
@@ -98,13 +98,13 @@ async with WalletClient(url, password=password,
     print(result.state)
 ```
 
-<Risk level="spend" /> `send()`在交付前选择并锁定输出（output）。这些输出在转账确认或`cancel(slate_id)`释放之前保持不可用状态。使用`wait=True`时，调用将在交换的第二轮完成或超时到期后返回，默认超时时间为120秒。
+<Risk level="spend" /> `send()`在发送前选择并锁定输出（output）。这些输出在转账确认或`cancel(slate_id)`释放之前保持不可用状态。使用`wait=True`时，调用在交换的第二轮完成或超时到期后返回，默认超时为120秒。
 
 通过epicbox进行的转账在两个钱包之间分两轮完成。流程详见[交互式交易](/concepts/interactive-transactions)。
 
 ## 加密会话 {/* #the-encrypted-session */}
 
-Owner API v3通过ECDH协商会话密钥，使用AES-256-GCM对每个请求体进行加密，并将每个结果包裹在三层信封中返回。`WalletClient`在入口处执行握手并解包每个响应。以下两个标签页读取相同的余额。
+Owner API v3通过ECDH协商会话密钥，使用AES-256-GCM对每个请求体进行加密，并将每个结果包裹在三层信封中返回。`WalletClient`在进入时执行握手并解包每个响应。以下两个标签页读取相同的余额。
 
 <Tabs>
 <TabItem value="raw" label="直接调用Owner API v3" default>
@@ -160,7 +160,7 @@ async with WalletClient(url, password=password) as wallet:
 </TabItem>
 </Tabs>
 
-`wallet.call(method, params)`通过同一会话访问客户端尚未封装的方法。对于涉及资金移动的方法，需传入`allow_spend=True`。方法列表详见[钱包Owner API](/api/wallet-owner)。
+`wallet.call(method, params)`通过同一会话访问客户端尚未封装的方法。对于涉及资金移动的方法，需传入`allow_spend=True`。方法列表见[钱包Owner API](/api/wallet-owner)。
 
 ## 金额、花费与凭据 {/* #amounts-spending-and-credentials */}
 
@@ -177,11 +177,11 @@ Amount.from_epic(1.5)          # AmountError
 
 ### 花费 {/* #spending */}
 
-`WalletClient`仅在使用`can_spend=True`构造时才执行花费操作。若不使用，`send()`、`finalize()`、`reshape_outputs()`和`call(..., allow_spend=True)`将抛出`NotSpendable`。
+`WalletClient`仅在以`can_spend=True`构造时才执行花费操作。若不传入，`send()`、`finalize()`、`reshape_outputs()`和`call(..., allow_spend=True)`将抛出`NotSpendable`。
 
 ### 凭据 {/* #credentials */}
 
-钱包密码和API机密为`Secret`值。`Secret.from_env(name)`从环境变量中读取该值。
+钱包密码和API机密均为`Secret`值。`Secret.from_env(name)`从环境变量中读取该值。
 
 ```python
 password = Secret.from_env("EPIC_WALLET_PASSWORD")
@@ -189,36 +189,19 @@ print(password)                    # Secret(***)
 log.info("opening", pw=password)   # Secret(***)
 ```
 
-`Secret`在`repr`、`str`、f-string、日志事件、渲染后的回溯信息及pickle中均呈现为`Secret(***)`。`epic`命令从环境变量或文件路径中读取凭据。
+`Secret`在`repr`、`str`、f-string、日志事件、渲染后的回溯信息及pickle中均渲染为`Secret(***)`。`epic`命令从环境变量或文件路径中读取凭据。
 
-各接口所需凭据的对应关系详见[身份验证](/api/authentication)。
+各接口所需凭据的说明详见[身份验证](/api/authentication)。
 
-## 命令行 {/* #command-line */}
+## 后续步骤 {/* #where-to-go-next */}
 
-`epic`命令封装了相同的客户端，格式为名词后接动词。所有读取操作均接受`--json`。
-
-```bash
-epic node height
-epic node status --json
-epic wallet balance
-epic wallet address
-epic wallet txs --json
-epic wallet send 1.5 esYG...@epicbox.epiccash.com:443
-epic epicbox listen
-```
-
-## 本地链 {/* #a-local-chain */}
-
-`epictk`获取发布版本的二进制文件，写入本地链所需的配置文件，并监管相关进程。`epicdash`在其上提供Web界面。
-
-```bash
-epic-sdk env new ~/epic-lab     # 二进制文件、配置、钱包、一条链
-epic-sdk env doctor             # 检查已有实例
-epic-sdk serve --root ~/epic-lab
-```
-
-仪表板在`127.0.0.1`、端口<Ver k="ports.sdkDashboard" />上提供服务，绑定回环地址；`--host`可更改绑定接口。该仪表板不执行任何花费操作。
-
-从源码构建相同链的方法详见[运行本地网络](/guides/local-network)。
+<CardGrid>
+  <Card title="命令行" to="/sdk/cli">
+    `epic`和`epic-sdk`命令、其选项，以及各命令读取凭据的方式。
+  </Card>
+  <Card title="控制台" to="/sdk/dashboard">
+    `epic-sdk serve`在浏览器中显示的内容：进程、钱包、配置、转账记录及区块浏览器。
+  </Card>
+</CardGrid>
 
 <JourneyNav stage="integrate" />

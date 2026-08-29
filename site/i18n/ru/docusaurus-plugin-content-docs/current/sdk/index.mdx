@@ -1,6 +1,6 @@
 ---
 title: Python SDK
-sidebar_label: Python SDK
+sidebar_label: Обзор
 description: epic-python-sdk, типизированный асинхронный Python-клиент для узла Epic Cash, кошелька Owner API v3 и релея epicbox.
 ---
 
@@ -104,7 +104,7 @@ async with WalletClient(url, password=password,
 
 <Risk level="spend" /> `send()` выбирает и блокирует выходы (outputs) перед доставкой. Они остаются недоступными до
 подтверждения перевода или пока `cancel(slate_id)` не освободит их. При `wait=True` вызов возвращает результат после
-завершения второго раунда обмена или истечения таймаута; значение по умолчанию — 120 секунд.
+завершения второго раунда обмена или по истечении таймаута; значение по умолчанию — 120 секунд.
 
 Перевод через epicbox состоит из двух раундов между двумя кошельками. Последовательность описана в
 разделе [интерактивные транзакции](/concepts/interactive-transactions).
@@ -151,8 +151,8 @@ ok = result["Ok"]                       # конверт 3: Ok / Err
 spendable = int(ok[1]["amount_currently_spendable"]) / 100_000_000
 ```
 
-Исполняемая версия этого клиента с пошаговым рукопожатием находится в разделе [wallet: connect and
-read](/examples/wallet-connect).
+Исполняемая версия этого клиента с пошаговым описанием рукопожатия находится в разделе [кошелёк:
+подключение и чтение](/examples/wallet-connect).
 
 </TabItem>
 <TabItem value="sdk" label="Через клиент">
@@ -171,7 +171,7 @@ async with WalletClient(url, password=password) as wallet:
 </Tabs>
 
 `wallet.call(method, params)` обращается к методу, который клиент ещё не оборачивает, через ту же сессию. Принимает `allow_spend=True` для
-метода, перемещающего средства. Поверхность методов описана в разделе [wallet Owner API](/api/wallet-owner).
+метода, перемещающего средства. Поверхность методов описана на странице [wallet Owner API](/api/wallet-owner).
 
 ## Суммы, трата и учётные данные {/* #amounts-spending-and-credentials */}
 
@@ -200,40 +200,20 @@ print(password)                    # Secret(***)
 log.info("opening", pw=password)   # Secret(***)
 ```
 
-`Secret` отображается как `Secret(***)` в `repr`, `str`, f-строках, событиях журнала, отрисованных трассировках и
+`Secret` отображается как `Secret(***)` в `repr`, `str`, f-строках, событиях журнала, отрендеренных трассировках и
 pickle. Команда `epic` читает учётные данные из окружения или из пути к файлу.
 
 Какая поверхность принимает какие учётные данные — в разделе [аутентификация](/api/authentication).
 
-## Командная строка {/* #command-line */}
+## Дальнейшие шаги {/* #where-to-go-next */}
 
-Команда `epic` оборачивает те же клиенты по схеме «существительное — глагол». Каждая операция чтения
-принимает `--json`.
-
-```bash
-epic node height
-epic node status --json
-epic wallet balance
-epic wallet address
-epic wallet txs --json
-epic wallet send 1.5 esYG...@epicbox.epiccash.com:443
-epic epicbox listen
-```
-
-## Локальная цепочка {/* #a-local-chain */}
-
-`epictk` загружает бинарники релиза, записывает конфигурации, необходимые локальной цепочке, и управляет
-процессами. `epicdash` предоставляет веб-интерфейс поверх него.
-
-```bash
-epic-sdk env new ~/epic-lab     # бинарники, конфиги, кошельки, цепочка
-epic-sdk env doctor             # проверить существующий
-epic-sdk serve --root ~/epic-lab
-```
-
-Дашборд доступен на `127.0.0.1`, порт <Ver k="ports.sdkDashboard" />, и привязан к loopback; `--host` изменяет интерфейс. Операции трат
-не выполняются.
-
-Сборка той же цепочки из исходников описана в разделе [run a local network](/guides/local-network).
+<CardGrid>
+  <Card title="Командная строка" to="/sdk/cli">
+    Команды `epic` и `epic-sdk`, их параметры и способ чтения учётных данных каждой из них.
+  </Card>
+  <Card title="Dashboard" to="/sdk/dashboard">
+    Что `epic-sdk serve` открывает в браузере: процессы, кошельки, конфигурацию, переводы и обозреватель блоков.
+  </Card>
+</CardGrid>
 
 <JourneyNav stage="integrate" />

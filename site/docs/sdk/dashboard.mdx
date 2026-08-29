@@ -1,0 +1,110 @@
+---
+title: SDK dashboard
+sidebar_label: Dashboard
+description: "epic-sdk serve, a browser interface over a local Epic environment: processes, wallets, configuration, transfers and a block explorer."
+---
+
+# SDK dashboard
+
+`epic-sdk serve` puts a browser interface over a local Epic environment. It starts and stops the node,
+the wallet listeners, the miner and the relay, reads balances back, edits their configuration files,
+and runs Epic commands.
+
+```bash
+uv sync --extra cli --extra service
+epic-sdk serve --root ~/epic-lab
+```
+
+It serves on `127.0.0.1`, port <Ver k="ports.sdkDashboard" />.
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `--root` | `~/emulator` | The environment directory. `EPIC_DEV_ROOT` sets the same thing. |
+| `--port` | <Ver k="ports.sdkDashboard" /> | `EPIC_DASHBOARD_PORT` sets the same thing. |
+| `--host` | `127.0.0.1` | The bind address. |
+| `--open` | | Opens a browser. |
+| `--allow-send` | | Mounts the transfer tab. Usernet only. |
+
+It starts with or without an environment. With none, the Network tab creates one.
+
+Without `--allow-send` the transfer routes are not mounted, so no request the interface can make
+moves funds. With it, every transfer request checks that the chain is usernet. A wallet password is
+unsealed in the server process for one Owner API call and is never part of a response.
+
+## Processes {/* #processes */}
+
+The default tab, and one card per process: node, wallet listener, wallet Owner API, miner and relay.
+Each card carries Start, Stop, Restart, its current state, and its log.
+
+Start all and Stop all are in the header. Starting all works in dependency order and stopping all
+reverses it.
+
+A second panel lists every Epic process running on the machine, including ones this environment did
+not start, and can terminate one by name. The log pane tails a chosen process and follows it.
+
+Wallets created by `epic-sdk` are started and read here. A wallet that was adopted from an existing
+tree is listed with the reason its controls are inactive, and is never opened.
+
+## Wallets {/* #wallets */}
+
+One row per wallet instance: name, role, whether the environment manages it, the state of its Owner
+API and listener, and its spendable and total balance. Update refreshes one wallet's balance from the
+node.
+
+A balance read uses the Owner API when it is running, and the `epic-wallet` binary when it is not.
+
+## Network {/* #network */}
+
+The environments this machine holds, and a form that creates another. Two modes: local, with a node
+of its own, and remote, which is wallets only against a node somewhere else.
+
+It also carries the software inventory, installed against upstream, with the install action beside
+it; a reachability probe for the node a wallet is pointed at; the stored secret for a remote node,
+which it reports as present without revealing; and `epic-wallet init` for a wallet in a remote
+environment, as a two-step flow.
+
+Long operations run as a job. The output pane streams it while it runs and Stop ends it.
+
+## Config {/* #config */}
+
+The environment's TOML files, one subtab each: the node, the miner, and every wallet. Each shows the
+parsed settings with a filter, and the raw text.
+
+An edit writes one key and reads it back through the parser, so the value shown afterwards is the
+value the file now holds. Keys that define the environment, `chain_type` and `db_root` among them,
+are refused.
+
+## Transfer {/* #transfer */}
+
+Present when `epic-sdk serve --allow-send` started the server, on a usernet chain.
+
+Sender and recipient are chosen from the environment's wallets. The form takes an amount, a transport
+of epicbox or file, and a message. A readiness table states which transports can carry the transfer
+right now, a review step shows what will be sent, and the session's transfers are listed underneath.
+
+<Risk level="spend" /> A transfer here is a real transaction on the chain the environment runs,
+including its fee.
+
+## Explorer {/* #explorer */}
+
+A block explorer over the local chain: height, block time, supply, UTXO count, transaction counts,
+the latest blocks and kernels, and search by height, block hash, kernel excess or commitment.
+
+It reads a PostgreSQL index, so it needs the `explorer` extra:
+
+```bash
+uv sync --extra cli --extra service --extra explorer
+```
+
+The rest of the dashboard works without it.
+
+## Console {/* #console */}
+
+<kbd>Ctrl</kbd> + <kbd>&#96;</kbd> opens a drawer that runs Epic commands by name: `epic-sdk`, `epic`,
+the node, `epic-wallet` and `epic-miner`. It resolves a typed command and shows what it will run
+before running it, suggests completions, and answers `--help` from the binary itself.
+
+It runs no shell and takes no paths. A command that would spend needs `--allow-send` on the server,
+and a password flag is refused.
+
+<JourneyNav stage="integrate" />
