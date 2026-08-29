@@ -1,0 +1,244 @@
+---
+title: Python SDK
+sidebar_label: Python SDK
+description: epic-python-sdk, a typed async Python client for the Epic Cash node, the wallet Owner API v3 and the epicbox relay.
+---
+
+# Python SDK
+
+`epic-python-sdk` is a typed async Python client for the node, the wallet's Owner API v3, and the
+epicbox relay. It drives Epic software that is already running and holds no keys.
+
+:::info[Pre-release]
+
+Version <Ver k="sdk" /> is not on PyPI and the public API is not frozen. Install from a checkout and
+pin the commit.
+
+:::
+
+## What is in the package {/* #what-is-in-the-package */}
+
+One wheel, three importable packages.
+
+| Import | Provides | Extras |
+| --- | --- | --- |
+| `epic` | `NodeClient`, `WalletClient`, `EpicboxClient`, and the `epic` command. | none |
+| `epictk` | Fetches release binaries, writes configs, lays out a chain, and supervises node, wallet and miner processes. The `epic-sdk` command. | `[cli]` |
+| `epicdash` | A web interface over `epictk`: processes, balances, transfers, and a block explorer for the local chain. | `[cli,service]` |
+
+`epic` installs without a compiler. Every cryptographic primitive comes from `cryptography`.
+
+## Install {/* #install */}
+
+```bash
+git clone https://github.com/blacktyger/epic-python-sdk
+cd epic-python-sdk
+
+uv sync                                # the client only
+uv sync --extra cli --extra service    # plus epic-sdk and the dashboard
+```
+
+Python <Ver k="sdkPython" /> or later.
+
+## First calls {/* #first-calls */}
+
+Each client is an async context manager. It connects on entry and closes on exit, and the
+constructor performs no I/O.
+
+### Node {/* #node */}
+
+```python
+import asyncio
+from epic import NodeClient, Secret
+
+async def main():
+    secret = Secret.from_env("EPIC_NODE_API_SECRET")
+    async with NodeClient("https://node.example:3413",
+                          api_secret=secret) as node:
+        print(await node.get_height())
+        print(await node.is_synced(tolerance=10))
+        print(await node.get_pool_size())
+
+asyncio.run(main())
+```
+
+`NodeClient` defaults to loopback on port <Ver k="ports.nodeApi" />.
+
+`is_synced()` compares the local tip against the peer set, and `tolerance` is the number of blocks
+the local tip may lag.
+
+### Wallet {/* #wallet */}
+
+```python
+from epic import Secret, WalletClient
+
+url = "http://127.0.0.1:3420/v3/owner"
+password = Secret.from_env("EPIC_WALLET_PASSWORD")
+
+async with WalletClient(url, password=password) as wallet:
+    balance = await wallet.get_balance()
+    print(balance.spendable, balance.awaiting_confirmation)
+
+    for tx in await wallet.get_transactions():
+        print(tx.slate_id, tx.state, tx.amount)
+
+    print(await wallet.get_address())
+```
+
+The Owner API is on port <Ver k="ports.walletOwner" /> on every network.
+`get_address()` returns the epicbox address, including the port.
+
+### Send {/* #send */}
+
+```python
+from epic import Amount, Secret, WalletClient
+
+async with WalletClient(url, password=password,
+                        can_spend=True) as wallet:
+    result = await wallet.send(
+        Amount.from_epic("1.5"),
+        "esYG...@epicbox.epiccash.com:443",
+        wait=True,
+    )
+    print(result.state)
+```
+
+<Risk level="spend" /> `send()` selects and locks outputs before delivery. They stay unavailable
+until the transfer confirms or `cancel(slate_id)` releases them. With `wait=True` the call returns
+once the second round of the exchange completes or the timeout expires, and the default timeout is
+120 seconds.
+
+A transfer over epicbox is two rounds between the two wallets. The sequence is on
+[interactive transactions](/concepts/interactive-transactions).
+
+## The encrypted session {/* #the-encrypted-session */}
+
+Owner API v3 negotiates a session key over ECDH, seals every request body with AES-256-GCM, and
+returns each result inside three envelopes. `WalletClient` performs the handshake on entry and
+unwraps every reply. Both tabs below read the same balance.
+
+<Tabs>
+<TabItem value="raw" label="Owner API v3 directly" default>
+
+```python
+# Handshake: a compressed secp256k1 public key, in the clear. The session
+# key is the x coordinate of the shared point.
+post("init_secure_api", {"ecdh_pubkey": my_pubkey.hex()})
+
+# open_wallet is already encrypted, so the password goes in the sealed
+# body rather than in the JSON-RPC params.
+token = call_encrypted("open_wallet",
+                       {"name": "default", "password": password})
+
+# Every later call: seal the inner request, post it as
+# encrypted_request_v3 with a fresh 12-byte nonce.
+inner = {"jsonrpc": "2.0", "id": 1,
+         "method": "retrieve_summary_info",
+         "params": {"token": token, "refresh_from_node": True,
+                    "minimum_confirmations": 10}}
+ciphertext, nonce = aes_gcm_seal(session_key,
+                                 json.dumps(inner).encode())
+reply = post("encrypted_request_v3",
+             {"nonce": nonce.hex(),
+              "body_enc": b64encode(ciphertext).decode()})
+
+body = json.loads(aes_gcm_open(         # envelope 1: the sealed body
+    session_key,
+    b64decode(reply["body_enc"]),
+    bytes.fromhex(reply["nonce"])))
+result = body["result"]                 # envelope 2: JSON-RPC
+ok = result["Ok"]                       # envelope 3: Ok / Err
+
+# The amount is a quoted string of freemans.
+spendable = int(ok[1]["amount_currently_spendable"]) / 100_000_000
+```
+
+The runnable version of this client, with the handshake step by step, is on
+[wallet: connect and read](/examples/wallet-connect).
+
+</TabItem>
+<TabItem value="sdk" label="With the client">
+
+```python
+from epic import Secret, WalletClient
+
+password = Secret.from_env("EPIC_WALLET_PASSWORD")
+
+async with WalletClient(url, password=password) as wallet:
+    balance = await wallet.get_balance()
+    print(balance.spendable)   # an Amount, in integer freemans
+```
+
+</TabItem>
+</Tabs>
+
+`wallet.call(method, params)` reaches a method the client does not wrap yet, through the same
+session. It takes `allow_spend=True` for a method that moves funds. The method surface is on
+[the wallet Owner API](/api/wallet-owner).
+
+## Amounts, spending and credentials {/* #amounts-spending-and-credentials */}
+
+### Amounts {/* #amounts */}
+
+1 EPIC is <Ver k="epicBase" /> <Ver k="smallestUnit" />s. `Amount` holds that integer.
+`from_epic()` accepts `str` and `Decimal`.
+
+```python
+Amount.from_epic("1.5")        # 150_000_000 freemans
+Amount.from_epic(Decimal("1.5"))
+Amount.from_freemans(150_000_000)
+Amount.from_epic(1.5)          # AmountError
+```
+
+### Spending {/* #spending */}
+
+A `WalletClient` spends only when it is constructed with `can_spend=True`. Without it, `send()`,
+`finalize()`, `reshape_outputs()` and `call(..., allow_spend=True)` raise `NotSpendable`.
+
+### Credentials {/* #credentials */}
+
+Wallet passwords and API secrets are `Secret` values. `Secret.from_env(name)` reads one from the
+environment.
+
+```python
+password = Secret.from_env("EPIC_WALLET_PASSWORD")
+print(password)                    # Secret(***)
+log.info("opening", pw=password)   # Secret(***)
+```
+
+A `Secret` renders as `Secret(***)` in `repr`, `str`, f-strings, log events, rendered tracebacks and
+pickles. The `epic` command reads credentials from the environment or from a file path.
+
+Which surface takes which credential is on [authentication](/api/authentication).
+
+## Command line {/* #command-line */}
+
+The `epic` command wraps the same clients, noun then verb. Every read accepts `--json`.
+
+```bash
+epic node height
+epic node status --json
+epic wallet balance
+epic wallet address
+epic wallet txs --json
+epic wallet send 1.5 esYG...@epicbox.epiccash.com:443
+epic epicbox listen
+```
+
+## A local chain {/* #a-local-chain */}
+
+`epictk` fetches release binaries, writes the configs a local chain needs, and supervises the
+processes. `epicdash` serves a web interface over it.
+
+```bash
+epic-sdk env new ~/epic-lab     # binaries, configs, wallets, a chain
+epic-sdk env doctor             # check an existing one
+epic-sdk serve --root ~/epic-lab
+```
+
+The dashboard serves on `127.0.0.1`, port <Ver k="ports.sdkDashboard" />, and binds loopback;
+`--host` changes the interface. It performs no spending operations.
+
+Building the same chain from source is on [run a local network](/guides/local-network).
+
+<JourneyNav stage="integrate" />

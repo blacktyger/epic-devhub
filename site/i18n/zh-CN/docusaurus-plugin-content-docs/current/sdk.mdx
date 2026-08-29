@@ -1,0 +1,224 @@
+---
+title: Python SDK
+sidebar_label: Python SDK
+description: epic-python-sdk，一个用于Epic Cash节点、钱包Owner API v3和epicbox中继的类型化异步Python客户端。
+---
+
+# Python SDK
+
+`epic-python-sdk`是一个为节点、钱包Owner API v3及epicbox中继提供的带类型异步Python客户端。它驱动已在运行的Epic软件，自身不持有任何密钥。
+
+:::info[Pre-release]
+
+版本<Ver k="sdk" />尚未发布到PyPI，且公开API尚未冻结。请从检出版本安装并固定提交。
+
+:::
+
+## 软件包内容 {/* #what-is-in-the-package */}
+
+一个wheel，三个可导入的包。
+
+| 导入 | 提供 | 扩展项 |
+| --- | --- | --- |
+| `epic` | `NodeClient`、`WalletClient`、`EpicboxClient`及`epic`命令。 | 无 |
+| `epictk` | 获取发布版本二进制文件、写入配置文件、布局链，并管理节点、钱包和矿工进程。`epic-sdk`命令。 | `[cli]` |
+| `epicdash` | 基于`epictk`的Web界面：进程、余额、转账及本地链区块浏览器。 | `[cli,service]` |
+
+`epic`无需编译器即可安装。所有密码学原语均来自`cryptography`。
+
+## 安装 {/* #install */}
+
+```bash
+git clone https://github.com/blacktyger/epic-python-sdk
+cd epic-python-sdk
+
+uv sync                                # 仅客户端
+uv sync --extra cli --extra service    # 加上epic-sdk和仪表板
+```
+
+Python <Ver k="sdkPython" />或更高版本。
+
+## 首次调用 {/* #first-calls */}
+
+每个客户端都是异步上下文管理器。进入时建立连接，退出时关闭连接，构造函数不执行任何I/O。
+
+### 节点 {/* #node */}
+
+```python
+import asyncio
+from epic import NodeClient, Secret
+
+async def main():
+    secret = Secret.from_env("EPIC_NODE_API_SECRET")
+    async with NodeClient("https://node.example:3413",
+                          api_secret=secret) as node:
+        print(await node.get_height())
+        print(await node.is_synced(tolerance=10))
+        print(await node.get_pool_size())
+
+asyncio.run(main())
+```
+
+`NodeClient`默认绑定到回环地址，端口为<Ver k="ports.nodeApi" />。
+
+`is_synced()`将本地链顶端与对等节点集合进行比较，`tolerance`是本地链顶端允许落后的区块数。
+
+### 钱包 {/* #wallet */}
+
+```python
+from epic import Secret, WalletClient
+
+url = "http://127.0.0.1:3420/v3/owner"
+password = Secret.from_env("EPIC_WALLET_PASSWORD")
+
+async with WalletClient(url, password=password) as wallet:
+    balance = await wallet.get_balance()
+    print(balance.spendable, balance.awaiting_confirmation)
+
+    for tx in await wallet.get_transactions():
+        print(tx.slate_id, tx.state, tx.amount)
+
+    print(await wallet.get_address())
+```
+
+Owner API在每个网络上均使用端口<Ver k="ports.walletOwner" />。`get_address()`返回epicbox地址，包含端口号。
+
+### 发送 {/* #send */}
+
+```python
+from epic import Amount, Secret, WalletClient
+
+async with WalletClient(url, password=password,
+                        can_spend=True) as wallet:
+    result = await wallet.send(
+        Amount.from_epic("1.5"),
+        "esYG...@epicbox.epiccash.com:443",
+        wait=True,
+    )
+    print(result.state)
+```
+
+<Risk level="spend" /> `send()`在交付前选择并锁定输出（output）。这些输出在转账确认或`cancel(slate_id)`释放之前保持不可用状态。使用`wait=True`时，调用将在交换的第二轮完成或超时到期后返回，默认超时时间为120秒。
+
+通过epicbox进行的转账在两个钱包之间分两轮完成。流程详见[交互式交易](/concepts/interactive-transactions)。
+
+## 加密会话 {/* #the-encrypted-session */}
+
+Owner API v3通过ECDH协商会话密钥，使用AES-256-GCM对每个请求体进行加密，并将每个结果包裹在三层信封中返回。`WalletClient`在入口处执行握手并解包每个响应。以下两个标签页读取相同的余额。
+
+<Tabs>
+<TabItem value="raw" label="直接调用Owner API v3" default>
+
+```python
+# 握手：明文传输的压缩secp256k1公钥。会话
+# 密钥为共享点的x坐标。
+post("init_secure_api", {"ecdh_pubkey": my_pubkey.hex()})
+
+# open_wallet已加密，因此密码放入密封的
+# 请求体，而非JSON-RPC参数中。
+token = call_encrypted("open_wallet",
+                       {"name": "default", "password": password})
+
+# 后续每次调用：密封内层请求，以
+# encrypted_request_v3形式附带新的12字节nonce发送。
+inner = {"jsonrpc": "2.0", "id": 1,
+         "method": "retrieve_summary_info",
+         "params": {"token": token, "refresh_from_node": True,
+                    "minimum_confirmations": 10}}
+ciphertext, nonce = aes_gcm_seal(session_key,
+                                 json.dumps(inner).encode())
+reply = post("encrypted_request_v3",
+             {"nonce": nonce.hex(),
+              "body_enc": b64encode(ciphertext).decode()})
+
+body = json.loads(aes_gcm_open(         # 信封1：密封的请求体
+    session_key,
+    b64decode(reply["body_enc"]),
+    bytes.fromhex(reply["nonce"])))
+result = body["result"]                 # 信封2：JSON-RPC
+ok = result["Ok"]                       # 信封3：Ok / Err
+
+# 金额为以freemans为单位的带引号字符串。
+spendable = int(ok[1]["amount_currently_spendable"]) / 100_000_000
+```
+
+该客户端的可运行版本（含逐步握手流程）详见[钱包：连接与读取](/examples/wallet-connect)。
+
+</TabItem>
+<TabItem value="sdk" label="通过客户端调用">
+
+```python
+from epic import Secret, WalletClient
+
+password = Secret.from_env("EPIC_WALLET_PASSWORD")
+
+async with WalletClient(url, password=password) as wallet:
+    balance = await wallet.get_balance()
+    print(balance.spendable)   # 金额，以整数freemans为单位
+```
+
+</TabItem>
+</Tabs>
+
+`wallet.call(method, params)`通过同一会话访问客户端尚未封装的方法。对于涉及资金移动的方法，需传入`allow_spend=True`。方法列表详见[钱包Owner API](/api/wallet-owner)。
+
+## 金额、花费与凭据 {/* #amounts-spending-and-credentials */}
+
+### 金额 {/* #amounts */}
+
+1 EPIC等于<Ver k="epicBase" />个<Ver k="smallestUnit" />。`Amount`存储该整数值。`from_epic()`接受`str`和`Decimal`。
+
+```python
+Amount.from_epic("1.5")        # 150_000_000 freemans
+Amount.from_epic(Decimal("1.5"))
+Amount.from_freemans(150_000_000)
+Amount.from_epic(1.5)          # AmountError
+```
+
+### 花费 {/* #spending */}
+
+`WalletClient`仅在使用`can_spend=True`构造时才执行花费操作。若不使用，`send()`、`finalize()`、`reshape_outputs()`和`call(..., allow_spend=True)`将抛出`NotSpendable`。
+
+### 凭据 {/* #credentials */}
+
+钱包密码和API机密为`Secret`值。`Secret.from_env(name)`从环境变量中读取该值。
+
+```python
+password = Secret.from_env("EPIC_WALLET_PASSWORD")
+print(password)                    # Secret(***)
+log.info("opening", pw=password)   # Secret(***)
+```
+
+`Secret`在`repr`、`str`、f-string、日志事件、渲染后的回溯信息及pickle中均呈现为`Secret(***)`。`epic`命令从环境变量或文件路径中读取凭据。
+
+各接口所需凭据的对应关系详见[身份验证](/api/authentication)。
+
+## 命令行 {/* #command-line */}
+
+`epic`命令封装了相同的客户端，格式为名词后接动词。所有读取操作均接受`--json`。
+
+```bash
+epic node height
+epic node status --json
+epic wallet balance
+epic wallet address
+epic wallet txs --json
+epic wallet send 1.5 esYG...@epicbox.epiccash.com:443
+epic epicbox listen
+```
+
+## 本地链 {/* #a-local-chain */}
+
+`epictk`获取发布版本的二进制文件，写入本地链所需的配置文件，并监管相关进程。`epicdash`在其上提供Web界面。
+
+```bash
+epic-sdk env new ~/epic-lab     # 二进制文件、配置、钱包、一条链
+epic-sdk env doctor             # 检查已有实例
+epic-sdk serve --root ~/epic-lab
+```
+
+仪表板在`127.0.0.1`、端口<Ver k="ports.sdkDashboard" />上提供服务，绑定回环地址；`--host`可更改绑定接口。该仪表板不执行任何花费操作。
+
+从源码构建相同链的方法详见[运行本地网络](/guides/local-network)。
+
+<JourneyNav stage="integrate" />

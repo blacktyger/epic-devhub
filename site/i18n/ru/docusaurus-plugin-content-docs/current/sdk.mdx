@@ -1,0 +1,239 @@
+---
+title: Python SDK
+sidebar_label: Python SDK
+description: epic-python-sdk, типизированный асинхронный Python-клиент для узла Epic Cash, кошелька Owner API v3 и релея epicbox.
+---
+
+# Python SDK
+
+`epic-python-sdk` — типизированный асинхронный Python-клиент для узла, Owner API v3 кошелька и релея epicbox.
+Управляет уже запущенным программным обеспечением Epic и не хранит ключей.
+
+:::info[Pre-release]
+
+Версия <Ver k="sdk" /> отсутствует на PyPI, и публичный API не заморожен. Устанавливайте из чекаута и
+фиксируйте коммит.
+
+:::
+
+## Состав пакета {/* #what-is-in-the-package */}
+
+Один wheel, три импортируемых пакета.
+
+| Импорт | Предоставляет | Дополнения |
+| --- | --- | --- |
+| `epic` | `NodeClient`, `WalletClient`, `EpicboxClient` и команда `epic`. | none |
+| `epictk` | Загружает релизные бинарники, записывает конфиги, разворачивает цепочку и управляет процессами узла, кошелька и майнера. Команда `epic-sdk`. | `[cli]` |
+| `epicdash` | Веб-интерфейс поверх `epictk`: процессы, балансы, переводы и обозреватель блоков для локальной цепочки. | `[cli,service]` |
+
+`epic` устанавливается без компилятора. Все криптографические примитивы поставляются из `cryptography`.
+
+## Установка {/* #install */}
+
+```bash
+git clone https://github.com/blacktyger/epic-python-sdk
+cd epic-python-sdk
+
+uv sync                                # только клиент
+uv sync --extra cli --extra service    # плюс epic-sdk и дашборд
+```
+
+Python <Ver k="sdkPython" /> или новее.
+
+## Первые вызовы {/* #first-calls */}
+
+Каждый клиент является асинхронным контекстным менеджером. Подключается при входе и закрывается при
+выходе; конструктор не выполняет I/O.
+
+### Узел {/* #node */}
+
+```python
+import asyncio
+from epic import NodeClient, Secret
+
+async def main():
+    secret = Secret.from_env("EPIC_NODE_API_SECRET")
+    async with NodeClient("https://node.example:3413",
+                          api_secret=secret) as node:
+        print(await node.get_height())
+        print(await node.is_synced(tolerance=10))
+        print(await node.get_pool_size())
+
+asyncio.run(main())
+```
+
+`NodeClient` по умолчанию использует loopback на порту <Ver k="ports.nodeApi" />.
+
+`is_synced()` сравнивает локальную вершину цепочки с набором пиров, а `tolerance` — допустимое отставание локальной
+вершины в блоках.
+
+### Кошелёк {/* #wallet */}
+
+```python
+from epic import Secret, WalletClient
+
+url = "http://127.0.0.1:3420/v3/owner"
+password = Secret.from_env("EPIC_WALLET_PASSWORD")
+
+async with WalletClient(url, password=password) as wallet:
+    balance = await wallet.get_balance()
+    print(balance.spendable, balance.awaiting_confirmation)
+
+    for tx in await wallet.get_transactions():
+        print(tx.slate_id, tx.state, tx.amount)
+
+    print(await wallet.get_address())
+```
+
+Owner API находится на порту <Ver k="ports.walletOwner" /> в каждой сети. `get_address()` возвращает адрес epicbox, включая порт.
+
+### Отправка {/* #send */}
+
+```python
+from epic import Amount, Secret, WalletClient
+
+async with WalletClient(url, password=password,
+                        can_spend=True) as wallet:
+    result = await wallet.send(
+        Amount.from_epic("1.5"),
+        "esYG...@epicbox.epiccash.com:443",
+        wait=True,
+    )
+    print(result.state)
+```
+
+<Risk level="spend" /> `send()` выбирает и блокирует выходы (outputs) перед доставкой. Они остаются недоступными до
+подтверждения перевода или пока `cancel(slate_id)` не освободит их. При `wait=True` вызов возвращает результат после
+завершения второго раунда обмена или истечения таймаута; значение по умолчанию — 120 секунд.
+
+Перевод через epicbox состоит из двух раундов между двумя кошельками. Последовательность описана в
+разделе [интерактивные транзакции](/concepts/interactive-transactions).
+
+## Зашифрованная сессия {/* #the-encrypted-session */}
+
+Owner API v3 согласовывает сессионный ключ через ECDH, запечатывает тело каждого запроса с помощью
+AES-256-GCM и возвращает каждый результат в трёх конвертах. `WalletClient` выполняет рукопожатие при входе и
+распаковывает каждый ответ. Оба варианта ниже читают один и тот же баланс.
+
+<Tabs>
+<TabItem value="raw" label="Owner API v3 напрямую" default>
+
+```python
+# Рукопожатие: сжатый открытый ключ secp256k1, в открытом виде. Сессионный
+# ключ — это x-координата общей точки.
+post("init_secure_api", {"ecdh_pubkey": my_pubkey.hex()})
+
+# open_wallet уже зашифрован, поэтому пароль передаётся в запечатанном
+# теле, а не в параметрах JSON-RPC.
+token = call_encrypted("open_wallet",
+                       {"name": "default", "password": password})
+
+# Каждый последующий вызов: запечатать внутренний запрос, отправить как
+# encrypted_request_v3 с новым 12-байтовым nonce.
+inner = {"jsonrpc": "2.0", "id": 1,
+         "method": "retrieve_summary_info",
+         "params": {"token": token, "refresh_from_node": True,
+                    "minimum_confirmations": 10}}
+ciphertext, nonce = aes_gcm_seal(session_key,
+                                 json.dumps(inner).encode())
+reply = post("encrypted_request_v3",
+             {"nonce": nonce.hex(),
+              "body_enc": b64encode(ciphertext).decode()})
+
+body = json.loads(aes_gcm_open(         # конверт 1: запечатанное тело
+    session_key,
+    b64decode(reply["body_enc"]),
+    bytes.fromhex(reply["nonce"])))
+result = body["result"]                 # конверт 2: JSON-RPC
+ok = result["Ok"]                       # конверт 3: Ok / Err
+
+# Сумма — строка в кавычках, в freemans.
+spendable = int(ok[1]["amount_currently_spendable"]) / 100_000_000
+```
+
+Исполняемая версия этого клиента с пошаговым рукопожатием находится в разделе [wallet: connect and
+read](/examples/wallet-connect).
+
+</TabItem>
+<TabItem value="sdk" label="Через клиент">
+
+```python
+from epic import Secret, WalletClient
+
+password = Secret.from_env("EPIC_WALLET_PASSWORD")
+
+async with WalletClient(url, password=password) as wallet:
+    balance = await wallet.get_balance()
+    print(balance.spendable)   # сумма в целых freemans
+```
+
+</TabItem>
+</Tabs>
+
+`wallet.call(method, params)` обращается к методу, который клиент ещё не оборачивает, через ту же сессию. Принимает `allow_spend=True` для
+метода, перемещающего средства. Поверхность методов описана в разделе [wallet Owner API](/api/wallet-owner).
+
+## Суммы, трата и учётные данные {/* #amounts-spending-and-credentials */}
+
+### Суммы {/* #amounts */}
+
+1 EPIC равен <Ver k="epicBase" /> <Ver k="smallestUnit" />. `Amount` хранит это целое число. `from_epic()` принимает `str` и `Decimal`.
+
+```python
+Amount.from_epic("1.5")        # 150_000_000 freemans
+Amount.from_epic(Decimal("1.5"))
+Amount.from_freemans(150_000_000)
+Amount.from_epic(1.5)          # AmountError
+```
+
+### Трата {/* #spending */}
+
+`WalletClient` выполняет трату только при создании с `can_spend=True`. Без него `send()`, `finalize()`, `reshape_outputs()` и `call(..., allow_spend=True)` вызывают `NotSpendable`.
+
+### Учётные данные {/* #credentials */}
+
+Пароли кошельков и API-секреты являются значениями `Secret`. `Secret.from_env(name)` читает одно из них из окружения.
+
+```python
+password = Secret.from_env("EPIC_WALLET_PASSWORD")
+print(password)                    # Secret(***)
+log.info("opening", pw=password)   # Secret(***)
+```
+
+`Secret` отображается как `Secret(***)` в `repr`, `str`, f-строках, событиях журнала, отрисованных трассировках и
+pickle. Команда `epic` читает учётные данные из окружения или из пути к файлу.
+
+Какая поверхность принимает какие учётные данные — в разделе [аутентификация](/api/authentication).
+
+## Командная строка {/* #command-line */}
+
+Команда `epic` оборачивает те же клиенты по схеме «существительное — глагол». Каждая операция чтения
+принимает `--json`.
+
+```bash
+epic node height
+epic node status --json
+epic wallet balance
+epic wallet address
+epic wallet txs --json
+epic wallet send 1.5 esYG...@epicbox.epiccash.com:443
+epic epicbox listen
+```
+
+## Локальная цепочка {/* #a-local-chain */}
+
+`epictk` загружает бинарники релиза, записывает конфигурации, необходимые локальной цепочке, и управляет
+процессами. `epicdash` предоставляет веб-интерфейс поверх него.
+
+```bash
+epic-sdk env new ~/epic-lab     # бинарники, конфиги, кошельки, цепочка
+epic-sdk env doctor             # проверить существующий
+epic-sdk serve --root ~/epic-lab
+```
+
+Дашборд доступен на `127.0.0.1`, порт <Ver k="ports.sdkDashboard" />, и привязан к loopback; `--host` изменяет интерфейс. Операции трат
+не выполняются.
+
+Сборка той же цепочки из исходников описана в разделе [run a local network](/guides/local-network).
+
+<JourneyNav stage="integrate" />

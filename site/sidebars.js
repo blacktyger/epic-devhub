@@ -55,6 +55,9 @@ const sidebars = {
       link: {type: 'doc', id: 'examples/index'},
       items: ['examples/node-api', 'examples/wallet-connect', 'examples/send-receive'],
     },
+    // Between the examples and the raw API: a reader who has decided to write code meets the
+    // client that shortens it before the surface it wraps.
+    'sdk',
     {
       type: 'category',
       label: 'API reference',

@@ -44,6 +44,10 @@ export const versions = {
   mempoolWaitMinutes: 'four',
   ownerApiMethods: '37',
 
+  // Python SDK. Its own release line, not Epic's, so it moves independently of the node and wallet.
+  sdk: '0.1.0',
+  sdkPython: '3.12',
+
   // Default ports
   ports: {
     nodeApi: '3413',
@@ -55,6 +59,9 @@ export const versions = {
     // Upstream's own local_epicbox_service_port default, and what a relay run on one machine
     // listens on. Not derived from the mainnet relay's port.
     epicboxLocal: '3423',
+    // epicdash. Registered in the workspace port registry, which names this file as a declaration
+    // site, so the two cannot drift apart unnoticed.
+    sdkDashboard: '7790',
   },
 
   // The date the factual claims were last checked against source.
