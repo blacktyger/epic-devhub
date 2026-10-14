@@ -6,6 +6,7 @@ import {darkPrismTheme} from './src/data/prism-themes.js';
 import {versions} from './src/data/versions.js';
 import assistantDevProxy from './plugins/assistant-dev-proxy.js';
 import localeFlags from './plugins/locale-flags.js';
+import robots from './plugins/robots.js';
 import {DEFAULT_LOCALE, SUPPORTED_LOCALES, localeConfigs, lunrLanguages} from './src/locales.js';
 
 // The example clients live outside site/, in the sibling examples/ directory, so they can be run,
@@ -25,7 +26,12 @@ const config = {
   },
 
   // Self-hosted behind nginx on the maintainer's box. See deploy/README.md.
-  url: 'https://devdocs.epiccash.com',
+  //
+  // The origin is overridable at build time because the same tree is published to more than one
+  // host, and this value is not cosmetic: it is the base for canonical links, og:url and every URL
+  // in sitemap.xml, so a build served from a host it does not name advertises the wrong one to
+  // crawlers. Set DOCS_URL to the scheme and host the build will be served from, no trailing slash.
+  url: process.env.DOCS_URL || 'https://devdocs.epiccash.com',
   baseUrl: '/',
 
   // The repository these pages are edited in, which is not an EpicCash repository. Upstream code
@@ -122,7 +128,10 @@ const config = {
 
   // Development only: proxies /api/chat to the assistant server so the panel can reach it from the
   // dev server's origin. Contributes nothing to a production build.
-  plugins: [assistantDevProxy, localeFlags],
+  //
+  // epic-robots writes robots.txt in postBuild, because the Sitemap directives need the build's own
+  // origin and one line per locale. See plugins/robots.js.
+  plugins: [assistantDevProxy, localeFlags, robots],
 
   presets: [
     [
@@ -150,8 +159,21 @@ const config = {
         // /404 is a real route now that src/pages/404.js exists, and the search theme adds
         // /search. Neither belongs in a sitemap: one is an error page and the other is a
         // client-side UI with no content of its own.
+        //
+        // The patterns are generated per locale because a localized build presents its routes with
+        // the locale prefix, so the bare `/404` and `/search` above match only the default locale.
+        // Written out as literals, `/ru/sitemap.xml` and `/zh-CN/sitemap.xml` each shipped 47 URLs
+        // against English's 45: the two exclusions silently stopped applying the moment the route
+        // gained a prefix. Patterns that match nothing are inert, so one list covers every build.
         sitemap: {
-          ignorePatterns: ['/404', '/404.html', '/search', '/search/**'],
+          ignorePatterns: ['', ...SUPPORTED_LOCALES.filter((l) => l !== DEFAULT_LOCALE).map((l) => `/${l}`)].flatMap(
+            (prefix) => [
+              `${prefix}/404`,
+              `${prefix}/404.html`,
+              `${prefix}/search`,
+              `${prefix}/search/**`,
+            ],
+          ),
         },
         theme: {
           customCss: './src/css/custom.css',

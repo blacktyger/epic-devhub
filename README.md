@@ -2,7 +2,7 @@
 
 Source for the Epic Cash developer documentation site. A ground-up replacement for the previous
 `devdocs.epiccash.com`, which is accurate for wallet 3.x and frozen at March 2024; the wallet is now
-4.0.0 and the node 4.0.3.
+4.0.0 and the node 4.0.4.
 
 Not a refresh of that site. A new structure, written from the Rust source and from a chain running on
 the author's machine.

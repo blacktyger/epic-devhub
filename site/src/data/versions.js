@@ -12,7 +12,20 @@
 
 export const versions = {
   // Software versions
-  node: '4.0.3',
+  node: '4.0.4',
+  // The newest node release that actually published binaries, which is NOT always `node` above.
+  //
+  // v4.0.4 is tagged and released, but its release CI job died on "Create GitHub Release" with
+  // `ReleaseAsset ... size must be greater than or equal to 1` — it tried to upload a zero-byte
+  // asset, and because that call is what creates the release's assets, the tag shipped with none
+  // at all. The three build-and-test jobs passed; only publication failed.
+  //
+  // So the download table and the verify commands must stay on 4.0.3 while source links, the
+  // footer and every "which release is this" statement move to 4.0.4. Collapsing these two back
+  // into one value republishes /downloads pointing at six filenames that 404.
+  //
+  // When upstream re-runs the release job, set this equal to `node` and delete the distinction.
+  nodeBinaries: '4.0.3',
   wallet: '4.0.0',
   epicboxProtocol: '3.0.0',
   slateVersions: 'V2 and V3',
@@ -74,22 +87,37 @@ export const releases = {
     url: `https://github.com/EpicCash/epic/releases/tag/v${versions.node}`,
     latest: 'https://github.com/EpicCash/epic/releases/latest',
     all: 'https://github.com/EpicCash/epic/releases',
-    // Base for a direct asset download. The landing page builds its quick-start commands from
-    // this plus the asset filenames below, so a release bump cannot leave a command pointing at
-    // a version that no longer exists.
-    download: `https://github.com/EpicCash/epic/releases/download/v${versions.node}`,
+    // The release the binaries below actually come from. Equal to `url` whenever the newest
+    // release published assets; see versions.nodeBinaries for why 4.0.4 did not.
+    binariesVersion: versions.nodeBinaries,
+    binariesUrl: `https://github.com/EpicCash/epic/releases/tag/v${versions.nodeBinaries}`,
+    // True only while nodeBinaries lags node. Pages branch on this rather than comparing the two
+    // strings themselves, so the explanation lives in one place and disappears on its own.
+    binariesStale: versions.nodeBinaries !== versions.node,
+    // Base for a direct asset download. Built from nodeBinaries, not node: the filenames below
+    // have to name a release that really has assets, so a version bump cannot leave a command
+    // pointing at something that 404s.
+    download: `https://github.com/EpicCash/epic/releases/download/v${versions.nodeBinaries}`,
     // The directory each archive unpacks into, which is not derivable from the filename: the
     // Linux tarball and the macOS zip each contain a wrapping directory, and the Windows zip
     // contains epic.exe with no directory at all.
     unpacksTo: {
-      linux: `epic-${versions.node}-linux-amd64`,
-      mac: `MacOS-aarch64-${versions.node}`,
+      linux: `epic-${versions.nodeBinaries}-linux-amd64`,
+      mac: `MacOS-aarch64-${versions.nodeBinaries}`,
       windows: null,
     },
     assets: [
-      {key: 'linux', platform: 'Linux x86-64', file: `epic-${versions.node}-linux-amd64.tar.gz`},
-      {key: 'mac', platform: 'macOS Apple silicon', file: `MacOS-aarch64-${versions.node}.zip`},
-      {key: 'windows', platform: 'Windows x86-64', file: `Windows-v${versions.node}.zip`},
+      {
+        key: 'linux',
+        platform: 'Linux x86-64',
+        file: `epic-${versions.nodeBinaries}-linux-amd64.tar.gz`,
+      },
+      {
+        key: 'mac',
+        platform: 'macOS Apple silicon',
+        file: `MacOS-aarch64-${versions.nodeBinaries}.zip`,
+      },
+      {key: 'windows', platform: 'Windows x86-64', file: `Windows-v${versions.nodeBinaries}.zip`},
     ],
   },
   wallet: {

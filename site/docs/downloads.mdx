@@ -3,7 +3,9 @@ title: Downloads
 description: Prebuilt Epic node and wallet binaries, with checksum verification and what to do next.
 ---
 
-import {releases} from '@site/src/data/versions';
+import Admonition from '@theme/Admonition';
+import CodeBlock from '@theme/CodeBlock';
+import {versions, releases} from '@site/src/data/versions';
 
 export const nodeAsset = (key) => releases.node.assets.find((a) => a.key === key);
 export const walletAsset = (key) => releases.wallet.assets.find((a) => a.key === key);
@@ -20,6 +22,23 @@ To build from source instead, see [build the binaries](/guides/build).
 
 Release <a href={releases.node.url}>tag v<Ver k="node" /></a>, or the{' '}
 <a href={releases.node.latest}>latest release</a> and <a href={releases.node.all}>all releases</a>.
+
+{releases.node.binariesStale && (
+  <Admonition type="caution" title={`v${versions.node} publishes no binaries`}>
+    <p>
+      The <code>v{versions.node}</code> release job failed while creating the release, so the tag
+      shipped with no assets attached. The newest node release you can actually download is{' '}
+      <a href={releases.node.binariesUrl}>v{releases.node.binariesVersion}</a>, and the table and
+      commands below are for that release.
+    </p>
+    <p>
+      To run <code>{versions.node}</code> itself, <a href="/guides/build">build from source</a> at
+      tag <code>v{versions.node}</code>. The difference against{' '}
+      <code>{releases.node.binariesVersion}</code> is a restored API basic-auth middleware plus
+      version and documentation-URL bumps.
+    </p>
+  </Admonition>
+)}
 
 | Platform | Asset | Unpacks to |
 | --- | --- | --- |
@@ -51,27 +70,23 @@ Each asset publishes a checksum file beside it, named for the asset with its ext
 <Tabs groupId="os">
 <TabItem value="linux" label="Linux">
 
-```bash
-curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/epic-4.0.3-linux-amd64.tar.gz
-curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/epic-4.0.3-linux-amd64-sha256sum.txt
+<CodeBlock language="bash">{`curl -LO ${releases.node.download}/${nodeAsset('linux').file}
+curl -LO ${releases.node.download}/${sumFile(nodeAsset('linux').file)}
 
-sha256sum -c epic-4.0.3-linux-amd64-sha256sum.txt
-# expect: epic-4.0.3-linux-amd64.tar.gz: OK
+sha256sum -c ${sumFile(nodeAsset('linux').file)}
+# expect: ${nodeAsset('linux').file}: OK
 
-tar xzf epic-4.0.3-linux-amd64.tar.gz
-./epic --usernet
-```
+tar xzf ${nodeAsset('linux').file}
+./epic --usernet`}</CodeBlock>
 
 </TabItem>
 <TabItem value="mac" label="macOS">
 
-```bash
-curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/MacOS-aarch64-4.0.3.zip
-curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/MacOS-aarch64-4.0.3-sha256sum.txt
+<CodeBlock language="bash">{`curl -LO ${releases.node.download}/${nodeAsset('mac').file}
+curl -LO ${releases.node.download}/${sumFile(nodeAsset('mac').file)}
 
-shasum -a 256 -c MacOS-aarch64-4.0.3-sha256sum.txt
-unzip MacOS-aarch64-4.0.3.zip
-```
+shasum -a 256 -c ${sumFile(nodeAsset('mac').file)}
+unzip ${nodeAsset('mac').file}`}</CodeBlock>
 
 Gatekeeper refuses an unsigned binary on first run. Allow it in System Settings, Privacy and
 Security.
@@ -79,18 +94,16 @@ Security.
 </TabItem>
 <TabItem value="win" label="Windows">
 
-```powershell
-$tag = 'v4.0.3'
+<CodeBlock language="powershell">{`$tag = 'v${releases.node.binariesVersion}'
 $base = "https://github.com/EpicCash/epic/releases/download/$tag"
 Invoke-WebRequest "$base/Windows-$tag.zip" -OutFile "Windows-$tag.zip"
 Invoke-WebRequest "$base/Windows-$tag-sha256sum.txt" -OutFile "sha256sum.txt"
 
-# PowerShell has no `sha256sum -c`, so compare the two values.
+# PowerShell has no \`sha256sum -c\`, so compare the two values.
 (Get-FileHash "Windows-$tag.zip" -Algorithm SHA256).Hash.ToLower()
 Get-Content sha256sum.txt
 
-Expand-Archive "Windows-$tag.zip" -DestinationPath .
-```
+Expand-Archive "Windows-$tag.zip" -DestinationPath .`}</CodeBlock>
 
 </TabItem>
 </Tabs>
