@@ -65,6 +65,7 @@
     - paragraph
       - code
       - code
+      - code
       - strong
       - link
     - heading [level=2]

@@ -10,10 +10,12 @@ verify proofs. For most integrations it is the primary surface.
 
 - **Endpoint**: `http://127.0.0.1:3420/v3/owner`, started with `epic-wallet owner_api`
 - **Protocol**: JSON-RPC 2.0 over HTTP POST
-- **Credential**: the `token` returned by `open_wallet`, which takes the wallet password
+- **Credential**: HTTP Basic, username `epic` and the contents of the wallet's `.owner_api_secret`, plus
+  the `token` returned by `open_wallet`, which takes the wallet password
 - **Encryption**: an ECDH handshake wraps every call after the first
 
-Send the `token` inside the envelope on every method that declares one. Keep the port on loopback. See
+Send the Basic credential on every request, `init_secure_api` included, and the `token` inside the
+envelope on every method that declares one. Keep the port on loopback. See
 [owner access on the wallet](/api/authentication#owner-access-on-the-wallet).
 
 ## Methods by what they can do {/* #methods-by-what-they-can-do */}
@@ -189,7 +191,8 @@ no base fee is supplied by the wallet, there is no fee market to bid into.
 ## Version 2 {/* #version-2 */}
 
 An earlier, unencrypted Owner API with 17 methods is served from the same listener, at `/v2/owner`.
-Its methods take no token. New work should target v3, and the listener belongs on loopback.
+Its methods take no token, but the listener's Basic credential applies to it as it does to `/v3/owner`.
+New work should target v3, and the listener belongs on loopback.
 
 ## Full method reference {/* #full-method-reference */}
 

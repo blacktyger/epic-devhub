@@ -3,7 +3,9 @@ title: 下载
 description: 预构建的Epic节点和钱包二进制文件，包含校验和验证及后续操作说明。
 ---
 
-import {releases} from '@site/src/data/versions';
+import Admonition from '@theme/Admonition';
+import CodeBlock from '@theme/CodeBlock';
+import {versions, releases} from '@site/src/data/versions';
 
 export const nodeAsset = (key) => releases.node.assets.find((a) => a.key === key);
 export const walletAsset = (key) => releases.wallet.assets.find((a) => a.key === key);
@@ -11,92 +13,129 @@ export const sumFile = (file) => `${file.replace(/\.(tar\.gz|zip|exe)$/, '')}-sh
 
 # 下载
 
-预构建的二进制文件发布在GitHub releases上。Linux二进制文件链接到`GLIBC_2.39`，因此需要glibc 2.39或更高版本，即Ubuntu 24.04或更高版本。
+预构建的二进制文件发布在GitHub releases上。<Ver k="node" /> Linux二进制文件（节点和钱包均包含）链接到`GLIBC_2.34`，因此需要glibc 2.34或更高版本，即Ubuntu 22.04、Debian 12或更新版本。
 
 若要从源码构建，请参阅[构建二进制文件](/guides/build)。
 
 ## 节点 <Ver k="node" /> {/* #node-ver-knode- */}
 
-发布版本<a href={releases.node.url}>标签 v<Ver k="node" /></a>，或{' '} <a href={releases.node.latest}>最新发布版本</a>和<a href={releases.node.all}>所有发布版本</a>。
+发布版本<a href={releases.node.url}>tag v<Ver k="node" /></a>，或{' '} <a href={releases.node.latest}>最新发布版本</a>和<a href={releases.node.all}>所有发布版本</a>。
+
+{releases.node.binariesStale && (
+  <Admonition type="caution" title={`v${versions.node} publishes no binaries`}>
+    <p>
+      The <code>v{versions.node}</code> release job failed while creating the release, so the tag
+      shipped with no assets attached. The newest node release you can actually download is{' '}
+      <a href={releases.node.binariesUrl}>v{releases.node.binariesVersion}</a>, and the table and
+      commands below are for that release.
+    </p>
+    <p>
+      To run <code>{versions.node}</code> itself, <a href="/guides/build">build from source</a> at
+      tag <code>v{versions.node}</code>. The difference against{' '}
+      <code>{releases.node.binariesVersion}</code> is a restored API basic-auth middleware plus
+      version and documentation-URL bumps.
+    </p>
+  </Admonition>
+)}
 
 | 平台 | 资源文件 | 解压至 |
 | --- | --- | --- |
-| {nodeAsset('linux').platform} | <code>{nodeAsset('linux').file}</code> | <code>{releases.node.unpacksTo.linux}/</code> |
-| {nodeAsset('mac').platform} | <code>{nodeAsset('mac').file}</code> | <code>{releases.node.unpacksTo.mac}/</code> |
-| {nodeAsset('windows').platform} | <code>{nodeAsset('windows').file}</code> | `epic.exe`，无包装目录 |
+| {nodeAsset('linux').platform} | <code>{nodeAsset('linux').file}</code> | <code>{releases.node.unpacksTo.linux}/epic</code> |
+| {nodeAsset('windows').platform} | <code>{nodeAsset('windows').file}</code> | <code>{releases.node.unpacksTo.windows}/epic.exe</code> |
 
-macOS Intel和Linux ARM需要从源码构建。
+<Ver k="node" />发布版本未提供macOS二进制文件。最新的macOS二进制文件为<code>{releases.node.mac.file}</code>，位于<a href={releases.node.mac.url}>tag v{releases.node.mac.version}</a>，属于较旧的发布版本；若要在Mac上运行<Ver k="node" />，请[从源码构建](/guides/build)。macOS Intel和Linux ARM也需要从源码构建。
 
 ## 钱包 <Ver k="wallet" /> {/* #wallet-ver-kwallet- */}
 
-发布版本<a href={releases.wallet.url}>标签 v<Ver k="wallet" /></a>，或{' '} <a href={releases.wallet.latest}>最新发布版本</a>和<a href={releases.wallet.all}>所有发布版本</a>。
+发布版本<a href={releases.wallet.url}>tag v<Ver k="wallet" /></a>，或{' '} <a href={releases.wallet.latest}>最新发布版本</a>和<a href={releases.wallet.all}>所有发布版本</a>。
 
 | 平台 | 资源文件 | 解压至 |
 | --- | --- | --- |
-| {walletAsset('linux').platform} | <code>{walletAsset('linux').file}</code> | `epic-wallet`，无包装目录 |
-| {walletAsset('windows').platform} | <code>{walletAsset('windows').file}</code> | 可执行文件本身，非压缩包 |
+| {walletAsset('linux').platform} | <code>{walletAsset('linux').file}</code> | <code>{releases.wallet.unpacksTo.linux}/epic-wallet</code> |
+| {walletAsset('windows').platform} | <code>{walletAsset('windows').file}</code> | <code>{releases.wallet.unpacksTo.windows}/epic-wallet.exe</code> |
 
-该归档文件以4.0系列命名，而非完整的<Ver k="wallet" />标签，包含一个Linux x86-64 ELF二进制文件。
+钱包的Windows压缩包名称使用下划线，即<code>{walletAsset('windows').file}</code>，而节点使用连字符。未发布macOS钱包二进制文件。
 
 ## 下载并验证 {/* #download-and-verify */}
 
-每个资产旁边都会发布一个校验和文件，文件名与该资产相同，扩展名替换为`-sha256sum.txt`：<code>{sumFile(nodeAsset('linux').file)}</code>对应 Linux 节点 tarball，<code>{sumFile(walletAsset('linux').file)}</code>对应钱包压缩包。
+每个资产旁边都发布了一个校验和文件，文件名与资产相同但扩展名替换为`-sha256sum.txt`：Linux节点tarball对应<code>{sumFile(nodeAsset('linux').file)}</code>，Linux钱包tarball对应<code>{sumFile(walletAsset('linux').file)}</code>。<Ver k="node" />已发布的SHA-256值为：
+
+| 资源文件 | SHA-256 |
+| --- | --- |
+| <code>{nodeAsset('linux').file}</code> | <code>{nodeAsset('linux').sha256}</code> |
+| <code>{nodeAsset('windows').file}</code> | <code>{nodeAsset('windows').sha256}</code> |
+| <code>{walletAsset('linux').file}</code> | <code>{walletAsset('linux').sha256}</code> |
+| <code>{walletAsset('windows').file}</code> | <code>{walletAsset('windows').sha256}</code> |
 
 <Tabs groupId="os">
 <TabItem value="linux" label="Linux">
 
-```bash
-curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/epic-4.0.3-linux-amd64.tar.gz
-curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/epic-4.0.3-linux-amd64-sha256sum.txt
+<CodeBlock language="bash">{`curl -LO ${releases.node.download}/${nodeAsset('linux').file}
+curl -LO ${releases.node.download}/${sumFile(nodeAsset('linux').file)}
 
-sha256sum -c epic-4.0.3-linux-amd64-sha256sum.txt
-# 期望输出：epic-4.0.3-linux-amd64.tar.gz: OK
+sha256sum -c ${sumFile(nodeAsset('linux').file)}
+# expect: ./${nodeAsset('linux').file}: OK
 
-tar xzf epic-4.0.3-linux-amd64.tar.gz
-./epic --usernet
-```
+tar xzf ${nodeAsset('linux').file}
+./${releases.node.unpacksTo.linux}/epic --version
+
+curl -LO ${releases.wallet.download}/${walletAsset('linux').file}
+curl -LO ${releases.wallet.download}/${sumFile(walletAsset('linux').file)}
+
+sha256sum -c ${sumFile(walletAsset('linux').file)}
+# expect: ./${walletAsset('linux').file}: OK
+
+tar xzf ${walletAsset('linux').file}
+./${releases.wallet.unpacksTo.linux}/epic-wallet --version`}</CodeBlock>
 
 </TabItem>
 <TabItem value="mac" label="macOS">
 
-```bash
-curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/MacOS-aarch64-4.0.3.zip
-curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/MacOS-aarch64-4.0.3-sha256sum.txt
+<Ver k="node" />没有可下载的macOS二进制文件。请在tag <code>v<Ver k="node" /></code>处[从源码构建](/guides/build)。最后一个预构建的macOS节点来自较旧的发布版本{' '} <a href={releases.node.mac.url}>v{releases.node.mac.version}</a>，该版本早于{' '} <Ver k="node" /> API身份验证变更：其行为与[身份验证和TLS](/api/authentication)所描述的不符，不应与钱包<Ver k="wallet" />配合使用。
 
-shasum -a 256 -c MacOS-aarch64-4.0.3-sha256sum.txt
-unzip MacOS-aarch64-4.0.3.zip
-```
+<CodeBlock language="bash">{`curl -LO ${releases.node.mac.download}/${releases.node.mac.file}
+curl -LO ${releases.node.mac.download}/${sumFile(releases.node.mac.file)}
+
+shasum -a 256 -c ${sumFile(releases.node.mac.file)}
+unzip ${releases.node.mac.file}`}</CodeBlock>
 
 Gatekeeper在首次运行时拒绝未签名的二进制文件。在系统设置的"隐私与安全性"中允许运行。
 
 </TabItem>
 <TabItem value="win" label="Windows">
 
-```powershell
-$tag = 'v4.0.3'
+<CodeBlock language="powershell">{`$tag = 'v${releases.node.binariesVersion}'
 $base = "https://github.com/EpicCash/epic/releases/download/$tag"
 Invoke-WebRequest "$base/Windows-$tag.zip" -OutFile "Windows-$tag.zip"
 Invoke-WebRequest "$base/Windows-$tag-sha256sum.txt" -OutFile "sha256sum.txt"
 
-# PowerShell 没有 `sha256sum -c`，请手动比对两个值。
+# PowerShell has no \`sha256sum -c\`, so compare the two values.
 (Get-FileHash "Windows-$tag.zip" -Algorithm SHA256).Hash.ToLower()
 Get-Content sha256sum.txt
 
 Expand-Archive "Windows-$tag.zip" -DestinationPath .
-```
+.\\Windows-$tag\\epic.exe --version
+
+# The wallet archive is named with an underscore, not a hyphen.
+$wbase = "https://github.com/EpicCash/epic-wallet/releases/download/v${versions.wallet}"
+Invoke-WebRequest "$wbase/${walletAsset('windows').file}" -OutFile "${walletAsset('windows').file}"
+Invoke-WebRequest "$wbase/${sumFile(walletAsset('windows').file)}" -OutFile "wallet-sha256sum.txt"
+(Get-FileHash "${walletAsset('windows').file}" -Algorithm SHA256).Hash.ToLower()
+Get-Content wallet-sha256sum.txt
+Expand-Archive "${walletAsset('windows').file}" -DestinationPath .`}</CodeBlock>
 
 </TabItem>
 </Tabs>
 
 :::note
-发布版本的二进制文件构建时未启用`--features with-tor`，因此不包含 Tor 支持。请在[epic-wallet.toml](/reference/wallet-config)中设置`use_tor_listener = false`，或从源码构建时启用该特性。
+发布版本的二进制文件构建时未启用`--features with-tor`，因此不包含Tor支持。请在[epic-wallet.toml](/reference/wallet-config)中设置`use_tor_listener = false`，或从源码构建时启用该功能。
 :::
 
 ## 其他软件 {/* #other-software */}
 
 | 软件 | 代码仓库 |
 | --- | --- |
-| 矿工 | <Repo name="node">EpicCash/epic-miner</Repo> |
+| 矿工 | <Repo name="miner" /> |
 | 桌面GUI钱包 | `EpicCash/epic-gui-wallet` |
 | 区块浏览器 | `EpicCash/epic_explorer` |
 | Epicbox中继 | <Repo name="epicbox" /> |

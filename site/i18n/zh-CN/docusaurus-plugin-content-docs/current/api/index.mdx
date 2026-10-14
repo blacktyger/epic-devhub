@@ -40,34 +40,34 @@ Epic在三个软件中提供七个可编程接口。选择哪个取决于你需�
 
 文档基于节点<Ver k="node" />和钱包<Ver k="wallet" />编写。
 
-节点在同一端口的同一监听器上同时提供`/v1`和`/v2`，作为[两种接口风格](/api/node#the-v1-rest-surface)而非两代接口。两者均处于活跃状态，该页面将每个v1路由映射到对应的JSON-RPC方法。
+节点从一个监听器的一个端口同时提供`/v1`和`/v2`，作为[两种接口风格](/api/node#the-v1-rest-surface)而非两代接口。两者均处于活跃状态，该页面将每条v1路由映射到对应的JSON-RPC方法。
 
-钱包也通过同一监听器提供两个owner接口，其中未加密的[`/v2/owner`](/api/wallet-owner#version-2)是两者中较旧的一个。
+钱包同样从一个监听器提供两个所有者接口，其中未加密的[`/v2/owner`](/api/wallet-owner#version-2)是两者中较旧的一个。
 
 ## 选择接口 {/* #choosing-a-surface */}
 
-**读取链数据。** 使用节点上的JSON-RPC：`/v2/foreign`用于区块、内核（kernel）和输出（output），`/v2/owner`用于节点状态和对等节点。不涉及密钥。从[节点查询](/examples/node-api)开始。
+**读取链数据。** 节点上的JSON-RPC：`/v2/foreign`用于区块、内核（kernel）和输出（output），`/v2/owner`用于节点状态和对等节点。不涉及密钥。从[节点查询](/examples/node-api)开始。
 
-**涉及余额、密钥或转账的操作。** 使用钱包Owner API。它需要ECDH握手和钱包令牌，具体步骤参见[连接与读取](/examples/wallet-connect)。
+**涉及余额、密钥或转账的操作。** 钱包Owner API。需要使用钱包的`.owner_api_secret`进行HTTP Basic身份验证、ECDH握手以及钱包令牌，具体步骤参见[连接与读取](/examples/wallet-connect)。
 
-**接收支付。** 运行`epic-wallet listen`会通过epicbox协议或HTTP自动处理。若要以编程方式处理slate，对应的Foreign API方法为`receive_tx`。
+**接收支付。** 运行`epic-wallet listen`可通过epicbox协议或HTTP自动处理。如需以编程方式处理slate，Foreign API方法为`receive_tx`。
 
 **运营中继基础设施。** 参见[epicbox协议](/api/epicbox)。
 
 ## 响应封装 {/* #the-response-envelope */}
 
-每个Epic JSON-RPC方法均返回HTTP 200及JSON-RPC `result`，该结果内部包含第二层`Ok`或`Err`信封。一个请求可以在HTTP层和JSON-RPC层均成功，但仍可能执行失败：
+每个Epic JSON-RPC方法均返回HTTP 200及JSON-RPC `result`，该结果内部还有第二层`Ok`或`Err`信封。请求可能在HTTP层和JSON-RPC层均成功，但实际上已失败：
 
 ```json
 {"id": 1, "jsonrpc": "2.0", "result": {"Ok": {"...": "data"}}}
 {"id": 1, "jsonrpc": "2.0", "result": {"Err": {"NotEnoughFunds": {"available": 0}}}}
 ```
 
-一个函数负责解包两层。[`examples/python/epic_wallet.py`](https://github.com/blacktyger/epic-devhub/blob/main/examples/python/epic_wallet.py)中的`_unwrap`在`Err`时抛出异常，在`Ok`时返回值，该客户端中的每个调用都经过它。
+一个函数可解包两层。[`examples/python/epic_wallet.py`](https://github.com/blacktyger/epic-devhub/blob/main/examples/python/epic_wallet.py)中的`_unwrap`在`Err`时抛出异常，在`Ok`时返回值，该客户端中的每次调用都经过它。
 
 ## 金额 {/* #amounts */}
 
-每个金额均为**<Ver k="smallestUnit" />**的整数计数，1 EPIC等于<Ver k="epicBase" />个。钱包Owner API将其`u64`字段序列化为JSON字符串，因此`retrieve_summary_info`以字符串形式返回`total`及每个`amount_`字段，`node_height`也以字符串形式返回`height`。在进行算术运算前需先解析。节点的JSON-RPC返回裸整数，包括`get_status`上的`supply`和`max_supply`。
+每个金额均为**<Ver k="smallestUnit" />**的整数计数，1 EPIC等于<Ver k="epicBase" />个。钱包Owner API将其`u64`字段序列化为JSON字符串，因此`retrieve_summary_info`以字符串形式返回`total`及每个`amount_`字段，`node_height`也以字符串形式返回`height`。在进行算术运算前须先解析。节点的JSON-RPC返回裸整数，包括`get_status`上的`supply`和`max_supply`。
 
 ## 下一步 {/* #next */}
 

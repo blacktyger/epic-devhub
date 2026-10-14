@@ -31,7 +31,7 @@ Epicbox — единственный транспорт, не требующий
 `emoji` сериализуют V3, как только слейт содержит `payment_proof` или `ttl_cutoff_height` (<Src repo="wallet" path="impls/src/adapters/file.rs" line={30} /> и <Src repo="wallet" path="impls/src/adapters/emoji.rs" line={1151} />). `keybase` сериализует слейт
 без преобразования версии, поэтому все поля сохраняются (<Src repo="wallet" path="impls/src/adapters/keybase.rs" line={304} />). `http` запрашивает у слушателя
 поддерживаемую версию и возвращает ошибку вместо понижения версии слейта, содержащего доказательство
-(<Src repo="wallet" path="impls/src/adapters/http.rs" line={143} />). `epicbox` безусловно преобразует в V2 (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={251} />), поэтому запрос доказательства исчезает ещё до того,
+(<Src repo="wallet" path="impls/src/adapters/http.rs" line={177} />). `epicbox` безусловно преобразует в V2 (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={258} />), поэтому запрос доказательства исчезает ещё до того,
 как слейт покидает отправителя. Чтобы запросить доказательство, см. [выберите транспорт
 соответствующим образом](/concepts/payment-proofs#choose-the-transport-accordingly).
 
@@ -46,7 +46,7 @@ Epicbox — единственный транспорт, не требующий
 **Epicbox требует, чтобы отправитель тоже слушал.** `send -m epicbox` подключается к релею, публикует слейт,
 блокирует свои входы и возвращает управление (<Src repo="wallet" path="controller/src/command.rs" line={566} />). Ответа он не ожидает. Подписанный слейт
 возвращается через релей в виде нового сообщения, и финализирует и публикует его тот процесс,
-который удерживает epicbox-подписку отправителя (<Fn repo="wallet" path="impls/src/adapters/epicbox.rs" line={502} name="process_incoming_slate" />). Таким образом, получателю нужен `listen -m epicbox` для
+который удерживает epicbox-подписку отправителя (<Fn repo="wallet" path="impls/src/adapters/epicbox.rs" line={509} name="process_incoming_slate" />). Таким образом, получателю нужен `listen -m epicbox` для
 подписи, а отправителю — `listen -m epicbox` для финализации. Ни одна из сторон не обязана быть подключена в момент
 действия другой, поскольку релей хранит сообщение до повторного подключения адресата. Запустите обе
 подписки перед отправкой. Наблюдаемое время полного цикла составило около 1.5 секунды.

@@ -23,7 +23,7 @@ Epicbox是一个存储转发中继，用于在无法直接互达的钱包之间�
 
 地址格式为`<public_key>@<domain>[:<port>]`，其中`public_key`是52个base58-check字符，编码一个压缩的secp256k1公钥。参见[addresses](/concepts/addresses)。
 
-密钥按账户派生，因此钱包为其每个账户持有一个epicbox地址，监听器以所打开账户的地址进行订阅（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={145} />）。参见[accounts](/concepts/accounts#which-account-a-transfer-uses)。
+密钥按账户派生，因此钱包为其每个账户持有一个epicbox地址，监听器以所打开账户的地址进行订阅（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={152} />）。参见[accounts](/concepts/accounts#which-account-a-transfer-uses)。
 
 钱包的默认中继域名为<Ver k="epicboxDomain" />。
 

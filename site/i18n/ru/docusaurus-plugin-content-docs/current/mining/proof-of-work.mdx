@@ -36,7 +36,7 @@ Epic запускает **три алгоритма доказательства
 ```
 
 Блоки Cuckatoo и Cuckaroo оба сообщают `Cuckoo` в `proof` и различаются по количеству битов рёбер. Типы
-находятся в <Src repo="node" path="api/src/types.rs" line={574} />.
+находятся в <Src repo="node" path="api/src/types.rs" line={586} />.
 
 ## Политика блоков {/* #the-block-policy */}
 
@@ -68,15 +68,15 @@ no_progpow   = false   # или просто исключить ProgPow из с�
 блоков, поэтому цепочка, намайненная с одной настройкой, недействительна с другой. Удалите `chain_data` при
 изменении любого из них.
 
-Доли mainnet находятся в <Src repo="node" path="core/src/core/block/feijoada.rs" line={249} />,
-<Fn repo="node" path="core/src/core/block/feijoada.rs" line={348} name="next_block_bottles" />
-продвигает окно и сбрасывает его на 100 блоках, <Fn repo="node" path="core/src/core/block/feijoada.rs" line={427} name="choose_algo" /> выполняет выбор по <Fn repo="node" path="core/src/core/block/feijoada.rs" line={80} kind="struct" name="PolicyConfig" />, а <Fn repo="node" path="core/src/core/block/feijoada.rs" line={335} name="get_bottles_default" /> возвращает
+Доли mainnet находятся в <Src repo="node" path="core/src/core/block/feijoada.rs" line={263} />,
+<Fn repo="node" path="core/src/core/block/feijoada.rs" line={370} name="next_block_bottles" />
+продвигает окно и сбрасывает его на 100 блоках, <Fn repo="node" path="core/src/core/block/feijoada.rs" line={466} name="choose_algo" /> выполняет выбор по <Fn repo="node" path="core/src/core/block/feijoada.rs" line={94} kind="struct" name="PolicyConfig" />, а <Fn repo="node" path="core/src/core/block/feijoada.rs" line={357} name="get_bottles_default" /> возвращает
 обнулённые счётчики, с которых начинается каждое окно. Константы находятся в <Src repo="node" path="core/src/consensus.rs" />.
 
 ## Сложность {/* #difficulty */}
 
-Каждый алгоритм имеет собственный трек сложности, ретаргетируемый независимо через <Fn repo="node" path="core/src/consensus.rs" line={664} name="next_difficulty" />. Окно
-корректировки составляет <Ver k="difficultyWindow" /> блоков (<Fn repo="node" path="core/src/consensus.rs" line={441} kind="const" name="DIFFICULTY_ADJUST_WINDOW" />), один час при целевом интервале <Ver k="blockTimeSeconds" /> секунд, и окно
+Каждый алгоритм имеет собственный трек сложности, ретаргетируемый независимо через <Fn repo="node" path="core/src/consensus.rs" line={667} name="next_difficulty" />. Окно
+корректировки составляет <Ver k="difficultyWindow" /> блоков (<Fn repo="node" path="core/src/consensus.rs" line={443} kind="const" name="DIFFICULTY_ADJUST_WINDOW" />), один час при целевом интервале <Ver k="blockTimeSeconds" /> секунд, и окно
 проходит только по блокам того же алгоритма, поэтому каждый трек видит свою собственную историю.
 
 Все три трека используют одинаковый коэффициент зажима 2 и коэффициент демпфирования 3.

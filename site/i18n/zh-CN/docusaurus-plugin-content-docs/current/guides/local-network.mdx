@@ -13,11 +13,11 @@ description: 在一台机器上搭建完整的私有Epic网络，包含一个节
 
 | 网络 | 参数 | P2P端口 | API端口 | 用途 |
 | --- | --- | --- | --- | --- |
-| Mainnet | 无 | <Ver k="ports.nodeP2p" /> | <Ver k="ports.nodeApi" /> | 真实值。参见[连接到mainnet](/guides/mainnet-setup) |
+| Mainnet | 无 | <Ver k="ports.nodeP2p" /> | <Ver k="ports.nodeApi" /> | 实际价值。参见[连接到mainnet](/guides/mainnet-setup) |
 | Floonet | `--floonet` | 13414 | 13413 | 无公共种子节点运行的测试网络 |
 | Usernet | `--usernet` | 23414 | 23413 | 本机上的私有链 |
 
-使用usernet。它不需要种子对等节点，在你的机器上作为私有链运行。[CLI参考](/reference/cli#networks)包含每个网络的完整偏移量。
+使用usernet。它不需要种子对等节点，在本机上作为私有链运行。[CLI参考](/reference/cli#networks)包含每个网络的完整偏移量。
 
 floonet的DNS种子无法解析，也没有公共节点在运行，因此floonet节点在区块高度0时找不到对等节点，除非手动配置对等节点。
 
@@ -67,7 +67,7 @@ log_to_file = true
 
 每一项都是必需的。
 
-`only_randomx = true`强制执行100% RandomX策略。Epic通常为每个区块高度分配多种算法之一，而单个CPU矿工只能响应RandomX的高度。在真实网络上，其他矿工会覆盖其余算法；在你自己的链上没有其他矿工，因此不设置此项时矿工在大多数高度会处于空闲状态。参见[区块策略](/mining/proof-of-work#the-block-policy)。
+`only_randomx = true`强制执行100% RandomX策略。Epic通常为每个区块高度分配多种算法之一，单个CPU矿工只能响应RandomX类型的算法。在真实网络上，其他矿工负责其余部分；在自建链上没有其他矿工，因此不设置此项时矿工在大多数区块高度上会处于空闲状态。参见[区块策略](/mining/proof-of-work#the-block-policy)。
 
 `peer_min_preferred_outbound_count = 0`不会写入生成的文件，需要手动添加该行。低于该阈值的节点会永远报告自身处于同步状态，而处于同步状态的节点拒绝分发挖矿任务。usernet在设计上没有对等节点，因此永远无法达到默认值4。
 
@@ -120,13 +120,13 @@ owner_api_listen_port = 3421   # Owner API，见下文
 use_tor_listener = false
 ```
 
-Foreign端口由网络派生，因此usernet已将其从mainnet的端口移开。Owner端口不随网络变化，在所有网络中均为<Ver k="ports.walletOwner" />，因此同一台机器上的第二个钱包无论运行哪条链，都会在该端口发生冲突。按照[关闭Tor监听器](/guides/mainnet-setup#turn-off-the-tor-listener)中的说明，在两个钱包中均设置`use_tor_listener = false`。两个钱包还需要添加`[epicbox]`部分，epicbox传输方式才能在此链上正常工作，具体设置参见[运行本地epicbox中继](/guides/local-epicbox)。
+Foreign端口由网络派生，因此usernet已将其从mainnet的端口移开。Owner端口不随网络变化，在任何地方都是<Ver k="ports.walletOwner" />，因此同一台机器上的第二个钱包无论运行在哪条链上都会在该端口发生冲突。按照[关闭Tor监听器](/guides/mainnet-setup#turn-off-the-tor-listener)的说明，在两个钱包中均设置`use_tor_listener = false`。两个钱包在此链上使用epicbox传输方式之前还需要一个`[epicbox]`部分，[运行本地epicbox中继](/guides/local-epicbox)会进行相应设置。
 
-:::note[Wallets outside `~/.epic` need the node's API secret]
+:::note[Wallets outside `~/.epic` get their own API secret, and that is fine]
 
-若保留默认位置，节点和钱包会共享`~/.epic/<network>/`，并将节点API凭据解析到同一个`.api_secret`文件，因此不会有问题。由于`-w`将每个钱包放在了其他位置，每个钱包生成了自己的机密，节点会以401拒绝该凭据。参见[钱包向节点提交的凭据](/api/authentication#the-credential-the-wallet-presents-to-the-node)。
+由于`-w`在各自目录中创建了每个钱包，每个钱包生成了自己的`.api_secret`，而非共享节点的凭据。这无关紧要：钱包仅在Tor洋葱地址查找时发送该机密，其他向节点发出的请求均访问无需凭据的接口。参见[钱包向节点提交的凭据](/api/authentication#the-credential-the-wallet-presents-to-the-node)。
 
-有两种方法。一是将节点的`.api_secret`复制到每个钱包目录中，这样所有默认值均可正常工作，因为钱包只在该文件缺失时才会创建它。二是对于临时链，在`epic-server.toml`中注释掉`api_secret_path`，并在两个钱包配置中注释掉`node_api_secret_path`。这两个键均为可选项，缺少该键意味着没有机密，也不会走凭据路径。
+不要在`epic-server.toml`中注释掉`api_secret_path`来简化配置。若没有机密，节点会对所有人（包括使用`-u`的你）在`/v1`和`/v2/owner`上返回401，而不是开放这些接口。
 
 :::
 
@@ -172,7 +172,7 @@ INFO Share Accepted!!
 epic-wallet --usernet info
 ```
 
-usernet上的coinbase成熟度为3个区块（<Fn repo="node" path="core/src/global.rs" line={64} kind="const" name="USER_TESTING_COINBASE_MATURITY" />），而mainnet为<Ver k="coinbaseMaturity" />。参见[发行时序](/mining/emission#timing)。钱包自身的确认数下限是独立的，因此在`send`和`info`上传入`--min_conf 3`；参见[读取钱包已知信息](/guides/wallet-operations#read-what-the-wallet-knows)。
+usernet上的Coinbase成熟度为3个区块（<Fn repo="node" path="core/src/global.rs" line={65} kind="const" name="USER_TESTING_COINBASE_MATURITY" />），而mainnet为<Ver k="coinbaseMaturity" />。参见[发行时序](/mining/emission#timing)。钱包自身的确认数下限是独立的，因此在`send`和`info`上传入`--min_conf 3`；参见[读取钱包已知信息](/guides/wallet-operations#read-what-the-wallet-knows)。
 
 ## 4. 将挖矿与钱包解耦 {/* #4-decouple-mining-from-the-wallets */}
 
@@ -194,7 +194,7 @@ epic --usernet client status                        # 区块高度递增中
 epic-wallet --usernet info                          # 从各钱包目录执行
 ```
 
-Alice应显示可花费余额，Bob为零。这是[首次转账](/guides/first-transfer)的初始状态。
+Alice应显示可花费余额，Bob显示为零。这是[首次转账](/guides/first-transfer)的初始状态。
 
 ## 故障排查 {/* #if-something-goes-wrong */}
 
@@ -205,14 +205,14 @@ Alice应显示可花费余额，Bob为零。这是[首次转账](/guides/first-t
 | 节点日志持续出现`Share ... submitted too late` | 同一个空闲矿工仍在针对上一高度的任务提交 |
 | 节点停止产生区块 | 无钱包监听器运行，`burn_reward = false`无法构建coinbase |
 | 节点在高度1440处循环执行`CoinbaseSumMismatch`，其API变为不可达 | 第一个基金会征收边界，即进入一天的区块后。在`burn_reward = true`下观察到。设置`enable_stratum_server = false`可恢复API并读取链，将1440视为销毁奖励链的上限 |
-| 钱包从节点收到401 | 钱包与节点的API机密不一致，参见步骤2 |
-| 余额显示但`Currently Spendable`为零 | Coinbase成熟度，或`--min_conf`默认值10 |
-| 区块被拒绝，出现`InvalidSortAlgo`，或`Block rejected`伴随`Expected RandomX got Cuckoo15` | 某处启用了`run_test_miner`。它只生成Cuckoo证明，RandomX策略会拒绝该证明 |
-| 钱包命令作用于错误的钱包 | 从该钱包目录运行，或传入`--current_dir <path>` |
+| 钱包从节点收到401 | `foreign_api_secret_path`在`epic-server.toml`中设置，钱包无法与其配合使用，或节点版本低于钱包版本。参见[钱包向节点提交的凭据](/api/authentication#the-credential-the-wallet-presents-to-the-node) |
+| 余额显示但`Currently Spendable`为零 | Coinbase成熟度，或`--min_conf`默认值为10 |
+| 区块因`InvalidSortAlgo`被拒绝，或`Block rejected`带有`Expected RandomX got Cuckoo15` | `run_test_miner`在某处已启用。它仅生成Cuckoo证明，RandomX策略会拒绝该证明 |
+| 钱包命令作用于错误的钱包 | 从该钱包的目录运行，或传入`--current_dir <path>` |
 
 ## 重置 {/* #reset */}
 
-删除`chain_data`以获得全新的链。钱包数据库将与其不一致，因此需删除每个`wallet_data`并重新初始化，或接受错误的余额。删除整个目录树并按本页重新构建只需几分钟。
+删除`chain_data`以获得全新的链。此后钱包数据库将与其不一致，因此需删除每个`wallet_data`并重新初始化，或接受错误的余额。删除整个目录树并按本页重新构建只需几分钟。
 
 ## 下一步 {/* #next */}
 

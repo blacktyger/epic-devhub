@@ -40,8 +40,9 @@ class EpicWallet:
                 if env_secret
                 else Path.home() / ".epic" / "main" / ".owner_api_secret"
             )
-        # The token returned by open_wallet authorises every v3 call. An HTTP credential is
-        # sent only as a pass-through, for a listener published behind a proxy that wants one.
+        # Two gates. From wallet 4.1.0 the owner listener wants HTTP Basic, epic and the contents of
+        # .owner_api_secret, on every route except /v2/foreign; inside that, the token returned by
+        # open_wallet authorises each v3 call. No secret file, no credential sent.
         self.auth = (
             ("epic", secret_path.read_text().strip()) if secret_path.is_file() else None
         )
@@ -53,7 +54,9 @@ class EpicWallet:
     def _post(self, payload: dict[str, Any]) -> Any:
         response = requests.post(self.url, json=payload, auth=self.auth, timeout=120)
         if response.status_code == 401:
-            raise RuntimeError("Unauthorized. A proxy in front of the listener rejected the request")
+            raise RuntimeError(
+                "Unauthorized. Check that EPIC_OWNER_SECRET names this wallet's .owner_api_secret"
+            )
         response.raise_for_status()
         return self._unwrap(response.json())
 

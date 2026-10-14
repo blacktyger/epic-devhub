@@ -29,10 +29,10 @@ description: "Рабочие примеры клиента Epic Cash на Python
 | Статус узла, пиры | Node API `/v2/owner` | Базовый, секрет создаётся автоматически |
 | Блоки, заголовки, ядра (kernels), мемпул | Node `/v2/foreign` | Нет |
 | Опубликовать сырую транзакцию | Node `/v2/foreign` | Нет |
-| Всё, что связано с ключами или балансом | Wallet Owner API `/v3/owner` | ECDH-хендшейк и токен кошелька |
-| Получить перевод | Wallet Foreign API или `epic-wallet listen` | Нет |
+| Всё, что связано с ключами или балансом | Wallet Owner API `/v3/owner` | Базовая аутентификация с `.owner_api_secret`, затем ECDH-обмен и токен кошелька |
+| Получить перевод | Foreign API кошелька, или `epic-wallet listen` | Нет |
 
-Методы JSON-RPC узла разделены по двум путям: `/v2/owner` — администрирование, а все операции чтения
+JSON-RPC методы узла разделены по двум путям: `/v2/owner` — администрирование, а все операции чтения
 цепочки — на `/v2/foreign`. См. [API узла](/api/node#which-json-rpc-method-lives-where).
 
 ## Предварительные требования {/* #prerequisites */}
@@ -59,8 +59,8 @@ Python <Ver k="python" /> или новее.
 pip install requests coincurve pycryptodome
 ```
 
-`coincurve` предоставляет secp256k1, а `pycryptodome` — AES-GCM; оба используются для Owner API кошелька. Для
-запросов к узлу достаточно `requests`.
+`coincurve` предоставляет secp256k1, а `pycryptodome` — AES-GCM, оба для Owner API кошелька. Для запросов к узлу
+нужен только `requests`.
 
 </TabItem>
 </Tabs>
@@ -70,28 +70,28 @@ pip install requests coincurve pycryptodome
 - Запускайте команды из каталога `examples` репозитория — именно там находятся модули Python.
   import each other from.
 - Узел доступен на порту <Ver k="ports.nodeApi" />, Owner API кошелька — на <Ver k="ports.walletOwner" />, Foreign API кошелька — на <Ver k="ports.walletForeign" />. Каждый
-  клиент принимает `NODE_URL`, `EPIC_OWNER_URL` и `EPIC_FOREIGN_URL`, так что можно указать другой адрес.
+  клиент поддерживает `NODE_URL`, `EPIC_OWNER_URL` и `EPIC_FOREIGN_URL`, так что можно указать другой адрес.
 - Суммы — целые числа, в единицах <Ver k="smallestUnit" />. 1 EPIC равен <Ver k="epicBase" />.
-- Секреты читаются из файлов, пароль кошелька — из `EPIC_WALLET_PASSWORD`.
+- Секреты считываются из файлов, а пароль кошелька — из `EPIC_WALLET_PASSWORD`.
 
 ## Конверт ответа {/* #the-response-envelope */}
 
-Каждый метод Epic JSON-RPC возвращает HTTP 200 с ответом JSON-RPC `result`, внутри которого находится
-второй конверт. Успешная операция содержит `Ok`:
+Каждый JSON-RPC метод Epic возвращает HTTP 200 с JSON-RPC `result`, внутри которого находится второй
+конверт. Успешная операция содержит `Ok`:
 
 ```json
 {"id": 1, "jsonrpc": "2.0", "result": {"Ok": {"...": "the actual data"}}}
 ```
 
-Неуспешная содержит `Err` на том же месте:
+Неуспешная содержит `Err` на той же позиции:
 
 ```json
 {"id": 1, "jsonrpc": "2.0", "result": {"Err": {"NotEnoughFunds": {"available": 0, "needed": 100000000}}}}
 ```
 
 Напишите один вспомогательный метод разворачивания и используйте его везде. `_unwrap` в клиенте кошелька
-на странице [подключения и чтения](/examples/wallet-connect) выбрасывает исключение при `Err` и возвращает значение при
-`Ok`; все вызовы в этом клиенте проходят через него.
+на странице [подключения и чтения](/examples/wallet-connect) вызывает исключение при `Err` и возвращает значение при `Ok`, и
+все вызовы в этом клиенте проходят через него.
 
 Поле за полем конверт описан в [обзоре API](/api#the-response-envelope).
 

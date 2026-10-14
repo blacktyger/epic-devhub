@@ -58,7 +58,7 @@ epic-wallet cancel -t <slate_id>
 
 ## 情况3：发送操作似乎挂起 {/* #case-3-the-send-appears-to-hang */}
 
-广播交易后，钱包每秒轮询一次节点的内存池，最长持续<Ver k="mempoolWaitMinutes" />分钟，以确认交易已到达，在此期间不打印任何内容。共尝试240次，每次间隔一秒，在`send`（<Src repo="wallet" path="controller/src/command.rs" line={609} />）中、在`finalize`（<Src repo="wallet" path="controller/src/command.rs" line={779} />）中以及在epicbox监听器自身的最终确认路径（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={582} />）中均如此。这些命令背后的Owner API调用会在同等时间窗口内阻塞，因此后端不得在请求线程上运行它们。
+广播交易后，钱包每秒轮询一次节点的内存池，最长持续<Ver k="mempoolWaitMinutes" />分钟，以确认交易已到达，在此期间不打印任何内容。共尝试240次，每次间隔一秒，在`send`（<Src repo="wallet" path="controller/src/command.rs" line={609} />）中、在`finalize`（<Src repo="wallet" path="controller/src/command.rs" line={779} />）中以及在epicbox监听器自身的最终确认路径（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={589} />）中均如此。这些命令背后的Owner API调用会在同等时间窗口内阻塞，因此后端不得在请求线程上运行它们。
 
 等待其完成。如果以`Transaction with slate_id ... not found in mempool after waiting`结束，则表示广播未到达节点。检查节点是否正在运行且已同步，然后参见[情况5](#case-5-local-database-out-of-date)。
 

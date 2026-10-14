@@ -70,7 +70,7 @@ After posting a transaction, the wallet polls the node's mempool once per second
 240 attempts at one second apiece, in `send`
 (<Src repo="wallet" path="controller/src/command.rs" line={609} />), in `finalize`
 (<Src repo="wallet" path="controller/src/command.rs" line={779} />) and in the epicbox listener's own
-finalise path (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={582} />). The Owner API calls
+finalise path (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={589} />). The Owner API calls
 behind those commands block for the same window, so a backend must not run them on a request thread.
 
 Let it finish. If it ends with `Transaction with slate_id ... not found in mempool after waiting`, the post

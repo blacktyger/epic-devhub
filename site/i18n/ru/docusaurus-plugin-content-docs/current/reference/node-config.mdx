@@ -15,14 +15,14 @@ description: "Полный справочник конфигурации узл�
 
 Узел ищет конфигурацию в следующем порядке:
 
-1. `--config_file <path>`, если указан. Отсутствие файла по явно заданному пути является фатальной ошибкой.
+1. `--config_file <path>`, если указан. Отсутствие файла по явному пути является фатальной ошибкой.
 2. `./epic-server.toml` в текущем рабочем каталоге.
 3. `~/.epic/<network>/epic-server.toml`, создаётся со значениями по умолчанию, если отсутствует.
 
 `<network>` — это `main`, `floo`, `user` или `auto`.
 
-`epic server config` записывает свежий `epic-server.toml` в текущий каталог, указывая пути на этот каталог. Перезаписывать
-существующий файл отказывается.
+`epic server config` записывает новый `epic-server.toml` в текущий каталог с путями, указывающими на этот каталог. Перезапись
+существующего файла не выполняется.
 
 ## Усиленная отправная точка {/* #a-hardened-starting-point */}
 
@@ -41,9 +41,10 @@ foreign_api_secret_path = "/home/you/.epic/main/.foreign_api_secret"
 # Хранить полную историю блоков без обрезки.
 archive_mode = true
 
-# Устанавливайте в false только для самостоятельной проверки всего исторического доказательства работы.
+# skip_pow_validation применяется только до последней контрольной точки. Установите false, чтобы проверить все
+# исторические доказательства работы самостоятельно.
 # skip_pow_validation = true
-# disable_checkpoints = true
+# disable_checkpoints = false
 
 [server.p2p_config]
 host = "0.0.0.0"
@@ -63,49 +64,50 @@ file_log_level = "Info"
 | --- | --- | --- | --- |
 | `db_root` | string | `~/.epic/main/chain_data` | Каталог, содержащий базы данных цепочки и пиров |
 | `api_http_addr` | `host:port` | <code>127.0.0.1:<Ver k="ports.nodeApi" /></code> | Адрес прослушивания для HTTP API |
-| `api_secret_path` | string, optional | `~/.epic/main/.api_secret` | Секрет базовой аутентификации для `/v1` и `/v2/owner`. Закомментируйте, чтобы запустить без него |
-| `foreign_api_secret_path` | string, optional | `.foreign_api_secret`, относительный | Секрет базовой аутентификации для `/v2/foreign`. Создайте файл вручную. См. [аутентификация API](/api/authentication) |
-| `foundation_path` | string | `/usr/share/epic/foundation.json`, или `.\foundation.json` на Windows | Предварительно сгенерированные данные coinbase фонда |
+| `api_secret_path` | string, optional | `~/.epic/main/.api_secret` | Секрет базовой аутентификации для `/v1` и `/v2/owner`. Комментирование не открывает их: без секрета оба возвращают 401 на каждый вызов, кроме `GET /v1/version` и одного простого `get_status`. См. [учётные данные узла](/api/authentication#the-node-credential) |
+| `foreign_api_secret_path` | string, optional | `.foreign_api_secret`, относительный | Секрет базовой аутентификации для `/v2/foreign`. Создайте файл вручную. Узел с установленным секретом не может обслуживать epic-wallet <Ver k="wallet" />. См. [аутентификацию API](/api/authentication#optional-credential-on-the-nodes-foreign-surface) |
+| `foundation_path` | string, optional | `/usr/share/epic/foundation.json`, или `.\foundation.json` на Windows | Предварительно сгенерированные данные foundation coinbase. Опустите ключ или оставьте его пустым, чтобы использовать копию, встроенную в бинарник |
 | `tls_certificate_file` | string, optional | unset | Цепочка PEM-сертификатов. Установка переключает API на HTTPS |
 | `tls_certificate_key` | string, optional | unset | Приватный ключ PEM. Обязателен, если сертификат задан |
 | `chain_type` | enum | `Mainnet` | `Mainnet`, `Floonet`, `UserTesting`, `AutomatedTesting` |
-| `chain_validation_mode` | enum | `Disabled` | `EveryBlock` выполняет полную валидацию цепочки после каждого блока |
+| `chain_validation_mode` | enum | `Disabled` | `EveryBlock` запускает полную валидацию цепочки после каждого блока |
 | `archive_mode` | bool, optional | `false` | `true` сохраняет полную историю блоков вместо обрезки |
-| `skip_pow_validation` | bool, optional | `true` | Пропустить валидацию доказательства работы для исторических блоков при синхронизации |
-| `disable_checkpoints` | bool, optional | `true` | Разрешить пропуск доказательства работы за пределами контрольного диапазона. Действует только когда `skip_pow_validation` равно true |
+| `skip_pow_validation` | bool, optional | `true` | Пропустить валидацию доказательства работы во время синхронизации для блоков в пределах диапазона с контрольной точкой. Применяется только до последней контрольной точки |
+| `disable_checkpoints` | bool, optional | `false` | В тестовой сети расширяет пропуск за последнюю контрольную точку для блоков, находящихся более чем на <Ver k="powVerificationThreshold" /> ниже вершины цепочки. Действует только когда `skip_pow_validation` равно true. **Игнорируется на mainnet** |
 | `skip_sync_wait` | bool, optional | `false` | Пропустить ожидание синхронизации при запуске |
 | `header_sync_timeout` | секунды | `10` | Таймаут ожидания подтверждения наличия новых заголовков. Ноль или отрицательное значение заменяется на 10 |
 | `run_tui` | bool, optional | `false` | Запустить терминальный интерфейс. Включение отключает вывод в stdout |
-| `only_randomx` | bool, optional | `false` | Принудительная политика блоков только RandomX в тестовой сети. См. [политику блоков](/mining/proof-of-work#the-block-policy) |
+| `only_randomx` | bool, optional | `false` | Принудительно применить политику блоков только с RandomX в тестовой сети. См. [политику блоков](/mining/proof-of-work#the-block-policy) |
 | `no_progpow` | bool, optional | `false` | Удалить ProgPow из политики блоков в тестовой сети. См. [политику блоков](/mining/proof-of-work#the-block-policy) |
 | `run_test_miner` | bool, optional | `false` | Встроенный майнер, только Cuckoo. Майнинг цепочки требует Stratum и внешнего майнера. См. [запуск локальной сети](/guides/local-network) |
-| `test_miner_wallet_url` | string, optional | unset | Слушатель кошелька, получающий coinbase тестового майнера. Если не задано, используется `http://127.0.0.1:13415` |
+| `test_miner_wallet_url` | string, optional | unset | Слушатель кошелька, получающий coinbase тестового майнера. Если не задан, используется `http://127.0.0.1:13415` |
 
-Оба ключа валидации синхронизации по умолчанию равны `true` и ускоряют начальную синхронизацию. В
-пределах <Ver k="powVerificationThreshold" /> блоков от вершины цепочки доказательство работы проверяется полностью независимо от их
-значений. См. [настройка узла и кошелька](/guides/mainnet-setup) для описания того, что каждый из них пропускает.
+На mainnet имеет значение только `skip_pow_validation`. При значении `true` доказательство работы пропускается для
+блоков до последней контрольной точки на высоте блока <Ver k="lastCheckpointHeight" /> и полностью проверяется для каждого блока
+выше неё. `disable_checkpoints` расширяет это только в тестовой сети. См. [настройка узла и кошелька](/guides/mainnet-setup#sync-validation-settings) для
+описания того, что пропускает каждый вариант.
 
 ## `[server.p2p_config]` {/* #serverp2p_config */}
 
 | Ключ | Тип | Default | Назначение |
 | --- | --- | --- | --- |
-| `host` | IP | `0.0.0.0` | Интерфейс для прослушивания. `127.0.0.1` ограничивает локальным доступом |
+| `host` | IP | `0.0.0.0` | Интерфейс для прослушивания. `127.0.0.1` ограничивает до локального |
 | `port` | u16 | <Ver k="ports.nodeP2p" />, 13414 floonet, 23414 usernet | Порт P2P-прослушивания |
-| `seeding_type` | enum | `DNSSeed`, `None` на usernet | `None`, `List`, `DNSSeed`, `Programmatic`. `DNSSeed` запрашивает `node.epiccash.com:3414` в mainnet и `floonet.epiccash.com:13414` в floonet. См. [сети](/reference/cli#networks) — когда использовать `List` |
-| `seeds` | массив `ip:port`, необязательно | не задано в коде, четыре адреса в сгенерированном файле | Используется при `seeding_type = "List"`. Запуск завершается ошибкой, если этот тип задан без списка |
+| `seeding_type` | enum | `DNSSeed`, `None` на usernet | `None`, `List`, `DNSSeed`, `Programmatic`. `DNSSeed` запрашивает `node.epiccash.com:3414` на mainnet и `floonet.epiccash.com:13414` на floonet. См. [сети](/reference/cli#networks) для случаев использования `List` |
+| `seeds` | массив `ip:port`, необязательный | не задано в коде, четыре адреса в сгенерированном файле | Используется когда `seeding_type = "List"`. Запуск завершается ошибкой, если этот тип задан без списка |
 | `capabilities` | флаги u32 | `31` | Что узел анонсирует. См. таблицу битов ниже |
-| `peer_min_preferred_outbound_count` | u32, optional | `4` | Исходящие пиры, к которым узел постоянно пытается подключиться, и их количество, необходимое для выхода состояния синхронизации из `AwaitingPeers`. Отсутствует в сгенерированном файле. Установите `0` в приватной цепочке, где [сервер Stratum](/mining/stratum#requesting-work) иначе отказывает в работе |
+| `peer_min_preferred_outbound_count` | u32, optional | `4` | Исходящие пиры, к которым узел постоянно пытается подключиться, и количество, которого необходимо достичь, прежде чем состояние синхронизации покинет `AwaitingPeers`. Отсутствует в сгенерированном файле. Задайте `0` в частной цепочке, где [сервер Stratum](/mining/stratum#requesting-work) иначе отказывает в выдаче работы |
 | `peers_allow` | массив, необязательно | unset | Подключаться только к этим пирам |
 | `peers_deny` | массив, необязательно | unset | Никогда не подключаться к этим пирам |
 | `peers_preferred` | массив, необязательно | unset | Предпочтительные пиры, активный дозвон |
 | `ban_window` | секунды, необязательно | `10800` | Как долго заблокированный пир остаётся заблокированным |
 | `peer_max_inbound_count` | u32, optional | `128` | Максимум входящих пиров |
 | `peer_max_outbound_count` | u32, optional | `128` | Максимум исходящих пиров |
-| `peer_listener_buffer_count` | u32, optional | `8` | Запас сверх лимита входящих пиров для помощи при начальной загрузке |
-| `dandelion_peer` | `ip:port`, необязательно | unset | Закреплённый релей Dandelion |
+| `peer_listener_buffer_count` | u32, optional | `8` | Запас сверх лимита входящих подключений для помощи при начальной загрузке. Также ограничивает количество одновременно ожидающих входящих рукопожатий — по одному на IP-адрес |
+| `dandelion_peer` | `ip:port`, необязательный | unset | Закреплённый релей Dandelion |
 | `my_onion_addr` | string, optional | unset | Собственный onion-адрес этого узла |
 
-Четыре адреса, которые записывает сгенерированный файл (<Src repo="node" path="config/src/comments.rs" line={272} />):
+Четыре адреса, которые записывает сгенерированный файл (<Src repo="node" path="config/src/comments.rs" line={273} />):
 
 ```toml title="epic-server.toml, p2p seeds"
 seeds = ["95.217.197.180:3414","5.161.127.56:3414","5.75.242.4:3414","5.78.71.29:3414"]
@@ -131,7 +133,7 @@ seeds = ["95.217.197.180:3414","5.161.127.56:3414","5.75.242.4:3414","5.78.71.29
 | `accept_fee_base` | u64 | `100000` | Минимальная комиссия на единицу веса транзакции для принятия в пул |
 | `max_pool_size` | usize | `50000` | Максимальное количество транзакций в основном пуле |
 | `max_stempool_size` | usize | `50000` | Максимальное количество транзакций в стемпуле |
-| `mineable_max_weight` | usize | `40000`, 150 на usernet и при автоматическом тестировании | Максимальный суммарный вес, упаковываемый майнером в блок |
+| `mineable_max_weight` | usize | `40000`, 150 на usernet и при автоматизированном тестировании | Максимальный суммарный вес, упаковываемый майнером в блок |
 
 ## `[server.dandelion_config]` {/* #serverdandelion_config */}
 
@@ -174,7 +176,7 @@ seeds = ["95.217.197.180:3414","5.161.127.56:3414","5.75.242.4:3414","5.78.71.29
 
 | Ключ | Тип | Default | Назначение |
 | --- | --- | --- | --- |
-| `socks_proxy_addr` | string | `127.0.0.1:9050` | Адрес SOCKS-прокси, записывается в генерируемый `torrc` |
+| `socks_proxy_addr` | string | `127.0.0.1:9050` | Адрес SOCKS-прокси, записываемый в сгенерированный `torrc` |
 | `send_config_dir` | string | `.` | Каталог для `torrc`, `data/` и адресов onion-сервиса |
 
 Маршрутизация через onion stem также требует, чтобы `capabilities` включал бит `ONIONSTEM`, значение 32, которое
@@ -194,8 +196,8 @@ seeds = ["95.217.197.180:3414","5.161.127.56:3414","5.75.242.4:3414","5.78.71.29
 | `log_max_files` | u32, optional | `32` | Сколько ротированных файлов хранить |
 | `tui_running` | bool, optional | unset | Устанавливается из `run_tui` при запуске |
 
-Свежий узел не записывает лог-файл, поскольку `log_to_file` равно `false`, тогда как `log_file_path` заполнен.
-Установите `log_to_file = true` для записи лога на диск.
+Новый узел не записывает лог-файл, поскольку `log_to_file` равно `false`, а `log_file_path` заполнено. Установите `log_to_file = true`
+для записи лога на диск.
 
 ## Исходный код {/* #source */}
 
@@ -204,7 +206,7 @@ seeds = ["95.217.197.180:3414","5.161.127.56:3414","5.75.242.4:3414","5.78.71.29
 - <Src repo="node" path="servers/src/common/types.rs" /> для `[server]`, `[server.webhook_config]` и `[server.tor]`
 - <Src repo="node" path="p2p/src/types.rs" /> для `[server.p2p_config]`
 - <Src repo="node" path="pool/src/types.rs" /> для `[server.pool_config]` и `[server.dandelion_config]`
-- <Src repo="node" path="util/src/logger.rs" line={65} /> для `[logging]`, совместно используется с кошельком
+- <Src repo="node" path="util/src/logger.rs" line={65} /> для `[logging]`, общего с кошельком
 - <Src repo="node" path="config/src/comments.rs" /> для аннотированного шаблона, записываемого на диск
 - <Src repo="node" path="config/src/config.rs" /> для обнаружения файлов и перезаписи путей
 

@@ -120,6 +120,45 @@
         - code
         - code
         - code
+        - code
+        - code
+        - link
+    - heading [level=2]
+      - link
+    - paragraph
+    - list
+      - listitem
+        - strong
+        - code
+        - code
+        - code
+        - code
+        - link
+      - listitem
+        - strong
+          - code
+          - code
+        - code
+        - code
+        - link
+      - listitem
+        - strong
+          - code
+        - code
+        - link
+      - listitem
+        - strong
+        - code
+        - code
+        - link
+      - listitem
+        - strong
+          - code
+        - link
+      - listitem
+        - strong
+          - code
+          - code
         - link
     - heading [level=2]
       - link
@@ -166,6 +205,8 @@
             - link
           - listitem
             - link
+      - listitem
+        - link
       - listitem
         - link
       - listitem

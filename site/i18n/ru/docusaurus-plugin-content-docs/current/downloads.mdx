@@ -3,7 +3,9 @@ title: Загрузки
 description: Готовые бинарники узла и кошелька Epic с верификацией контрольной суммы и дальнейшими шагами.
 ---
 
-import {releases} from '@site/src/data/versions';
+import Admonition from '@theme/Admonition';
+import CodeBlock from '@theme/CodeBlock';
+import {versions, releases} from '@site/src/data/versions';
 
 export const nodeAsset = (key) => releases.node.assets.find((a) => a.key === key);
 export const walletAsset = (key) => releases.wallet.assets.find((a) => a.key === key);
@@ -11,63 +13,101 @@ export const sumFile = (file) => `${file.replace(/\.(tar\.gz|zip|exe)$/, '')}-sh
 
 # Загрузки
 
-Готовые бинарники публикуются в релизах GitHub. Бинарники для Linux собраны с динамической линковкой
-к `GLIBC_2.39`, поэтому требуют glibc 2.39 или новее, то есть Ubuntu 24.04 или более поздней версии.
+Готовые бинарники публикуются в релизах GitHub. Linux-бинарники <Ver k="node" /> как узла, так и кошелька
+скомпонованы с `GLIBC_2.34`, поэтому им требуется glibc 2.34 или новее, то есть Ubuntu 22.04, Debian 12 или
+более поздние версии.
 
-Чтобы собрать из исходников, см. [сборку бинарников](/guides/build).
+Чтобы вместо этого собрать из исходников, см. [собрать бинарники](/guides/build).
 
 ## Узел <Ver k="node" /> {/* #node-ver-knode- */}
 
-Релиз <a href={releases.node.url}>тег v<Ver k="node" /></a>, или{' '} <a href={releases.node.latest}>последний релиз</a> и <a href={releases.node.all}>все релизы</a>.
+Релиз <a href={releases.node.url}>tag v<Ver k="node" /></a>, или{' '} <a href={releases.node.latest}>последний релиз</a> и <a href={releases.node.all}>все релизы</a>.
+
+{releases.node.binariesStale && (
+  <Admonition type="caution" title={`v${versions.node} publishes no binaries`}>
+    <p>
+      The <code>v{versions.node}</code> release job failed while creating the release, so the tag
+      shipped with no assets attached. The newest node release you can actually download is{' '}
+      <a href={releases.node.binariesUrl}>v{releases.node.binariesVersion}</a>, and the table and
+      commands below are for that release.
+    </p>
+    <p>
+      To run <code>{versions.node}</code> itself, <a href="/guides/build">build from source</a> at
+      tag <code>v{versions.node}</code>. The difference against{' '}
+      <code>{releases.node.binariesVersion}</code> is a restored API basic-auth middleware plus
+      version and documentation-URL bumps.
+    </p>
+  </Admonition>
+)}
 
 | Платформа | Файл | Распаковывается в |
 | --- | --- | --- |
-| {nodeAsset('linux').platform} | <code>{nodeAsset('linux').file}</code> | <code>{releases.node.unpacksTo.linux}/</code> |
-| {nodeAsset('mac').platform} | <code>{nodeAsset('mac').file}</code> | <code>{releases.node.unpacksTo.mac}/</code> |
-| {nodeAsset('windows').platform} | <code>{nodeAsset('windows').file}</code> | `epic.exe`, без оборачивающего каталога |
+| {nodeAsset('linux').platform} | <code>{nodeAsset('linux').file}</code> | <code>{releases.node.unpacksTo.linux}/epic</code> |
+| {nodeAsset('windows').platform} | <code>{nodeAsset('windows').file}</code> | <code>{releases.node.unpacksTo.windows}/epic.exe</code> |
 
-macOS Intel и Linux ARM требуют сборки из исходников.
+Релиз <Ver k="node" /> не публикует бинарник для macOS. Последний доступный находится{' '} <code>{releases.node.mac.file}</code> на
+<a href={releases.node.mac.url}>tag v{releases.node.mac.version}</a>, в более старом релизе; чтобы запустить <Ver k="node" /> на Mac, [соберите из
+исходников](/guides/build). macOS Intel и Linux ARM также требуют сборки из исходников.
 
 ## Кошелёк <Ver k="wallet" /> {/* #wallet-ver-kwallet- */}
 
-Релиз <a href={releases.wallet.url}>тег v<Ver k="wallet" /></a>, или{' '} <a href={releases.wallet.latest}>последний релиз</a> и <a href={releases.wallet.all}>все релизы</a>.
+Релиз <a href={releases.wallet.url}>tag v<Ver k="wallet" /></a>, или{' '} <a href={releases.wallet.latest}>последний релиз</a> и <a href={releases.wallet.all}>все релизы</a>.
 
 | Платформа | Файл | Распаковывается в |
 | --- | --- | --- |
-| {walletAsset('linux').platform} | <code>{walletAsset('linux').file}</code> | `epic-wallet`, без оборачивающего каталога |
-| {walletAsset('windows').platform} | <code>{walletAsset('windows').file}</code> | сам исполняемый файл, не архив |
+| {walletAsset('linux').platform} | <code>{walletAsset('linux').file}</code> | <code>{releases.wallet.unpacksTo.linux}/epic-wallet</code> |
+| {walletAsset('windows').platform} | <code>{walletAsset('windows').file}</code> | <code>{releases.wallet.unpacksTo.windows}/epic-wallet.exe</code> |
 
-Архив назван по ветке 4.0, а не по полному тегу <Ver k="wallet" />, и содержит бинарник Linux x86-64 ELF.
+Архив кошелька для Windows именуется с подчёркиванием: <code>{walletAsset('windows').file}</code>, тогда как у узла
+используется дефис. Бинарник кошелька для macOS не публикуется.
 
-## Загрузить и проверить {/* #download-and-verify */}
+## Скачать и проверить {/* #download-and-verify */}
 
-Рядом с каждым файлом публикуется файл контрольной суммы с тем же именем, но расширение заменено на
-`-sha256sum.txt`: <code>{sumFile(nodeAsset('linux').file)}</code> — для тарбола узла Linux, <code>{sumFile(walletAsset('linux').file)}</code> — для архива кошелька.
+Рядом с каждым файлом публикуется файл контрольной суммы, имя которого совпадает с именем файла, но
+расширение заменено на `-sha256sum.txt`: <code>{sumFile(nodeAsset('linux').file)}</code> для Linux-тарбола узла, <code>{sumFile(walletAsset('linux').file)}</code> для
+Linux-тарбола кошелька. Опубликованные значения SHA-256 для <Ver k="node" />:
+
+| Файл | SHA-256 |
+| --- | --- |
+| <code>{nodeAsset('linux').file}</code> | <code>{nodeAsset('linux').sha256}</code> |
+| <code>{nodeAsset('windows').file}</code> | <code>{nodeAsset('windows').sha256}</code> |
+| <code>{walletAsset('linux').file}</code> | <code>{walletAsset('linux').sha256}</code> |
+| <code>{walletAsset('windows').file}</code> | <code>{walletAsset('windows').sha256}</code> |
 
 <Tabs groupId="os">
 <TabItem value="linux" label="Linux">
 
-```bash
-curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/epic-4.0.3-linux-amd64.tar.gz
-curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/epic-4.0.3-linux-amd64-sha256sum.txt
+<CodeBlock language="bash">{`curl -LO ${releases.node.download}/${nodeAsset('linux').file}
+curl -LO ${releases.node.download}/${sumFile(nodeAsset('linux').file)}
 
-sha256sum -c epic-4.0.3-linux-amd64-sha256sum.txt
-# ожидаемый результат: epic-4.0.3-linux-amd64.tar.gz: OK
+sha256sum -c ${sumFile(nodeAsset('linux').file)}
+# expect: ./${nodeAsset('linux').file}: OK
 
-tar xzf epic-4.0.3-linux-amd64.tar.gz
-./epic --usernet
-```
+tar xzf ${nodeAsset('linux').file}
+./${releases.node.unpacksTo.linux}/epic --version
+
+curl -LO ${releases.wallet.download}/${walletAsset('linux').file}
+curl -LO ${releases.wallet.download}/${sumFile(walletAsset('linux').file)}
+
+sha256sum -c ${sumFile(walletAsset('linux').file)}
+# expect: ./${walletAsset('linux').file}: OK
+
+tar xzf ${walletAsset('linux').file}
+./${releases.wallet.unpacksTo.linux}/epic-wallet --version`}</CodeBlock>
 
 </TabItem>
 <TabItem value="mac" label="macOS">
 
-```bash
-curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/MacOS-aarch64-4.0.3.zip
-curl -LO https://github.com/EpicCash/epic/releases/download/v4.0.3/MacOS-aarch64-4.0.3-sha256sum.txt
+Бинарника <Ver k="node" /> для macOS для скачивания нет. [Соберите из исходников](/guides/build) на теге <code>v<Ver k="node" /></code>.
+Последний готовый бинарник узла для macOS относится к более старому релизу,{' '} <a href={releases.node.mac.url}>v{releases.node.mac.version}</a>,
+который вышел до{' '} изменений аутентификации <Ver k="node" /> API: он ведёт себя не так, как описано в
+[аутентификация и TLS](/api/authentication), и не должен использоваться совместно с кошельком <Ver k="wallet" />.
 
-shasum -a 256 -c MacOS-aarch64-4.0.3-sha256sum.txt
-unzip MacOS-aarch64-4.0.3.zip
-```
+<CodeBlock language="bash">{`curl -LO ${releases.node.mac.download}/${releases.node.mac.file}
+curl -LO ${releases.node.mac.download}/${sumFile(releases.node.mac.file)}
+
+shasum -a 256 -c ${sumFile(releases.node.mac.file)}
+unzip ${releases.node.mac.file}`}</CodeBlock>
 
 Gatekeeper отклоняет неподписанный бинарник при первом запуске. Разрешите его в System Settings,
 Privacy and Security.
@@ -75,18 +115,25 @@ Privacy and Security.
 </TabItem>
 <TabItem value="win" label="Windows">
 
-```powershell
-$tag = 'v4.0.3'
+<CodeBlock language="powershell">{`$tag = 'v${releases.node.binariesVersion}'
 $base = "https://github.com/EpicCash/epic/releases/download/$tag"
 Invoke-WebRequest "$base/Windows-$tag.zip" -OutFile "Windows-$tag.zip"
 Invoke-WebRequest "$base/Windows-$tag-sha256sum.txt" -OutFile "sha256sum.txt"
 
-# PowerShell не имеет `sha256sum -c`, поэтому сравните два значения вручную.
+# PowerShell has no \`sha256sum -c\`, so compare the two values.
 (Get-FileHash "Windows-$tag.zip" -Algorithm SHA256).Hash.ToLower()
 Get-Content sha256sum.txt
 
 Expand-Archive "Windows-$tag.zip" -DestinationPath .
-```
+.\\Windows-$tag\\epic.exe --version
+
+# The wallet archive is named with an underscore, not a hyphen.
+$wbase = "https://github.com/EpicCash/epic-wallet/releases/download/v${versions.wallet}"
+Invoke-WebRequest "$wbase/${walletAsset('windows').file}" -OutFile "${walletAsset('windows').file}"
+Invoke-WebRequest "$wbase/${sumFile(walletAsset('windows').file)}" -OutFile "wallet-sha256sum.txt"
+(Get-FileHash "${walletAsset('windows').file}" -Algorithm SHA256).Hash.ToLower()
+Get-Content wallet-sha256sum.txt
+Expand-Archive "${walletAsset('windows').file}" -DestinationPath .`}</CodeBlock>
 
 </TabItem>
 </Tabs>
@@ -96,11 +143,11 @@ Expand-Archive "Windows-$tag.zip" -DestinationPath .
 [epic-wallet.toml](/reference/wallet-config) или соберите из исходников с этой функцией.
 :::
 
-## Другое программное обеспечение {/* #other-software */}
+## Другое ПО {/* #other-software */}
 
 | Программа | Репозиторий |
 | --- | --- |
-| Майнер | <Repo name="node">EpicCash/epic-miner</Repo> |
+| Майнер | <Repo name="miner" /> |
 | Десктопный GUI-кошелёк | `EpicCash/epic-gui-wallet` |
 | Обозреватель блоков | `EpicCash/epic_explorer` |
 | Epicbox relay | <Repo name="epicbox" /> |

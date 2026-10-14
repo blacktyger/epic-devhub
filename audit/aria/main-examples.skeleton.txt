@@ -46,6 +46,7 @@
           - cell
             - code
           - cell
+            - code
         - row
           - cell
           - cell

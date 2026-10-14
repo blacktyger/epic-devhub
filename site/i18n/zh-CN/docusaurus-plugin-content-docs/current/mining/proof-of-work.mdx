@@ -30,7 +30,7 @@ Cuckoo参数：证明大小42，最小边位数19，第二工作量证明边位�
 "proof": "MD5"        "solution": {"MD5": "<string>"}              not scheduled on mainnet
 ```
 
-Cuckatoo和Cuckaroo区块均在`proof`中报告`Cuckoo`，通过边位数加以区分。类型定义在<Src repo="node" path="api/src/types.rs" line={574} />中。
+Cuckatoo和Cuckaroo区块均在`proof`中报告`Cuckoo`，通过边位数加以区分。类型定义在<Src repo="node" path="api/src/types.rs" line={586} />中。
 
 ## 区块策略{/* #the-block-policy */}
 
@@ -55,13 +55,13 @@ no_progpow   = false   # 或直接从组合中移除ProgPow
 
 `only_randomx = true`使单个CPU矿工能够推进私有链：在混合策略下，仅使用RandomX的矿工在每个ProgPow高度处于空闲状态。两个键均会改变区块策略，因此在一种设置下挖出的链在另一种设置下无效。更改任意一个键时，请清除`chain_data`。
 
-mainnet的分配数量位于<Src repo="node" path="core/src/core/block/feijoada.rs" line={249} />，
-<Fn repo="node" path="core/src/core/block/feijoada.rs" line={348} name="next_block_bottles" />
-推进窗口并在100个区块时重置，<Fn repo="node" path="core/src/core/block/feijoada.rs" line={427} name="choose_algo" />在<Fn repo="node" path="core/src/core/block/feijoada.rs" line={80} kind="struct" name="PolicyConfig" />上进行选择，<Fn repo="node" path="core/src/core/block/feijoada.rs" line={335} name="get_bottles_default" />返回每个窗口起始时的归零计数器。常量位于<Src repo="node" path="core/src/consensus.rs" />中。
+mainnet的分配数量位于<Src repo="node" path="core/src/core/block/feijoada.rs" line={263} />，
+<Fn repo="node" path="core/src/core/block/feijoada.rs" line={370} name="next_block_bottles" />
+推进窗口并在100个区块时重置，<Fn repo="node" path="core/src/core/block/feijoada.rs" line={466} name="choose_algo" />在<Fn repo="node" path="core/src/core/block/feijoada.rs" line={94} kind="struct" name="PolicyConfig" />上进行选择，<Fn repo="node" path="core/src/core/block/feijoada.rs" line={357} name="get_bottles_default" />返回每个窗口起始时的归零计数器。常量位于<Src repo="node" path="core/src/consensus.rs" />中。
 
 ## 难度{/* #difficulty */}
 
-每种算法有其独立的难度轨道，由<Fn repo="node" path="core/src/consensus.rs" line={664} name="next_difficulty" />独立重新调整目标。调整窗口为<Ver k="difficultyWindow" />个区块（<Fn repo="node" path="core/src/consensus.rs" line={441} kind="const" name="DIFFICULTY_ADJUST_WINDOW" />），在<Ver k="blockTimeSeconds" />秒目标下为一小时，窗口仅回溯同一算法的区块，因此每条轨道只看到自身的历史记录。
+每种算法有其独立的难度轨道，由<Fn repo="node" path="core/src/consensus.rs" line={667} name="next_difficulty" />独立重新调整目标。调整窗口为<Ver k="difficultyWindow" />个区块（<Fn repo="node" path="core/src/consensus.rs" line={443} kind="const" name="DIFFICULTY_ADJUST_WINDOW" />），在<Ver k="blockTimeSeconds" />秒目标下为一小时，窗口仅回溯同一算法的区块，因此每条轨道只看到自身的历史记录。
 
 三条轨道共享相同的钳制因子2和阻尼因子3。
 

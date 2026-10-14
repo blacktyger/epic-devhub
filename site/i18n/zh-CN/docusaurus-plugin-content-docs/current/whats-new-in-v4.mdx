@@ -5,7 +5,7 @@ description: Epic节点4.x和钱包4.x的变更内容，以及基于3.x构建的
 
 # 从3.x迁移
 
-当前发布版本：节点**<Ver k="node" />**，钱包**<Ver k="wallet" />**，epicbox协议**<Ver k="epicboxProtocol" />**。
+当前发布版本为节点**<Ver k="node" />**、钱包**<Ver k="wallet" />**和epicbox协议**<Ver k="epicboxProtocol" />**。
 
 ## API变更 {/* #api-changes */}
 
@@ -30,11 +30,11 @@ description: Epic节点4.x和钱包4.x的变更内容，以及基于3.x构建的
 
 ### 钱包输出（output）和交易读取支持分页 {/* #wallet-output-and-transaction-reads-take-pagination */}
 
-`retrieve_outputs`和`retrieve_txs`接受`limit`、`offset`和`sort_order`，需显式传入。
+`retrieve_outputs`和`retrieve_txs`接受`limit`、`offset`和`sort_order`。请显式提供这些参数。
 
 ### `Status` 新增供应量字段 {/* #status-gains-supply-fields */}
 
-`supply`和`max_supply`是以freemen为单位的金额。`blocks_to_next_halving`是区块数量，位于<Src repo="node" path="api/src/types.rs" line={96} />。奖励步骤并非全部为减半；参见[发行](/mining/emission)。
+`supply`和`max_supply`是以freemen为单位的金额。`blocks_to_next_halving`是区块数量，位于<Src repo="node" path="api/src/types.rs" line={102} />。奖励步骤并非全部为减半；参见[发行](/mining/emission)。
 
 ### 内核（kernel）以两种形式出现 {/* #kernels-appear-in-two-shapes */}
 
@@ -42,31 +42,31 @@ description: Epic节点4.x和钱包4.x的变更内容，以及基于3.x构建的
 
 ## 命令行变更 {/* #command-line-changes */}
 
-参数已移动。当前目录的`init -h`现为`-w`，`scan -h <height>`现为`-s <height>`，节点的`taxes`参数现为`start_height`。新增钱包命令：`export_tx`、`import_tx`和`change_password`，以及转账命令上的`--slate_version`。所有命令和参数详见[配置与CLI](/reference/cli)。
+参数已移动。当前目录的`init -h`现为`-w`，`scan -h <height>`现为`-s <height>`，节点的`taxes`参数现为`start_height`。新增钱包命令为`export_tx`、`import_tx`和`change_password`，以及转账命令上的`--slate_version`。所有命令和参数均在[配置与CLI](/reference/cli)中列出。
 
-测试网络上的算法组合由配置键选择，而非命令行参数。参见[区块策略](/mining/proof-of-work#the-block-policy)。
+测试网络上的算法混合由配置键选择，而非命令行参数。参见[区块策略](/mining/proof-of-work#the-block-policy)。
 
 ## 工具链与构建 {/* #toolchain-and-build */}
 
-每个代码仓库固定了其Rust版本，因此安装rustup即可，不应自行固定版本。构建还需要Rust工具链之外的系统软件包，各平台所需软件包列于[从源码构建](/guides/build)。
+每个代码仓库固定其Rust版本，因此安装rustup即可，不应自行固定版本。构建还需要Rust工具链之外的系统软件包，各平台所需软件包列于[从源码构建](/guides/build)中。
 
 ## 存储变更 {/* #storage-changes */}
 
-钱包以WAL模式将数据存储在`db/sqlite/epic.db`的SQLite中，其Tor目录为`wallet_tor`。任何直接读取3.x钱包数据库的代码均需重写。路径和键详见[钱包配置](/reference/wallet-config)。
+钱包以WAL模式将数据存储在`db/sqlite/epic.db`的SQLite中，其Tor目录为`wallet_tor`。任何直接读取3.x钱包数据库的代码均需重写。路径和键值在[钱包配置](/reference/wallet-config)中列出。
 
 ## 新行为 {/* #new-behaviour */}
 
 ### 捆绑的Tor {/* #bundled-tor */}
 
-使用`--features with-tor`构建时会下载Tor专家包，并对照已提交的摘要进行验证。发布版本构建不启用该特性。参见[本版本未涵盖的内容](/start#what-this-version-does-not-cover)。
+使用`--features with-tor`构建时会下载Tor专家包并对照已提交的摘要进行验证。发布版本构建不启用该特性。参见[本版本未涵盖的内容](/start#what-this-version-does-not-cover)。
 
 ### Epicbox确认投递 {/* #epicbox-acknowledges-delivery */}
 
-协议<Ver k="epicboxProtocol" />新增了携带每条消息id的`Made`确认，因此只有在接收方确认已处理后，slate才被标记为已送达。与3.5.2之前的客户端保持兼容。参见[协议](/api/epicbox)。
+协议<Ver k="epicboxProtocol" />新增了携带每条消息ID的`Made`确认，因此只有在接收方确认已处理后，slate才被标记为已送达。与3.5.2之前的客户端保持兼容。参见[协议](/api/epicbox)。
 
 ### 广播后的内存池（mempool）确认 {/* #mempool-confirmation-after-posting */}
 
-钱包在广播交易后监听节点的内存池（mempool），并在交易出现时记录一个独立状态。该等待过程是发送操作看起来无响应的原因，详见[发送看起来卡住了](/guides/stuck-transactions#case-3-the-send-appears-to-hang)；它还会将已广播的转账移出`cancel_tx`所接受的集合，详见[取消有前提条件](/concepts/outputs-and-locking#cancelling-has-preconditions)。
+钱包在广播交易后监视节点的内存池（mempool），并在交易出现时记录一个独立状态。这一等待过程是发送操作看起来无响应的原因，详见[发送操作看起来挂起](/guides/stuck-transactions#case-3-the-send-appears-to-hang)；它还会将已广播的转账从`cancel_tx`接受的集合中移出，详见[取消操作有前提条件](/concepts/outputs-and-locking#cancelling-has-preconditions)。
 
 ### epicbox中继实现已变更 {/* #the-epicbox-relay-implementation-changed */}
 
@@ -74,10 +74,21 @@ description: Epic节点4.x和钱包4.x的变更内容，以及基于3.x构建的
 
 ## 需在集成中检查的行为 {/* #behaviour-to-check-in-your-integration */}
 
-- **在手动发送流程中`tx_lock_outputs`是必需的**。参见[什么会预留输出](/concepts/outputs-and-locking#what-reserves-outputs)。
+- **`tx_lock_outputs`在手动发送流程中是必需的**。参见[什么会预留输出](/concepts/outputs-and-locking#what-reserves-outputs)。
 - **Epicbox将所有slate转换为V2**，这会丢弃支付证明请求。参见[传输方式对比](/concepts/transports#comparison)。
 - **`change_password`会删除备份助记词**，除非传入`--remove-backup`。
-- **同步验证默认值的形式已变更。**`skip_pow_validation`和`disable_checkpoints`默认为`true`，该模式对已检查点的历史跳过工作量证明验证，同时始终对最近<Ver k="powVerificationThreshold" />个区块进行完整验证。参见[节点与钱包设置](/guides/mainnet-setup)。
+- **同步验证默认值的形式已变更。**`skip_pow_validation`默认为`true`，`disable_checkpoints`默认为`false`。在mainnet上，工作量证明仅在最后一个检查点之前跳过，在其之上则完整验证，且`disable_checkpoints`被忽略。参见[节点与钱包设置](/guides/mainnet-setup#sync-validation-settings)。
+
+## 4.1.0 的变更 {/* #changes-in-410 */}
+
+节点和钱包4.1.0加强了身份验证。针对4.0.x构建的集成可能开始收到401响应。
+
+- **钱包Owner API需要HTTP Basic认证。**`/v3/owner`和`/v2/owner`在v3令牌之上还需要用户名`epic`和`.owner_api_secret`的内容。参见[钱包的owner访问](/api/authentication#owner-access-on-the-wallet)。
+- **节点的`/v1`和`/v2/owner`默认拒绝访问。**未配置机密时，它们返回401而非开放运行。只有`GET /v1/version`和一个普通`get_status`调用无需凭据即可响应。参见[节点凭据](/api/authentication#the-node-credential)。
+- **新增Foreign API方法`ready_for_txs`**，无需凭据即可报告节点是否已同步。钱包用它替代owner端的`get_status`。参见[各方法所在位置](/api/node#which-json-rpc-method-lives-where)。
+- **钱包发送其节点机密的频率大幅降低。**它不会向`/v2/foreign`发送机密，因此设置了`foreign_api_secret_path`的节点无法为其提供服务。参见[钱包向节点提交的凭据](/api/authentication#the-credential-the-wallet-presents-to-the-node)。
+- **`/v1/kerneldownload`已移除。**参见[v1路由](/api/node#routes)。
+- **`disable_checkpoints`默认值为`false`，在mainnet上被忽略，** 并且在区块高度<Ver k="lastCheckpointHeight" />处新增了一个检查点，使<Ver k="checkpointCount" />移动了跳过范围的末端。请参阅[同步验证设置](/guides/mainnet-setup#sync-validation-settings)。
 
 ## 下一步 {/* #next */}
 

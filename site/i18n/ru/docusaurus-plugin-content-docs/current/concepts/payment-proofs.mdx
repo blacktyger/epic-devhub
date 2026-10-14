@@ -40,7 +40,7 @@ epic-wallet send --request_payment_proof --proof_address <recipient_proof_addres
 ## Выбрать транспорт соответственно {/* #choose-the-transport-accordingly */}
 
 Доказательство платежа является полем слейта (slate) V3, а epicbox конвертирует каждый слейт в V2,
-поэтому запрос доказательства не сохраняется при отправке через epicbox (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={251} />). Для перевода,
+поэтому запрос доказательства не сохраняется при отправке через epicbox (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={258} />). Для перевода,
 требующего доказательства, используйте любой другой транспорт; [сравнение](/concepts/transports#comparison) содержит
 соответствующую таблицу.
 

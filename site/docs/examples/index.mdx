@@ -27,7 +27,7 @@ Runnable examples for the workflows most integrations need, as a command line an
 | Node status, peers | Node `/v2/owner` | Basic, secret auto-created |
 | Blocks, headers, kernels, mempool | Node `/v2/foreign` | None |
 | Submit a raw transaction | Node `/v2/foreign` | None |
-| Anything involving keys or balances | Wallet Owner API `/v3/owner` | ECDH handshake and a wallet token |
+| Anything involving keys or balances | Wallet Owner API `/v3/owner` | Basic with `.owner_api_secret`, then the ECDH handshake and a wallet token |
 | Receive a transfer | Wallet Foreign API, or `epic-wallet listen` | None |
 
 The node's JSON-RPC methods are split across two paths: `/v2/owner` is administration, and every

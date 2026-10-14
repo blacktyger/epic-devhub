@@ -99,6 +99,7 @@
       - link
     - paragraph
       - strong
+      - code
       - link
     - paragraph
       - strong

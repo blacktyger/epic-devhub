@@ -123,7 +123,8 @@ function Masthead() {
  *
  *   1. The published Linux binaries link against GLIBC_2.39, so they do not start on anything
  *      older than Ubuntu 24.04. The download-and-unpack path silently failed for a large share of
- *      readers, and the panel had no room to say so.
+ *      readers, and the panel had no room to say so. (The v4.1.0 node and wallet binaries link
+ *      against GLIBC_2.34, measured 2026-10-14, which narrows this but does not remove it.)
  *   2. No miner binary has ever been published for any platform, so the miner could not appear
  *      here at all. A source build is the only path that covers all three components, and the
  *      installer is what makes it one line.

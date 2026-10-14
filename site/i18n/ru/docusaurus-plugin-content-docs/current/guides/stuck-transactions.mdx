@@ -67,7 +67,7 @@ epic-wallet cancel -t <slate_id>
 
 После публикации транзакции кошелёк опрашивает мемпул узла раз в секунду в течение до <Ver k="mempoolWaitMinutes" /> минут,
 чтобы подтвердить получение, не выводя ничего в этот период. Это 240 попыток с интервалом в одну
-секунду: в `send` (<Src repo="wallet" path="controller/src/command.rs" line={609} />), в `finalize` (<Src repo="wallet" path="controller/src/command.rs" line={779} />) и в собственном пути финализации слушателя epicbox (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={582} />).
+секунду: в `send` (<Src repo="wallet" path="controller/src/command.rs" line={609} />), в `finalize` (<Src repo="wallet" path="controller/src/command.rs" line={779} />) и в собственном пути финализации слушателя epicbox (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={589} />).
 Вызовы Owner API, стоящие за этими командами, блокируются на тот же период, поэтому бэкенд не должен
 выполнять их в потоке обработки запроса.
 

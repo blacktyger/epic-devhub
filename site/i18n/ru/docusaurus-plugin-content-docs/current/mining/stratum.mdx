@@ -23,8 +23,8 @@ JSON-RPC — одна строка, завершённая символом но
 | `login` | `login`, `pass`, `agent`, все обязательны | `"ok"`. Записывает имя воркера и агент (<Src repo="node" path="servers/src/mining/stratumserver.rs" line={928} />) |
 | `getjobtemplate` | `algorithm` | Объект шаблона задания |
 | `submit` | `height`, `job_id`, `nonce`, `pow` | `"ok"`, или `"blockfound - <block hash>"` если шара является блоком |
-| `keepalive` | none | `"ok"` |
-| `status` | none | `id`, `height`, `difficulty`, `accepted`, `rejected`, `stale` для вызывающего воркера |
+| `keepalive` | нет | `"ok"` |
+| `status` | нет | `id`, `height`, `difficulty`, `accepted`, `rejected`, `stale` для вызывающего воркера |
 
 Коды ошибок, которые отправляет сервер:
 

@@ -6,7 +6,7 @@ description: 使用Python完成Epic钱包Owner API v3加密握手并读取余额
 
 # 钱包：连接与读取
 
-每个Owner API v3调用都在加密信封内传输。客户端获得共享机密后，每个方法都是普通的JSON-RPC调用。
+每个Owner API v3调用都在加密信封内传输，每个请求均携带HTTP Basic身份验证，用户名为`epic`，密码为钱包的`.owner_api_secret`。客户端获得共享机密后，每个方法均为普通的JSON-RPC调用。
 
 启动API：
 
@@ -14,9 +14,11 @@ description: 使用Python完成Epic钱包Owner API v3加密握手并读取余额
 epic-wallet owner_api
 ```
 
+以下客户端从`~/.epic/main/.owner_api_secret`读取Basic机密，或在钱包位于其他位置时从`EPIC_OWNER_SECRET`指定的文件读取。
+
 ## 握手流程 {/* #the-handshake */}
 
-客户端生成一个secp256k1密钥对，通过`init_secure_api`交换公钥，并将后续每个请求包装在`encrypted_request_v3`中。第一个包装调用是`open_wallet`，它返回后续所有调用所携带的令牌。逐条消息的说明见[Owner API参考](/api/wallet-owner#the-encrypted-handshake)。
+客户端生成一个secp256k1密钥对，通过`init_secure_api`交换公钥，并将后续每个请求包装在`encrypted_request_v3`中。第一个包装调用为`open_wallet`，它返回后续每个调用所携带的令牌。逐条消息的说明见[Owner API参考](/api/wallet-owner#the-encrypted-handshake)。
 
 <HandshakeTrace />
 
@@ -43,7 +45,7 @@ EPIC_WALLET_PASSWORD=... python python/balance.py
 
 ## 读取余额 {/* #reading-a-balance */}
 
-`retrieve_summary_info`返回一个二元数组：数据是否已通过节点验证，以及汇总信息本身。
+`retrieve_summary_info`返回一个二元数组：第一个元素表示数据是否已通过节点验证，第二个元素为汇总信息本身。
 
 | 字段 | 含义 |
 | --- | --- |
@@ -55,17 +57,17 @@ EPIC_WALLET_PASSWORD=... python python/balance.py
 | `amount_locked` | 已预留为您发起的转账的输入 |
 | `amount_immature` | 仍在成熟期内的coinbase输出 |
 
-`total`与`amount_currently_spendable`之间的差额来自[输出（output）与锁定](/concepts/outputs-and-locking)。
+`total`与`amount_currently_spendable`之间的差值来自[输出（outputs）与锁定](/concepts/outputs-and-locking)。
 
 :::note[Amounts are strings in JSON]
 
-`u64`的值序列化为字符串，以避免JavaScript数字精度问题。将其解析为整数，除以<Ver k="epicBase" />得到EPIC。
+`u64`的值以字符串形式序列化，以避免JavaScript数字精度问题。将其解析为整数，再除以<Ver k="epicBase" />得到EPIC。
 
 :::
 
 ## 列出输出与交易 {/* #listing-outputs-and-transactions */}
 
-`retrieve_outputs`和`retrieve_txs`各自返回一个对象，其中包含`pager`以及记录列表，而非裸数组。需提供`limit`、`offset`和`sort_order`：不设限制时，大型钱包会在单次响应中返回所有记录。
+`retrieve_outputs`和`retrieve_txs`各自返回一个对象，其中包含`pager`以及记录列表，而非裸数组。需提供`limit`、`offset`和`sort_order`：若不设置限制，大型钱包将在单次响应中返回所有记录。
 
 ```python title="examples/python/list_paged.py" file=<rootDir>/examples/python/list_paged.py
 ```
@@ -86,7 +88,7 @@ EPIC_WALLET_PASSWORD=... python python/balance.py
 }
 ```
 
-`retrieve_outputs`与`outputs`相同，以`outputs`替代`txs`。类型为<Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={185} kind="struct" name="RetrieveTxsResult" />，
+`retrieve_outputs`与`outputs`相同，区别在于以`outputs`替换`txs`。类型为<Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={185} kind="struct" name="RetrieveTxsResult" />，
 <Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={174} kind="struct" name="RetrieveOutputsResult" />
 以及<Fn repo="wallet" path="libwallet/src/api_impl/types.rs" line={196} kind="struct" name="Pager" />。
 

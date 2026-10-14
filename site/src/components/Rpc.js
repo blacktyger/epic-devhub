@@ -177,7 +177,7 @@ function ResponseBlock({value, truncated = false}) {
 function SourceLink({src}) {
   const repo = repos[src.repo];
   if (!repo) return null;
-  const href = `https://github.com/${repo.repo}/blob/${repo.ref}/${src.path}${
+  const href = `${repo.url}/blob/${repo.ref}/${src.path}${
     src.line ? `#L${src.line}` : ''
   }`;
   return (

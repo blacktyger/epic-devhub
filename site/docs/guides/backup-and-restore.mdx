@@ -26,10 +26,12 @@ outputs are yours and nothing else about how they got there.
 Safe to lose: `epic-wallet.log`, `wallet_tor/`, `.owner_api_secret`, and the
 SQLite `-wal` and `-shm` files when the wallet is not running.
 
-:::warning[`.api_secret` must match the node's]
+:::note[`.api_secret` is the node's secret, and rarely needed]
 
-The wallet's `.owner_api_secret` regenerates on next run. Its `.api_secret` is the credential the wallet
-presents **to the node**, so deleting it breaks node calls until the node's value is copied back in. See
+The wallet's `.owner_api_secret` regenerates on next run, and so does a missing `.api_secret`. The
+`.api_secret` is the credential the wallet presents **to the node**, and on <Ver k="wallet" /> it is sent
+only for the Tor onion-address lookup, so losing it costs nothing else. Copy the node's value back in if
+you post over Tor. See
 [the credential the wallet presents to the node](/api/authentication#the-credential-the-wallet-presents-to-the-node).
 
 :::

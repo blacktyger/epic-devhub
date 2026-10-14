@@ -10,8 +10,8 @@ holds as many as you create, and one named `default` exists from the moment the 
 initialised.
 
 The record is two fields, a label and a parent derivation path
-(<Src repo="wallet" path="libwallet/src/types.rs" line={992} />). The label is the storage key
-(<Src repo="wallet" path="impls/src/backends/lmdb.rs" line={823} />), so it is fixed once created.
+(<Src repo="wallet" path="libwallet/src/types.rs" line={997} />). The label is the storage key
+(<Src repo="wallet" path="impls/src/backends/lmdb.rs" line={830} />), so it is fixed once created.
 Everything the wallet stores about coins is keyed on the path.
 
 ## What belongs to an account {/* #what-belongs-to-an-account */}
@@ -25,8 +25,8 @@ Everything the wallet stores about coins is keyed on the path.
 | The epicbox and payment proof addresses | The last scanned block height |
 
 The balance summary, the output list and the transaction list all read one account
-(<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={479} />). Transaction log ids
-restart at 0 per account (<Src repo="wallet" path="impls/src/backends/lmdb.rs" line={721} />), so an
+(<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={475} />). Transaction log ids
+restart at 0 per account (<Src repo="wallet" path="impls/src/backends/lmdb.rs" line={727} />), so an
 id is only unique within the account that holds it.
 
 `epic-wallet address` prints the identifiers of one account, and each account has its own
@@ -51,7 +51,7 @@ four big-endian child indices:
 ]
 ```
 
-Captured from a wallet running <Ver k="wallet" /> on 2026-08-26. An account created second returns
+Captured from a wallet running 4.0.0 on 2026-08-26. An account created second returns
 `0200000001000000000000000000000000`
 (<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={99} />).
 
@@ -85,7 +85,7 @@ names it for a single call, and a label that is not in `accounts` resolves to th
 `dest_acct_name` on `receive_tx`.
 
 **Receiving over epicbox** credits the account that was active when the listener opened the wallet
-(<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={513} />). That listener subscribes
+(<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={520} />). That listener subscribes
 with that account's address, so one process serves one account.
 
 **Moving value between two accounts in one wallet** uses the `self` transport, where `-d` names the
@@ -100,7 +100,7 @@ See [transports](/concepts/transports#self).
 ## Refreshing and scanning {/* #refreshing-and-scanning */}
 
 `refresh_from_node` updates the active account
-(<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={245} />). `scan` walks every
+(<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={241} />). `scan` walks every
 account, because it recovers outputs by the derivation path each one carries
 (<Src repo="wallet" path="libwallet/src/internal/scan.rs" line={376} />). The scan cursor is
 wallet-wide while last confirmed height is per account, so after a scan each account's height is set

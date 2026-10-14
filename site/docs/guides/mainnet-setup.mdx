@@ -68,23 +68,32 @@ Only the P2P port needs to be reachable from outside. Leave the API on loopback 
 
 ### Sync validation settings {/* #sync-validation-settings */}
 
-`skip_pow_validation` and `disable_checkpoints` both default to `true`. That is a sync speed
-optimisation rather than a weakened default.
+`skip_pow_validation` defaults to `true` and `disable_checkpoints` to `false`. Skipping proof of work
+inside the checkpointed range is a sync speed optimisation rather than a weakened default: the skipped
+range ends at a hardcoded checkpoint whose hash must match, and every header in it links back to that
+checkpoint. Only the headers at the <Ver k="checkpointCount" /> checkpoint heights are compared by hash;
+the ones between them are not.
 
-| Where the block sits | Validation performed |
+| Where the block sits | Validation performed on mainnet |
 | --- | --- |
-| Inside a checkpointed range | Header hash compared against a hardcoded checkpoint. A mismatch aborts sync. Proof of work skipped |
-| Past the checkpoints, more than <Ver k="powVerificationThreshold" /> blocks behind the tip | Proof of work skipped |
-| Within <Ver k="powVerificationThreshold" /> blocks of the tip | **Full proof of work, always, regardless of these settings** |
+| Inside the checkpointed range, up to height <Ver k="lastCheckpointHeight" /> | A header at a checkpoint height is compared against the hardcoded hash, and a mismatch aborts sync. Proof of work skipped while `skip_pow_validation` is `true` |
+| Above the last checkpoint | **Full proof of work, always, whatever these settings say** |
+
+A header batch counts as checkpointed only if every header in it does.
 
 There are <Ver k="checkpointCount" /> checkpoints compiled into the node, in
 <Src repo="node" path="chain/src/types.rs" line={432} />. The code is
-<Fn repo="node" path="chain/src/chain.rs" line={1567} name="check_header_against_checkpoints" />, the
-skip decision is at <Src repo="node" path="servers/src/common/adapters.rs" line={728} />, and the floor
-is <Fn repo="node" path="servers/src/common/adapters.rs" line={45} kind="const" name="POW_VERIFICATION_THRESHOLD" />.
+<Fn repo="node" path="chain/src/chain.rs" line={1545} name="check_header_against_checkpoints" />, the
+skip decision is <Fn repo="node" path="servers/src/common/adapters.rs" line={51} name="should_skip_pow" />,
+and the node logs which policy applies when it starts on mainnet.
 
-Set both to `false` to verify all historical proof of work yourself. That costs a much longer initial
-sync.
+`disable_checkpoints` is ignored on mainnet. On a test network, with `skip_pow_validation` also `true`, it
+extends the skipping past the last checkpoint for blocks more than <Ver k="powVerificationThreshold" />
+below the tip
+(<Fn repo="node" path="servers/src/common/adapters.rs" line={45} kind="const" name="POW_VERIFICATION_THRESHOLD" />).
+
+Set `skip_pow_validation = false` to verify all historical proof of work yourself. That costs a much
+longer initial sync.
 
 ### What the node stores {/* #what-the-node-stores */}
 
@@ -153,10 +162,10 @@ the same machine collides there whatever chain it runs. Override `owner_api_list
 
 ## 3. Point the wallet at the node {/* #3-point-the-wallet-at-the-node */}
 
-The wallet defaults to a node on loopback at port <Ver k="ports.nodeApi" />, and in the default layout it
-resolves the node's API secret to the same file the node created. Nothing to configure.
+The wallet defaults to a node on loopback at port <Ver k="ports.nodeApi" />. Nothing to configure.
 
-Two things change that. If you moved either directory, set `node_api_secret_path` to
+The wallet's calls go to node surfaces that need no credential, so moving either directory does not
+break it. `node_api_secret_path` matters only for the Tor onion-address lookup; see
 [the credential the wallet presents to the node](/api/authentication#the-credential-the-wallet-presents-to-the-node).
 If you want a different node, set `check_node_api_http_addr` in `epic-wallet.toml`.
 
@@ -165,7 +174,9 @@ epic-wallet info
 ```
 
 A balance of zero and no error means the wallet reached the node and the node answered. A 401 means the
-two disagree about the secret.
+node has a `foreign_api_secret_path` set, which epic-wallet <Ver k="wallet" /> cannot work with. Going by
+the code, a node older than <Ver k="node" /> with an API secret would also answer 401; that pairing has
+not been tested.
 
 A wallet pointed at a public node works. That node sees which outputs the wallet asks about, and the
 wallet does not validate the chain state it is given.

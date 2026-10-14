@@ -17,7 +17,8 @@ epic_ok() {
          else (.result.Ok // .result) end'
 }
 
-# Owner surface: needs the secret when the node has one. Status, peers, chain admin.
+# Owner surface: status, peers, chain admin. From node 4.1.0 it needs the secret, and without one
+# answers only a single plain get_status.
 owner_rpc() {
   local -a cred=()
   [ -r "$SECRET_FILE" ] && cred=(-u "epic:$(cat "$SECRET_FILE")")

@@ -7,47 +7,60 @@ description: Which Epic API surfaces expect a credential, which are open because
 # API authentication and TLS
 
 The node protects its owner-facing surfaces with HTTP Basic against a secret file on disk. The wallet
-Owner API v3 uses a token obtained with the wallet password. The foreign surfaces take no credential,
-because an interactive transfer needs the receiving side reachable by a stranger. TLS termination is
-left to the operator.
+protects its Owner API the same way, against a secret file of its own, and Owner API v3 also needs a
+token obtained with the wallet password. The foreign surfaces take no credential, because an interactive
+transfer needs the receiving side reachable by a stranger. TLS termination is left to the operator.
 
 ## The surfaces {/* #the-surfaces */}
 
 | Surface | Default port | Credential | Who is meant to call it |
 | --- | --- | --- | --- |
-| Node `/v1/*` | <Ver k="ports.nodeApi" /> | Basic, `api_secret_path`, across the whole prefix | You, from the same machine |
-| Node `/v2/owner` | <Ver k="ports.nodeApi" /> | Basic, `api_secret_path` | You, from the same machine |
+| Node `/v1/*` | <Ver k="ports.nodeApi" /> | Basic, `api_secret_path`, on every route except `GET /v1/version` | You, from the same machine |
+| Node `/v2/owner` | <Ver k="ports.nodeApi" /> | Basic, `api_secret_path`. A single plain `get_status` call is answered without it | You, from the same machine |
 | Node `/v2/foreign` | <Ver k="ports.nodeApi" /> | Optional Basic, `foreign_api_secret_path` | Anything that reads the chain |
-| Wallet Owner `/v3/owner` | <Ver k="ports.walletOwner" /> | Token from `open_wallet`, inside the encrypted envelope | You, from the same machine |
-| Wallet Owner `/v2/owner` | <Ver k="ports.walletOwner" /> | None. Superseded by `/v3/owner` | Nothing. Bind the listener to loopback |
+| Wallet Owner `/v3/owner` | <Ver k="ports.walletOwner" /> | Basic, the wallet's `api_secret_path`, and a token from `open_wallet` inside the encrypted envelope | You, from the same machine |
+| Wallet Owner `/v2/owner` | <Ver k="ports.walletOwner" /> | Basic, the wallet's `api_secret_path`. Superseded by `/v3/owner` | Nothing. Bind the listener to loopback |
 | Wallet Foreign `/v2/foreign` | <Ver k="ports.walletForeign" /> | None | A counterparty paying you |
 
 The wallet's Foreign API receives a slate, returns a partially signed one, builds a coinbase for a miner
 configured to pay this wallet, and reports its version. Restrict access to it at the proxy.
 
 The node's `/v1` credential covers the whole prefix, including the chain reads that are open on
-`/v2/foreign`. See [the v1 REST surface](/api/node#the-v1-rest-surface).
+`/v2/foreign`. The one exception is an exact `GET /v1/version`, which answers anyone; `POST` to the same
+path still needs the credential. See [the v1 REST surface](/api/node#the-v1-rest-surface).
 
 `api_secret_path` names a different file in each binary's configuration. Both node surfaces read the
-node's, which is `.api_secret`.
+node's, which is `.api_secret`. The wallet's names `.owner_api_secret`, which protects the wallet's own
+Owner listener.
 
 ## Owner access on the wallet {/* #owner-access-on-the-wallet */}
 
-`/v3/owner` is gated on a token, not on an HTTP credential. Every method in the v3 trait takes one
+`/v3/owner` has two gates, and a call has to pass both.
+
+The first is HTTP Basic on the listener. Username `epic`, password the contents of the wallet's
+`.owner_api_secret`, realm `EpicOwnerAPI`. It covers everything on the Owner listener except
+`/v2/foreign`, so `/v3/owner` and `/v2/owner` alike, and it is checked before any method runs
+(<Src repo="wallet" path="controller/src/controller.rs" line={143} />). Comment out the wallet's
+`api_secret_path` and this layer is not installed.
+
+The second is a token. Every method in the v3 trait takes one
 (<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={78} />), and getting one means completing the
-ECDH handshake and then calling `open_wallet` with the wallet password. The password is the gate. See
+ECDH handshake and then calling `open_wallet` with the wallet password. See
 [the encrypted handshake](/api/wallet-owner#the-encrypted-handshake).
 
-The first call establishes the shared key and carries no credential:
+The first call establishes the shared key. It carries the Basic credential and nothing else:
 
 ```bash
-curl -s \
+curl -s -u epic:$(cat ~/.epic/main/.owner_api_secret) \
   -d '{"jsonrpc":"2.0","method":"init_secure_api","params":{"ecdh_pubkey":"<your compressed public key, hex>"},"id":1}' \
   http://127.0.0.1:3420/v3/owner
 ```
 
+Without `-u` the listener answers 401 before the handshake starts. Swap `~/.epic/main` for the wallet
+directory if the wallet lives elsewhere.
+
 On top of that credential, every method on `/v3/owner` takes a `token`, and a token comes from
-`open_wallet`, which needs the wallet password. `owner_api_listen_interface` defaults to `127.0.0.1`;
+`open_wallet`, which needs the wallet password. `owner_api_interface` defaults to `127.0.0.1`;
 for remote access, tunnel to loopback. The listener is
 <Src repo="wallet" path="controller/src/controller.rs" line={123} />.
 
@@ -74,15 +87,28 @@ curl -u epic:$(cat ~/.epic/main/.api_secret) \
 
 Secret files hold one 20-character random alphanumeric string with no trailing newline
 (<Src repo="node" path="config/src/config.rs" line={84} />), and the comparison is constant time
-(<Src repo="node" path="api/src/auth.rs" line={74} />). The realm is `EpicAPI` on the owner surface and
-`EpicForeignAPI` on the foreign one. A rejected call, on either binary, returns 401 with a
-`WWW-Authenticate` header and a JSON-RPC error body:
+(<Fn repo="node" path="api/src/auth.rs" line={214} name="basic_auth_matches" />). The realm is
+`EpicAPI` on the owner surface and `EpicForeignAPI` on the foreign one. A rejected call, on either
+binary, returns 401 with a `WWW-Authenticate` header and a JSON-RPC error body:
 
 ```json
 {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Unauthorized"}, "id": null}
 ```
 
-- With `api_secret_path` commented out, the listener runs with no credential.
+Two calls are answered without the credential:
+
+- `GET /v1/version`, exactly that method and path
+  (<Src repo="node" path="api/src/handlers.rs" line={118} />).
+- One `get_status` on `/v2/owner`, sent alone rather than in a batch, with `params` of `[]` or `null`
+  and a body of at most 4 KiB. It returns the same status as an authenticated call. Any other method,
+  a batch, or a body that does not parse gets 401
+  (<Fn repo="node" path="api/src/handlers.rs" line={236} name="is_legacy_status_request" />).
+
+The rest of this behaviour follows from the node failing closed:
+
+- With `api_secret_path` commented out, or pointing at a file that is not there, there is no secret to
+  match, so every protected call returns 401 to everyone, with or without `-u`. Only the two calls above
+  still answer. Commenting the key out locks `/v1` and `/v2/owner`; it does not open them.
 - An empty `.api_secret` is regenerated with a new value rather than read as "no secret", so emptying
   the file does not switch authentication off
   (<Src repo="node" path="config/src/config.rs" line={96} />).
@@ -109,12 +135,34 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:3413/v2/foreig
 # 401 once the secret is in place
 ```
 
+:::warning[epic-wallet <Ver k="wallet" /> cannot use a node with a foreign secret]
+
+The wallet never sends a credential to the node's `/v2/foreign`, whatever is in its own `.api_secret`, so
+every chain read it makes gets 401 and it stops with `Unauthorized (HTTP 401)`. The error suggests
+checking `node_api_secret_path`, which cannot help. On any node a wallet talks to, do not create the
+file `foreign_api_secret_path` names (the key is set by default and is harmless while the file is
+absent), or comment the key out, and restrict the foreign surface at a proxy instead.
+
+:::
+
 ## The credential the wallet presents to the node {/* #the-credential-the-wallet-presents-to-the-node */}
 
-`node_api_secret_path` points the other way: it is what the wallet sends when calling the node, and it
-defaults to `<wallet dir>/.api_secret`. Left at defaults, node and wallet share `~/.epic/<network>/`
-and resolve to the same file, so they agree with no configuration. Change the node's secret, move
-either directory, or point the wallet at another node, and this is the key to update.
+`node_api_secret_path` points the other way: it is the node secret the wallet holds, and it defaults to
+`<wallet dir>/.api_secret`. The wallet sends it only on `/v2/owner` calls other than `get_status`, and
+never to `/v2/foreign` or `/v2/tor`
+(<Src repo="wallet" path="impls/src/node_clients/http.rs" line={115} />).
+
+In practice that is one call, `get_onion_addresses`, which the wallet makes when finalising an epicbox
+transfer so it can post over Tor. A missing or mismatched secret makes that lookup come back empty and
+the wallet posts the normal way. Everything else the wallet asks a node, balances, outputs, kernels,
+posting a transaction and the sync check, goes to surfaces that need no credential. The sync check is
+the foreign `ready_for_txs`, and only a node that does not have that method gets the unauthenticated
+`get_status` instead.
+
+So a wallet whose `.api_secret` differs from the node's still works. A 401 from the node points
+elsewhere: at a `foreign_api_secret_path` on the node, covered above, or at a node older than
+<Ver k="node" />. That second case is read from the code, not tested: a 4.0.x node with a secret puts
+all of `/v2/owner` behind Basic auth, so it refuses the wallet's unauthenticated `get_status`.
 
 ## TLS {/* #tls */}
 

@@ -6,14 +6,18 @@ description: Complete the Epic wallet Owner API v3 encrypted handshake and read 
 
 # Wallet: connect and read
 
-Every Owner API v3 call travels inside an encrypted envelope. Once the client holds the shared
-secret, every method is an ordinary JSON-RPC call.
+Every Owner API v3 call travels inside an encrypted envelope, and every request carries HTTP Basic with
+username `epic` and the wallet's `.owner_api_secret`. Once the client holds the shared secret, every
+method is an ordinary JSON-RPC call.
 
 Start the API:
 
 ```bash
 epic-wallet owner_api
 ```
+
+The client below reads the Basic secret from `~/.epic/main/.owner_api_secret`, or from the file
+`EPIC_OWNER_SECRET` names when the wallet lives elsewhere.
 
 ## The handshake {/* #the-handshake */}
 

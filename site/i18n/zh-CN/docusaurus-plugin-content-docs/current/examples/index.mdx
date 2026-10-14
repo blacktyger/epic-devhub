@@ -27,8 +27,8 @@ description: 涵盖节点查询和完整钱包交易流程的Epic Cash客户端�
 | 节点状态、对等节点 | 节点 `/v2/owner` | 基础，自动创建机密 |
 | 区块、区块头、内核（kernel）、内存池（mempool） | 节点`/v2/foreign` | 无 |
 | 广播原始交易 | Node `/v2/foreign` | 无 |
-| 涉及密钥或余额的任何操作 | 钱包 Owner API `/v3/owner` | ECDH 握手与钱包令牌 |
-| 接收转账 | 钱包 Foreign API，或 `epic-wallet listen` | 无 |
+| 涉及密钥或余额的任何操作 | 钱包 Owner API `/v3/owner` | 基础用法（含`.owner_api_secret`），然后进行ECDH握手并获取钱包令牌 |
+| 接收转账 | 钱包Foreign API，或`epic-wallet listen` | 无 |
 
 节点的JSON-RPC方法分布在两个路径下：`/v2/owner`用于管理，所有链读取操作在`/v2/foreign`上。参见[节点API](/api/node#which-json-rpc-method-lives-where)。
 
@@ -67,7 +67,7 @@ pip install requests coincurve pycryptodome
   import each other from.
 - 节点端口为<Ver k="ports.nodeApi" />，钱包Owner API端口为<Ver k="ports.walletOwner" />，钱包Foreign API端口为<Ver k="ports.walletForeign" />。每个客户端均支持`NODE_URL`、`EPIC_OWNER_URL`和`EPIC_FOREIGN_URL`，可将其指向其他地址。
 - 金额为整数，以<Ver k="smallestUnit" />为单位计数。1 EPIC等于<Ver k="epicBase" />。
-- 机密从对应文件中读取，钱包密码从`EPIC_WALLET_PASSWORD`读取。
+- 机密从各自的文件中读取，钱包密码从`EPIC_WALLET_PASSWORD`读取。
 
 ## 响应信封{/* #the-response-envelope */}
 
@@ -85,7 +85,7 @@ pip install requests coincurve pycryptodome
 
 编写一个解包辅助函数并在所有地方使用。[连接与读取](/examples/wallet-connect)中钱包客户端的`_unwrap`在`Err`时抛出异常，在`Ok`时返回值，该客户端中的每个调用均通过它执行。
 
-信封的逐字段说明见[API概述](/api#the-response-envelope)。
+信封的逐字段说明见[API概览](/api#the-response-envelope)。
 
 ## 参考客户端位置{/* #where-the-reference-clients-live */}
 

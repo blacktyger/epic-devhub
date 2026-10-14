@@ -41,9 +41,10 @@ foreign_api_secret_path = "/home/you/.epic/main/.foreign_api_secret"
 # Keep full block history rather than pruning.
 archive_mode = true
 
-# Set these to false only to verify all historical proof of work yourself.
+# skip_pow_validation applies only through the latest checkpoint. Set it to false to verify all
+# historical proof of work yourself.
 # skip_pow_validation = true
-# disable_checkpoints = true
+# disable_checkpoints = false
 
 [server.p2p_config]
 host = "0.0.0.0"
@@ -63,16 +64,16 @@ See [authentication and TLS](/api/authentication) for the foreign secret, and
 | --- | --- | --- | --- |
 | `db_root` | string | `~/.epic/main/chain_data` | Directory holding chain and peer databases |
 | `api_http_addr` | `host:port` | <code>127.0.0.1:<Ver k="ports.nodeApi" /></code> | Listen address for the HTTP APIs |
-| `api_secret_path` | string, optional | `~/.epic/main/.api_secret` | Basic auth secret for `/v1` and `/v2/owner`. Comment out to run without one |
-| `foreign_api_secret_path` | string, optional | `.foreign_api_secret`, relative | Basic auth secret for `/v2/foreign`. Create the file yourself. See [API authentication](/api/authentication) |
-| `foundation_path` | string | `/usr/share/epic/foundation.json`, or `.\foundation.json` on Windows | Pre-generated foundation coinbase data |
+| `api_secret_path` | string, optional | `~/.epic/main/.api_secret` | Basic auth secret for `/v1` and `/v2/owner`. Commenting it out does not open them: with no secret, both return 401 to every call except `GET /v1/version` and one plain `get_status`. See [the node credential](/api/authentication#the-node-credential) |
+| `foreign_api_secret_path` | string, optional | `.foreign_api_secret`, relative | Basic auth secret for `/v2/foreign`. Create the file yourself. A node with it set cannot serve epic-wallet <Ver k="wallet" />. See [API authentication](/api/authentication#optional-credential-on-the-nodes-foreign-surface) |
+| `foundation_path` | string, optional | `/usr/share/epic/foundation.json`, or `.\foundation.json` on Windows | Pre-generated foundation coinbase data. Omit the key, or leave it empty, to use the copy built into the binary |
 | `tls_certificate_file` | string, optional | unset | PEM certificate chain. Setting it switches the API to HTTPS |
 | `tls_certificate_key` | string, optional | unset | PEM private key. Required if the certificate is set |
 | `chain_type` | enum | `Mainnet` | `Mainnet`, `Floonet`, `UserTesting`, `AutomatedTesting` |
 | `chain_validation_mode` | enum | `Disabled` | `EveryBlock` runs a full chain validation after each block |
 | `archive_mode` | bool, optional | `false` | `true` keeps full block history instead of pruning |
-| `skip_pow_validation` | bool, optional | `true` | Skip proof-of-work validation for historical blocks during sync |
-| `disable_checkpoints` | bool, optional | `true` | Allow skipping proof of work past the checkpointed range. Has effect only when `skip_pow_validation` is true |
+| `skip_pow_validation` | bool, optional | `true` | Skip proof-of-work validation during sync for blocks inside the checkpointed range. Applies only through the latest checkpoint |
+| `disable_checkpoints` | bool, optional | `false` | On a test network, extends the skipping past the latest checkpoint for blocks more than <Ver k="powVerificationThreshold" /> below the tip. Has effect only when `skip_pow_validation` is true. **Ignored on mainnet** |
 | `skip_sync_wait` | bool, optional | `false` | Skip the startup sync wait |
 | `header_sync_timeout` | seconds | `10` | Timeout waiting for confirmation more headers exist. Zero or negative becomes 10 |
 | `run_tui` | bool, optional | `false` | Run the terminal interface. Enabling it disables stdout logging |
@@ -81,9 +82,10 @@ See [authentication and TLS](/api/authentication) for the foreign secret, and
 | `run_test_miner` | bool, optional | `false` | Built-in miner, Cuckoo only. Mining a chain takes Stratum and an external miner. See [run a local network](/guides/local-network) |
 | `test_miner_wallet_url` | string, optional | unset | Wallet listener that receives the test miner's coinbase. Unset falls back to `http://127.0.0.1:13415` |
 
-Both sync validation keys default to `true` and speed up initial sync. Within
-<Ver k="powVerificationThreshold" /> blocks of the chain tip, proof of work is fully verified whatever
-they are set to. See [node and wallet setup](/guides/mainnet-setup) for what each one skips.
+On mainnet only `skip_pow_validation` matters. Left at `true`, proof of work is skipped for blocks up to
+the last checkpoint, at height <Ver k="lastCheckpointHeight" />, and fully verified for every block above
+it. `disable_checkpoints` widens that only on a test network. See
+[node and wallet setup](/guides/mainnet-setup#sync-validation-settings) for what each one skips.
 
 ## `[server.p2p_config]` {/* #serverp2p_config */}
 
@@ -101,12 +103,12 @@ they are set to. See [node and wallet setup](/guides/mainnet-setup) for what eac
 | `ban_window` | seconds, optional | `10800` | How long a banned peer stays banned |
 | `peer_max_inbound_count` | u32, optional | `128` | Maximum inbound peers |
 | `peer_max_outbound_count` | u32, optional | `128` | Maximum outbound peers |
-| `peer_listener_buffer_count` | u32, optional | `8` | Slack above the inbound limit, to help bootstrapping |
+| `peer_listener_buffer_count` | u32, optional | `8` | Slack above the inbound limit, to help bootstrapping. Also caps how many inbound handshakes can be pending at once, one per IP address |
 | `dandelion_peer` | `ip:port`, optional | unset | Pinned Dandelion relay |
 | `my_onion_addr` | string, optional | unset | This node's own onion address |
 
 The four addresses the generated file writes
-(<Src repo="node" path="config/src/comments.rs" line={272} />):
+(<Src repo="node" path="config/src/comments.rs" line={273} />):
 
 ```toml title="epic-server.toml, p2p seeds"
 seeds = ["95.217.197.180:3414","5.161.127.56:3414","5.75.242.4:3414","5.78.71.29:3414"]

@@ -31,7 +31,7 @@ Coinbase输出带有额外规则。挖矿奖励在可花费之前会先出现在
 
 ## 取消的前提条件 {/* #cancelling-has-preconditions */}
 
-`cancel_tx`在执行任何操作之前会先联系节点，因此节点宕机或未同步会阻止其执行（<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={758} />）。然后它需要恰好一笔与你传入的id或slate id匹配的交易，该交易的类型为`TxSentCreated`或`TxReceived`，且其`confirmed`字段为false（<Src repo="wallet" path="libwallet/src/internal/tx.rs" line={309} />）。
+`cancel_tx`在执行任何操作之前会先联系节点，因此节点宕机或未同步会阻止其执行（<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={758} />）。然后它需要恰好一笔与你传入的id或slate id匹配的交易，该交易的类型为`TxSentCreated`或`TxReceived`，且其`confirmed`字段为false（<Src repo="wallet" path="libwallet/src/internal/tx.rs" line={316} />）。
 
 类型条件决定了边界。一旦已广播的转账在节点的内存池（mempool）中被观察到，其条目即变为`TxSentMempool`，从那时起你是在等待链确认，而非选择放弃它。钱包在广播后最多轮询四分钟以等待该观察结果；参见[发送似乎卡住](/guides/stuck-transactions#case-3-the-send-appears-to-hang)。
 

@@ -34,8 +34,8 @@ The version column is the reason for the proof column. A payment proof is a V3 s
 without a version conversion, so every field survives
 (<Src repo="wallet" path="impls/src/adapters/keybase.rs" line={304} />). `http` asks the listener which
 version it speaks and returns an error rather than downgrading a slate that carries a proof
-(<Src repo="wallet" path="impls/src/adapters/http.rs" line={143} />). `epicbox` converts to V2
-unconditionally (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={251} />), so the proof
+(<Src repo="wallet" path="impls/src/adapters/http.rs" line={177} />). `epicbox` converts to V2
+unconditionally (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={258} />), so the proof
 request is gone before the slate leaves. To request a proof, see
 [choose the transport accordingly](/concepts/payment-proofs#choose-the-transport-accordingly).
 
@@ -52,7 +52,7 @@ slate, locks its inputs and returns
 (<Src repo="wallet" path="controller/src/command.rs" line={566} />). It does not wait for the reply. The
 signed slate comes back through the relay as a new message, and whichever process holds the sender's
 epicbox subscription is what finalises and posts it
-(<Fn repo="wallet" path="impls/src/adapters/epicbox.rs" line={502} name="process_incoming_slate" />). So
+(<Fn repo="wallet" path="impls/src/adapters/epicbox.rs" line={509} name="process_incoming_slate" />). So
 the recipient needs `listen -m epicbox` to sign, and the sender needs `listen -m epicbox` to finalise.
 Neither has to be connected at the moment the other acts, because the relay stores the message until its
 addressee reconnects. Start both subscriptions before sending. An observed round trip took about

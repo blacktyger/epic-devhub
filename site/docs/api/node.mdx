@@ -11,7 +11,7 @@ default, split across two surfaces.
 | Surface | Path | Serves |
 | --- | --- | --- |
 | Owner | `/v2/owner` | Node administration, eight methods |
-| Foreign | `/v2/foreign` | Chain reads, transaction submission, block templates, seventeen methods |
+| Foreign | `/v2/foreign` | Chain reads, transaction submission, block templates, <Ver k="foreignApiMethods" /> methods |
 
 Credentials, and which of these expects one, are covered once in
 [authentication and TLS](/api/authentication).
@@ -28,7 +28,7 @@ The same listener also serves a REST surface under `/v1`. See
 
 `/v2/foreign` is everything else, including every chain read and transaction submission:
 
-`get_header`, `get_block`, `get_blocks`, `get_tip`, `get_version`, `get_kernel`,
+`ready_for_txs`, `get_header`, `get_block`, `get_blocks`, `get_tip`, `get_version`, `get_kernel`,
 `get_last_n_kernels`, `get_outputs`, `get_unspent_outputs`, `get_pmmr_indices`, `get_pool_size`,
 `get_stempool_size`, `get_unconfirmed_transactions`, `push_transaction`, `get_block_template`,
 `finalize_block_template`, `submit_block`.
@@ -40,8 +40,18 @@ curl -s -d '{"jsonrpc":"2.0","method":"get_tip","params":[],"id":1}' \
   http://127.0.0.1:3413/v2/foreign
 ```
 
-Checking sync state is an owner-surface call, and needs
-[the node credential](/api/authentication#the-node-credential).
+Checking whether the node is synced is a foreign-surface call too. `ready_for_txs` returns
+`{"ready_for_txs": true}` only when the sync state is `no_sync`, `false` otherwise, and needs no
+credential:
+
+```bash
+curl -s -d '{"jsonrpc":"2.0","method":"ready_for_txs","params":[],"id":1}' \
+  http://127.0.0.1:3413/v2/foreign
+```
+
+The full status, with height, peers and the named sync state, is `get_status` on the owner surface. It
+normally needs [the node credential](/api/authentication#the-node-credential), but one plain
+`get_status` call is answered without it.
 
 ## Response shapes {/* #response-shapes */}
 
@@ -79,9 +89,9 @@ The foreign surface offers a three-step block submission flow as an alternative 
 
 The node serves REST under `/v1` and JSON-RPC under `/v2`, from the same process on the same port.
 The numbers name two interface styles, not two generations: `/v1` is registered at
-<Src repo="node" path="api/src/handlers.rs" line={536} />, `/v2` at
-<Src repo="node" path="api/src/handlers.rs" line={135} /> and
-<Src repo="node" path="api/src/handlers.rs" line={155} />.
+<Src repo="node" path="api/src/handlers.rs" line={692} />, `/v2` at
+<Src repo="node" path="api/src/handlers.rs" line={132} /> and
+<Src repo="node" path="api/src/handlers.rs" line={152} />.
 
 The difference is where the operation is named.
 
@@ -92,14 +102,15 @@ The difference is where the operation is named.
 | HTTP verb | `GET`, `POST` to mutate | `POST` |
 | URLs | one per operation | `/v2/foreign`, `/v2/owner`, `/v2/tor` |
 | Result | the payload | the payload inside `result.Ok` |
-| Credential | Basic auth across the `/v1` prefix | per surface |
+| Credential | Basic auth across the `/v1` prefix, except `GET /v1/version` | per surface |
 
 Both surfaces return the same payloads. `GET /v1/status` and `get_status` on `/v2/owner` produce
 identical bodies, so the [JSON-RPC pages](#full-method-reference) document the response shapes for
 both.
 
 `GET /`, `GET /v1/` and `GET /v2/` return a list of v1 routes, from
-<Src repo="node" path="api/src/handlers.rs" line={446} />.
+<Src repo="node" path="api/src/handlers.rs" line={606} />. `GET /v1/` needs the credential like the
+rest of the prefix.
 
 ### Routes {/* #routes */}
 
@@ -109,7 +120,8 @@ returns the same thing, and its surface.
 <details>
 <summary>Every v1 route and its JSON-RPC equivalent</summary>
 
-The router registers 19 patterns, three of them wildcards.
+The router registers 18 patterns, six of them wildcards: `blocks/*`, `headers/*`, `chain/outputs/*`,
+`chain/kernels/*`, `txhashset/*` and `peers/**`.
 
 | Route | Verb | JSON-RPC equivalent |
 | --- | --- | --- |
@@ -137,13 +149,13 @@ The router registers 19 patterns, three of them wildcards.
 | `/v1/peers/<addr>/ban` | POST | `ban_peer`, owner |
 | `/v1/peers/<addr>/unban` | POST | `unban_peer`, owner |
 | `/v1/peers/onion_addresses` | GET | `get_onion_addresses`, owner |
-| `/v1/version` | GET | `get_version`, foreign |
+| `/v1/version` | GET | `get_version`, foreign. The one `/v1` route that needs no credential |
 | `/v1/mining/block_template` | GET | `get_block_template`, foreign |
-| `/v1/kerneldownload` | GET | none |
 
 </details>
 
-A `/v1` call, which takes the node credential across the whole prefix:
+A `/v1` call, which takes the node credential. Without `-u`, or on a node with no `api_secret_path`, it
+returns 401:
 
 ```bash
 curl -s -u epic:$(cat ~/.epic/main/.api_secret) http://127.0.0.1:3413/v1/status
@@ -167,13 +179,14 @@ curl -s -u epic:$(cat ~/.epic/main/.api_secret) http://127.0.0.1:3413/v1/status
 }
 ```
 
-Captured on a local usernet chain at height 1439 on 2026-08-24.
+Captured from node 4.0.3 on a local usernet chain at height 1439 on 2026-08-24. A <Ver k="node" />
+node puts its own version in `user_agent`.
 
 ## Full method reference {/* #full-method-reference */}
 
 <CardGrid>
   <Card title="Chain reads" to="/api/node/chain-reads">
-    Ten methods. Blocks, headers, kernels, outputs and the tip.
+    Eleven methods. Sync readiness, blocks, headers, kernels, outputs and the tip.
   </Card>
   <Card title="Administration" to="/api/node/administration">
     Eight methods. Status, peers, validation and compaction.
@@ -189,7 +202,7 @@ Captured on a local usernet chain at height 1439 on 2026-08-24.
 ## Source {/* #source */}
 
 - <Src repo="node" path="api/src/owner_rpc.rs" line={29} /> defines the eight owner methods
-- <Src repo="node" path="api/src/foreign_rpc.rs" line={37} /> defines the foreign methods
+- <Src repo="node" path="api/src/foreign_rpc.rs" line={38} /> defines the foreign methods
 - <Src repo="node" path="api/src/types.rs" /> defines every response shape
 - <Src repo="node" path="api/src/auth.rs" /> is the Basic auth middleware
 

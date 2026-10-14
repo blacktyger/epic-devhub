@@ -60,8 +60,8 @@ leave it empty, so the log alone cannot tell you who paid you.
 
 A transaction's depth is the current chain height minus the height at which the wallet saw it confirm.
 The wallet records that height in the transaction log as `confirmation_height`
-(<Src repo="wallet" path="libwallet/src/types.rs" line={849} />), set when the refresh finds the outputs
-on the chain (<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={370} />). It is `null`
+(<Src repo="wallet" path="libwallet/src/types.rs" line={854} />), set when the refresh finds the outputs
+on the chain (<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={366} />). It is `null`
 until `confirmed` is true. The chain height comes from the node's `get_status`, field `tip.height`.
 
 Both fields are on the Owner API's `retrieve_txs` result. `epic-wallet txs` prints the height in its

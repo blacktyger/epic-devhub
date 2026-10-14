@@ -6,7 +6,7 @@ description: epic-python-sdk，一个用于Epic Cash节点、钱包Owner API v3�
 
 # Python SDK
 
-`epic-python-sdk`是一个为节点、钱包的Owner API v3以及epicbox中继提供的带类型异步Python客户端。它驱动已在运行的Epic软件，自身不持有任何密钥。
+`epic-python-sdk`是一个为节点、钱包的Owner API v3以及epicbox中继提供类型化异步Python客户端。它驱动已在运行的Epic软件，不持有任何密钥。
 
 :::info[Pre-release]
 
@@ -21,7 +21,7 @@ description: epic-python-sdk，一个用于Epic Cash节点、钱包Owner API v3�
 | 导入 | 提供 | 扩展项 |
 | --- | --- | --- |
 | `epic` | `NodeClient`、`WalletClient`、`EpicboxClient`以及`epic`命令。 | 无 |
-| `epictk` | 获取发布版本二进制文件、写入配置、布局链，并监管节点、钱包和矿工进程。`epic-sdk`命令。 | `[cli]` |
+| `epictk` | 获取发布版本二进制文件、写入配置、布局链，并管理节点、钱包和矿工进程。`epic-sdk`命令。 | `[cli]` |
 | `epicdash` | 基于`epictk`的Web界面：进程、余额、转账以及本地链的区块浏览器。 | `[cli,service]` |
 
 `epic`无需编译器即可安装。所有密码学原语均来自`cryptography`。
@@ -59,19 +59,22 @@ async def main():
 asyncio.run(main())
 ```
 
-`NodeClient`默认绑定到端口<Ver k="ports.nodeApi" />的回环地址。
+`NodeClient`默认监听回环地址，端口为<Ver k="ports.nodeApi" />。
 
 `is_synced()`将本地链顶端与对等节点集合进行比较，`tolerance`是本地链顶端允许落后的区块数。
 
 ### 钱包 {/* #wallet */}
 
 ```python
+from pathlib import Path
 from epic import Secret, WalletClient
 
 url = "http://127.0.0.1:3420/v3/owner"
 password = Secret.from_env("EPIC_WALLET_PASSWORD")
+owner_secret = Secret.from_file(Path.home() / ".epic/main/.owner_api_secret")
 
-async with WalletClient(url, password=password) as wallet:
+async with WalletClient(url, password=password,
+                        api_secret=owner_secret) as wallet:
     balance = await wallet.get_balance()
     print(balance.spendable, balance.awaiting_confirmation)
 
@@ -81,14 +84,14 @@ async with WalletClient(url, password=password) as wallet:
     print(await wallet.get_address())
 ```
 
-Owner API在所有网络上均使用端口<Ver k="ports.walletOwner" />。`get_address()`返回epicbox地址，包含端口号。
+Owner API在每个网络上均使用端口<Ver k="ports.walletOwner" />。epic-wallet <Ver k="wallet" />将其置于HTTP Basic认证之后，因此需传入`api_secret`，该值从钱包的`.owner_api_secret`中读取；若未传入，客户端在进入时将抛出`ConfigurationError`。参见[钱包的owner访问](/api/authentication#owner-access-on-the-wallet)。`get_address()`返回epicbox地址，包含端口号。
 
 ### 发送 {/* #send */}
 
 ```python
 from epic import Amount, Secret, WalletClient
 
-async with WalletClient(url, password=password,
+async with WalletClient(url, password=password, api_secret=owner_secret,
                         can_spend=True) as wallet:
     result = await wallet.send(
         Amount.from_epic("1.5"),
@@ -98,7 +101,7 @@ async with WalletClient(url, password=password,
     print(result.state)
 ```
 
-<Risk level="spend" /> `send()`在发送前选择并锁定输出（output）。这些输出在转账确认或`cancel(slate_id)`释放之前保持不可用状态。使用`wait=True`时，调用在交换的第二轮完成或超时到期后返回，默认超时为120秒。
+<Risk level="spend" /> `send()`在发送前选择并锁定输出（output）。这些输出在转账确认或`cancel(slate_id)`释放之前保持不可用状态。使用`wait=True`时，调用将在交换的第二轮完成或超时到期后返回，默认超时时间为120秒。
 
 通过epicbox进行的转账在两个钱包之间分两轮完成。流程详见[交互式交易](/concepts/interactive-transactions)。
 
@@ -152,7 +155,7 @@ from epic import Secret, WalletClient
 
 password = Secret.from_env("EPIC_WALLET_PASSWORD")
 
-async with WalletClient(url, password=password) as wallet:
+async with WalletClient(url, password=password, api_secret=owner_secret) as wallet:
     balance = await wallet.get_balance()
     print(balance.spendable)   # 金额，以整数freemans为单位
 ```
@@ -160,13 +163,13 @@ async with WalletClient(url, password=password) as wallet:
 </TabItem>
 </Tabs>
 
-`wallet.call(method, params)`通过同一会话访问客户端尚未封装的方法。对于涉及资金移动的方法，需传入`allow_spend=True`。方法列表见[钱包Owner API](/api/wallet-owner)。
+`wallet.call(method, params)`通过同一会话访问客户端尚未封装的方法。对于涉及资金移动的方法，需传入`allow_spend=True`。方法列表详见[钱包Owner API](/api/wallet-owner)。
 
 ## 金额、花费与凭据 {/* #amounts-spending-and-credentials */}
 
 ### 金额 {/* #amounts */}
 
-1 EPIC等于<Ver k="epicBase" />个<Ver k="smallestUnit" />。`Amount`存储该整数值。`from_epic()`接受`str`和`Decimal`。
+1 EPIC等于<Ver k="epicBase" />个<Ver k="smallestUnit" />。`Amount`保存该整数值。`from_epic()`接受`str`和`Decimal`。
 
 ```python
 Amount.from_epic("1.5")        # 150_000_000 freemans
@@ -177,7 +180,7 @@ Amount.from_epic(1.5)          # AmountError
 
 ### 花费 {/* #spending */}
 
-`WalletClient`仅在以`can_spend=True`构造时才执行花费操作。若不传入，`send()`、`finalize()`、`reshape_outputs()`和`call(..., allow_spend=True)`将抛出`NotSpendable`。
+`WalletClient`仅在使用`can_spend=True`构造时才能花费。若未传入，`send()`、`finalize()`、`reshape_outputs()`和`call(..., allow_spend=True)`将抛出`NotSpendable`。
 
 ### 凭据 {/* #credentials */}
 
@@ -191,7 +194,7 @@ log.info("opening", pw=password)   # Secret(***)
 
 `Secret`在`repr`、`str`、f-string、日志事件、渲染后的回溯信息及pickle中均渲染为`Secret(***)`。`epic`命令从环境变量或文件路径中读取凭据。
 
-各接口所需凭据的说明详见[身份验证](/api/authentication)。
+各接口所需凭据的对应关系详见[身份验证](/api/authentication)。
 
 ## 后续步骤 {/* #where-to-go-next */}
 

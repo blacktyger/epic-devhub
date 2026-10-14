@@ -37,7 +37,7 @@ tagged value whose shape depends on that algorithm:
 ```
 
 Cuckatoo and Cuckaroo blocks both report `Cuckoo` in `proof` and are distinguished by edge bits. The
-types are in <Src repo="node" path="api/src/types.rs" line={574} />.
+types are in <Src repo="node" path="api/src/types.rs" line={586} />.
 
 ## The block policy {/* #the-block-policy */}
 
@@ -68,22 +68,22 @@ a RandomX-only miner idles on every ProgPow height. Both keys change the block p
 mined under one setting is not valid under the other. Wipe `chain_data` when you change either.
 
 The mainnet allotments are at
-<Src repo="node" path="core/src/core/block/feijoada.rs" line={249} />,
-<Fn repo="node" path="core/src/core/block/feijoada.rs" line={348} name="next_block_bottles" />
+<Src repo="node" path="core/src/core/block/feijoada.rs" line={263} />,
+<Fn repo="node" path="core/src/core/block/feijoada.rs" line={370} name="next_block_bottles" />
 advances the window and resets it at 100 blocks,
-<Fn repo="node" path="core/src/core/block/feijoada.rs" line={427} name="choose_algo" /> makes the
+<Fn repo="node" path="core/src/core/block/feijoada.rs" line={466} name="choose_algo" /> makes the
 selection over
-<Fn repo="node" path="core/src/core/block/feijoada.rs" line={80} kind="struct" name="PolicyConfig" />,
-and <Fn repo="node" path="core/src/core/block/feijoada.rs" line={335} name="get_bottles_default" />
+<Fn repo="node" path="core/src/core/block/feijoada.rs" line={94} kind="struct" name="PolicyConfig" />,
+and <Fn repo="node" path="core/src/core/block/feijoada.rs" line={357} name="get_bottles_default" />
 returns the zeroed counters each window starts from. The constants are in
 <Src repo="node" path="core/src/consensus.rs" />.
 
 ## Difficulty {/* #difficulty */}
 
 Each algorithm has its own difficulty track, retargeted independently by
-<Fn repo="node" path="core/src/consensus.rs" line={664} name="next_difficulty" />. The adjustment window
+<Fn repo="node" path="core/src/consensus.rs" line={667} name="next_difficulty" />. The adjustment window
 is <Ver k="difficultyWindow" /> blocks
-(<Fn repo="node" path="core/src/consensus.rs" line={441} kind="const" name="DIFFICULTY_ADJUST_WINDOW" />),
+(<Fn repo="node" path="core/src/consensus.rs" line={443} kind="const" name="DIFFICULTY_ADJUST_WINDOW" />),
 one hour at the <Ver k="blockTimeSeconds" />-second target, and the window walks back over blocks of the
 same algorithm only, so each track sees its own history.
 

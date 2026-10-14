@@ -70,12 +70,15 @@ the local tip may lag.
 ### Wallet {/* #wallet */}
 
 ```python
+from pathlib import Path
 from epic import Secret, WalletClient
 
 url = "http://127.0.0.1:3420/v3/owner"
 password = Secret.from_env("EPIC_WALLET_PASSWORD")
+owner_secret = Secret.from_file(Path.home() / ".epic/main/.owner_api_secret")
 
-async with WalletClient(url, password=password) as wallet:
+async with WalletClient(url, password=password,
+                        api_secret=owner_secret) as wallet:
     balance = await wallet.get_balance()
     print(balance.spendable, balance.awaiting_confirmation)
 
@@ -86,6 +89,9 @@ async with WalletClient(url, password=password) as wallet:
 ```
 
 The Owner API is on port <Ver k="ports.walletOwner" /> on every network.
+epic-wallet <Ver k="wallet" /> puts it behind HTTP Basic, so pass `api_secret`, read from the wallet's
+`.owner_api_secret`; without it the client raises `ConfigurationError` on entry. See
+[owner access on the wallet](/api/authentication#owner-access-on-the-wallet).
 `get_address()` returns the epicbox address, including the port.
 
 ### Send {/* #send */}
@@ -93,7 +99,7 @@ The Owner API is on port <Ver k="ports.walletOwner" /> on every network.
 ```python
 from epic import Amount, Secret, WalletClient
 
-async with WalletClient(url, password=password,
+async with WalletClient(url, password=password, api_secret=owner_secret,
                         can_spend=True) as wallet:
     result = await wallet.send(
         Amount.from_epic("1.5"),
@@ -164,7 +170,7 @@ from epic import Secret, WalletClient
 
 password = Secret.from_env("EPIC_WALLET_PASSWORD")
 
-async with WalletClient(url, password=password) as wallet:
+async with WalletClient(url, password=password, api_secret=owner_secret) as wallet:
     balance = await wallet.get_balance()
     print(balance.spendable)   # an Amount, in integer freemans
 ```

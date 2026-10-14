@@ -13,8 +13,9 @@ export const sumFile = (file) => `${file.replace(/\.(tar\.gz|zip|exe)$/, '')}-sh
 
 # Downloads
 
-Prebuilt binaries are published on GitHub releases. The Linux binaries link against `GLIBC_2.39`, so
-they need glibc 2.39 or newer, which means Ubuntu 24.04 or later.
+Prebuilt binaries are published on GitHub releases. The <Ver k="node" /> Linux binaries of both the
+node and the wallet link against `GLIBC_2.34`, so they need glibc 2.34 or newer, which means Ubuntu
+22.04, Debian 12 or later.
 
 To build from source instead, see [build the binaries](/guides/build).
 
@@ -42,11 +43,13 @@ Release <a href={releases.node.url}>tag v<Ver k="node" /></a>, or the{' '}
 
 | Platform | Asset | Unpacks to |
 | --- | --- | --- |
-| {nodeAsset('linux').platform} | <code>{nodeAsset('linux').file}</code> | <code>{releases.node.unpacksTo.linux}/</code> |
-| {nodeAsset('mac').platform} | <code>{nodeAsset('mac').file}</code> | <code>{releases.node.unpacksTo.mac}/</code> |
-| {nodeAsset('windows').platform} | <code>{nodeAsset('windows').file}</code> | `epic.exe`, no wrapping directory |
+| {nodeAsset('linux').platform} | <code>{nodeAsset('linux').file}</code> | <code>{releases.node.unpacksTo.linux}/epic</code> |
+| {nodeAsset('windows').platform} | <code>{nodeAsset('windows').file}</code> | <code>{releases.node.unpacksTo.windows}/epic.exe</code> |
 
-macOS Intel and Linux ARM need a source build.
+The <Ver k="node" /> release publishes no macOS binary. The newest one is{' '}
+<code>{releases.node.mac.file}</code> on <a href={releases.node.mac.url}>tag v{releases.node.mac.version}</a>,
+an older release; to run <Ver k="node" /> on a Mac, [build from source](/guides/build). macOS Intel and
+Linux ARM need a source build too.
 
 ## Wallet <Ver k="wallet" /> {/* #wallet-ver-kwallet- */}
 
@@ -55,17 +58,25 @@ Release <a href={releases.wallet.url}>tag v<Ver k="wallet" /></a>, or the{' '}
 
 | Platform | Asset | Unpacks to |
 | --- | --- | --- |
-| {walletAsset('linux').platform} | <code>{walletAsset('linux').file}</code> | `epic-wallet`, no wrapping directory |
-| {walletAsset('windows').platform} | <code>{walletAsset('windows').file}</code> | the executable itself, not an archive |
+| {walletAsset('linux').platform} | <code>{walletAsset('linux').file}</code> | <code>{releases.wallet.unpacksTo.linux}/epic-wallet</code> |
+| {walletAsset('windows').platform} | <code>{walletAsset('windows').file}</code> | <code>{releases.wallet.unpacksTo.windows}/epic-wallet.exe</code> |
 
-The archive is named for the 4.0 line rather than the full <Ver k="wallet" /> tag, and holds a Linux
-x86-64 ELF binary.
+The wallet's Windows archive is named with an underscore, <code>{walletAsset('windows').file}</code>,
+where the node's uses a hyphen. No macOS wallet binary is published.
 
 ## Download and verify {/* #download-and-verify */}
 
 Each asset publishes a checksum file beside it, named for the asset with its extension replaced by
 `-sha256sum.txt`: <code>{sumFile(nodeAsset('linux').file)}</code> for the Linux node tarball,
-<code>{sumFile(walletAsset('linux').file)}</code> for the wallet archive.
+<code>{sumFile(walletAsset('linux').file)}</code> for the Linux wallet tarball. The published
+SHA-256 values for <Ver k="node" /> are:
+
+| Asset | SHA-256 |
+| --- | --- |
+| <code>{nodeAsset('linux').file}</code> | <code>{nodeAsset('linux').sha256}</code> |
+| <code>{nodeAsset('windows').file}</code> | <code>{nodeAsset('windows').sha256}</code> |
+| <code>{walletAsset('linux').file}</code> | <code>{walletAsset('linux').sha256}</code> |
+| <code>{walletAsset('windows').file}</code> | <code>{walletAsset('windows').sha256}</code> |
 
 <Tabs groupId="os">
 <TabItem value="linux" label="Linux">
@@ -74,19 +85,34 @@ Each asset publishes a checksum file beside it, named for the asset with its ext
 curl -LO ${releases.node.download}/${sumFile(nodeAsset('linux').file)}
 
 sha256sum -c ${sumFile(nodeAsset('linux').file)}
-# expect: ${nodeAsset('linux').file}: OK
+# expect: ./${nodeAsset('linux').file}: OK
 
 tar xzf ${nodeAsset('linux').file}
-./epic --usernet`}</CodeBlock>
+./${releases.node.unpacksTo.linux}/epic --version
+
+curl -LO ${releases.wallet.download}/${walletAsset('linux').file}
+curl -LO ${releases.wallet.download}/${sumFile(walletAsset('linux').file)}
+
+sha256sum -c ${sumFile(walletAsset('linux').file)}
+# expect: ./${walletAsset('linux').file}: OK
+
+tar xzf ${walletAsset('linux').file}
+./${releases.wallet.unpacksTo.linux}/epic-wallet --version`}</CodeBlock>
 
 </TabItem>
 <TabItem value="mac" label="macOS">
 
-<CodeBlock language="bash">{`curl -LO ${releases.node.download}/${nodeAsset('mac').file}
-curl -LO ${releases.node.download}/${sumFile(nodeAsset('mac').file)}
+There is no <Ver k="node" /> macOS binary to download. [Build from source](/guides/build) at tag
+<code>v<Ver k="node" /></code>. The last prebuilt macOS node is from an older release,{' '}
+<a href={releases.node.mac.url}>v{releases.node.mac.version}</a>, which predates the{' '}
+<Ver k="node" /> API authentication changes: it does not behave as [authentication and
+TLS](/api/authentication) describes, and should not be paired with wallet <Ver k="wallet" />.
 
-shasum -a 256 -c ${sumFile(nodeAsset('mac').file)}
-unzip ${nodeAsset('mac').file}`}</CodeBlock>
+<CodeBlock language="bash">{`curl -LO ${releases.node.mac.download}/${releases.node.mac.file}
+curl -LO ${releases.node.mac.download}/${sumFile(releases.node.mac.file)}
+
+shasum -a 256 -c ${sumFile(releases.node.mac.file)}
+unzip ${releases.node.mac.file}`}</CodeBlock>
 
 Gatekeeper refuses an unsigned binary on first run. Allow it in System Settings, Privacy and
 Security.
@@ -103,7 +129,16 @@ Invoke-WebRequest "$base/Windows-$tag-sha256sum.txt" -OutFile "sha256sum.txt"
 (Get-FileHash "Windows-$tag.zip" -Algorithm SHA256).Hash.ToLower()
 Get-Content sha256sum.txt
 
-Expand-Archive "Windows-$tag.zip" -DestinationPath .`}</CodeBlock>
+Expand-Archive "Windows-$tag.zip" -DestinationPath .
+.\\Windows-$tag\\epic.exe --version
+
+# The wallet archive is named with an underscore, not a hyphen.
+$wbase = "https://github.com/EpicCash/epic-wallet/releases/download/v${versions.wallet}"
+Invoke-WebRequest "$wbase/${walletAsset('windows').file}" -OutFile "${walletAsset('windows').file}"
+Invoke-WebRequest "$wbase/${sumFile(walletAsset('windows').file)}" -OutFile "wallet-sha256sum.txt"
+(Get-FileHash "${walletAsset('windows').file}" -Algorithm SHA256).Hash.ToLower()
+Get-Content wallet-sha256sum.txt
+Expand-Archive "${walletAsset('windows').file}" -DestinationPath .`}</CodeBlock>
 
 </TabItem>
 </Tabs>
@@ -118,7 +153,7 @@ the feature.
 
 | Software | Repository |
 | --- | --- |
-| Miner | <Repo name="node">EpicCash/epic-miner</Repo> |
+| Miner | <Repo name="miner" /> |
 | Desktop GUI wallet | `EpicCash/epic-gui-wallet` |
 | Block explorer | `EpicCash/epic_explorer` |
 | Epicbox relay | <Repo name="epicbox" /> |

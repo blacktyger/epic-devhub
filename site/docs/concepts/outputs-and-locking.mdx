@@ -52,7 +52,7 @@ and neither does setting an expiry height.
 (<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={758} />). It then needs exactly one
 transaction matching the id or slate id you pass, that transaction's type to be `TxSentCreated` or
 `TxReceived`, and its `confirmed` field to be false
-(<Src repo="wallet" path="libwallet/src/internal/tx.rs" line={309} />).
+(<Src repo="wallet" path="libwallet/src/internal/tx.rs" line={316} />).
 
 The type condition sets the boundary. Once a posted transfer has been observed in the node's mempool its
 entry becomes `TxSentMempool`, and from that point you are waiting on the chain rather than choosing to

@@ -15,6 +15,9 @@
  *    `epic` do not use the same filename.
  *
  * Captured 2026-08-24 against node 4.0.3 and wallet 4.0.0 on a local usernet chain at height 1439.
+ * The pages now document node 4.1.0 and wallet 4.1.0; those captures are kept as captured, so a
+ * response that names a version (user_agent, node_version) still says 4.0.3. ready_for_txs, new in
+ * node 4.1.0, was captured 2026-10-14 against the v4.1.0 release binary on usernet at height 0.
  */
 
 export const surfaces = {
@@ -24,7 +27,10 @@ export const surfaces = {
     portKey: 'ports.nodeApi',
     credential: 'basic',
     secretPath: '~/.epic/main/.api_secret',
-    credentialNote: 'HTTP Basic, username epic, password from ~/.epic/<network>/.api_secret',
+    // Node 4.1.0 checks this inside the handler and fails closed: with no secret configured every
+    // call gets 401, except one plain get_status (epic v4.1.0 api/src/handlers.rs:207-236).
+    credentialNote:
+      'HTTP Basic, username epic, password from ~/.epic/<network>/.api_secret. Required: without it only a plain get_status answers',
   },
   nodeForeign: {
     label: 'Node foreign',
@@ -38,10 +44,12 @@ export const surfaces = {
     label: 'Wallet owner',
     path: '/v3/owner',
     portKey: 'ports.walletOwner',
-    credential: 'token',
-    secretPath: null,
+    // Wallet 4.1.0 puts HTTP Basic in front of everything on the owner listener except /v2/foreign
+    // (epic-wallet v4.1.0 controller/src/controller.rs:143). Up to 4.0.x only the token applied.
+    credential: 'basic',
+    secretPath: '~/.epic/main/.owner_api_secret',
     credentialNote:
-      'Token from open_wallet, inside the encrypted envelope. Loopback only',
+      'HTTP Basic, username epic, password from .owner_api_secret, and the token from open_wallet inside the encrypted envelope. Loopback only',
   },
   walletForeign: {
     label: 'Wallet foreign',
@@ -119,6 +127,8 @@ export const groups = [
         notes: [
           'supply and max_supply are whole EPIC, not freemen, and blocks_to_next_halving counts reward steps that are not all halvings.',
           'total_difficulty is an object keyed by algorithm. A client expecting an integer fails to parse.',
+          'Captured on node 4.0.3, so user_agent reads MW/Epic 4.0.3. A 4.1.0 node reports MW/Epic 4.1.0.',
+          'From 4.1.0 this is the one owner call a node answers without a credential, and only as a single plain request with params [] or null. A batch, or any other owner method, gets 401.',
         ],
         example: {
           params: [],
@@ -233,14 +243,30 @@ export const groups = [
       'Blocks, headers, kernels and outputs. Every one of these is on the foreign surface and takes no credential on a default install.',
     methods: [
       {
+        name: 'ready_for_txs',
+        summary: 'Whether the node has finished syncing and will accept transactions. New in node 4.1.0.',
+        risk: 'read',
+        paramStyle: 'positional',
+        params: [],
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 39},
+        notes: [
+          'True only when the sync status is no_sync. Wallet 4.1.0 uses it for its node readiness check (impls/src/node_clients/http.rs:264), and falls back to the owner get_status only when the node answers -32601, method not found, as a node older than 4.1.0 does.',
+        ],
+        example: {
+          params: [],
+          verified: '2026-10-14',
+          response: {ready_for_txs: true},
+        },
+      },
+      {
         name: 'get_tip',
         summary: 'Current height, the last block hash, and total difficulty per algorithm.',
         risk: 'read',
         paramStyle: 'positional',
         params: [],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 338},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 340},
         notes: [
-          'The cheapest way to poll for new blocks. Prefer it over get_status, which needs the owner credential.',
+          'The cheapest way to poll for new blocks, with no credential. get_status is on the owner surface.',
         ],
         example: {
           params: [],
@@ -259,7 +285,8 @@ export const groups = [
         risk: 'read',
         paramStyle: 'positional',
         params: [],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 303},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 305},
+        notes: ['Captured on node 4.0.3. A 4.1.0 node reports node_version 4.1.0.'],
         example: {
           params: [],
           verified: '2026-08-24',
@@ -276,7 +303,7 @@ export const groups = [
           {name: 'hash', type: 'string or null', required: false, default: 'null', help: 'Block hash, hex.'},
           {name: 'commit', type: 'string or null', required: false, default: 'null', help: 'Find the block containing this output commitment.'},
         ],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 243},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 245},
         notes: [
           'Params are positional, so all three slots must be present even when two are null.',
           'Kernels here are a flattened shape. get_kernel and get_last_n_kernels return the raw type with an externally tagged features field, so handle both.',
@@ -299,7 +326,7 @@ export const groups = [
           {name: 'hash', type: 'string or null', required: false, default: 'null', help: 'Block hash, hex.'},
           {name: 'commit', type: 'string or null', required: false, default: 'null', help: 'Output commitment.'},
         ],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 125},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 127},
         notes: ['The header shape matches the header field of get_block.'],
         example: null,
       },
@@ -314,7 +341,7 @@ export const groups = [
           {name: 'max', type: 'u64', required: true, default: '10', help: 'Hard cap on how many blocks come back.'},
           {name: 'include_proof', type: 'bool or null', required: false, default: 'false', help: 'Include range proofs. They dominate the response size.'},
         ],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 264},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 266},
         notes: [
           'Leave include_proof false unless you need the proofs: each output proof is over a kilobyte of hex.',
         ],
@@ -330,7 +357,7 @@ export const groups = [
           {name: 'min_height', type: 'u64 or null', required: false, default: 'null', help: 'Lower bound for the search.'},
           {name: 'max_height', type: 'u64 or null', required: false, default: 'null', help: 'Upper bound for the search.'},
         ],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 376},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 378},
         notes: [
           'This is how you confirm a specific transaction made it into the chain, since there are no transaction ids to look up.',
         ],
@@ -348,7 +375,7 @@ export const groups = [
           {name: 'include_proof', type: 'bool or null', required: false, default: 'false', help: 'Include range proofs.'},
           {name: 'include_merkle_proof', type: 'bool or null', required: false, default: 'false', help: 'Include merkle proofs.'},
         ],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 496},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 498},
         example: null,
       },
       {
@@ -362,7 +389,7 @@ export const groups = [
           {name: 'max', type: 'u64', required: true, default: '100', help: 'Cap on returned outputs.'},
           {name: 'include_proof', type: 'bool or null', required: false, default: 'false', help: 'Include range proofs.'},
         ],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 558},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 560},
         notes: ['Pair it with get_pmmr_indices to find where a height sits in the index space.'],
         example: null,
       },
@@ -375,7 +402,7 @@ export const groups = [
           {name: 'start_block_height', type: 'u64', required: true, default: '1000', help: 'First height.'},
           {name: 'end_block_height', type: 'u64 or null', required: false, default: 'null', help: 'Last height.'},
         ],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 597},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 599},
         example: null,
       },
       {
@@ -384,7 +411,7 @@ export const groups = [
         risk: 'read',
         paramStyle: 'positional',
         params: [{name: 'distance', type: 'u64', required: true, default: '5', help: 'How many kernels to return.'}],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 416},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 418},
         example: null,
       },
     ],
@@ -402,7 +429,7 @@ export const groups = [
         risk: 'read',
         paramStyle: 'positional',
         params: [],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 631},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 633},
         example: {params: [], verified: '2026-08-24', response: 0},
       },
       {
@@ -411,7 +438,7 @@ export const groups = [
         risk: 'read',
         paramStyle: 'positional',
         params: [],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 661},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 663},
         notes: [
           'Stem transactions are held before broadcast as a privacy measure, so a transaction can be in the stempool and invisible to peers.',
         ],
@@ -423,7 +450,7 @@ export const groups = [
         risk: 'read',
         paramStyle: 'positional',
         params: [],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 734},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 736},
         example: null,
       },
       {
@@ -437,7 +464,7 @@ export const groups = [
           {name: 'tx', type: 'Transaction', required: true, default: '{}', help: 'A complete signed transaction object.'},
           {name: 'fluff', type: 'bool or null', required: false, default: 'false', help: 'Skip the Dandelion stem phase and broadcast immediately.'},
         ],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 799},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 801},
         notes: [
           'A wallet normally does this for you through post_tx on the Owner API. Reach for this only when you are driving the whole transaction yourself.',
         ],
@@ -458,7 +485,7 @@ export const groups = [
         risk: 'read',
         paramStyle: 'positional',
         params: [],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 801},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 803},
         example: null,
       },
       {
@@ -470,7 +497,7 @@ export const groups = [
           {name: 'template', type: 'BlockTemplate', required: true, default: '{}', help: 'The template you were given.'},
           {name: 'solution', type: 'Solution', required: true, default: '{}', help: 'Externally tagged by algorithm, for example {"RandomX": "<decimal string>"}.'},
         ],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 803},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 805},
         example: null,
       },
       {
@@ -479,7 +506,7 @@ export const groups = [
         risk: 'read',
         paramStyle: 'positional',
         params: [{name: 'block', type: 'Block', required: true, default: '{}', help: 'The finalised block.'}],
-        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 802},
+        src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 804},
         example: null,
       },
     ],
@@ -1197,7 +1224,7 @@ groups.push(
         risk: 'read',
         paramStyle: 'positional',
         params: [],
-        src: {repo: 'wallet', path: 'api/src/foreign_rpc.rs', line: 65},
+        src: {repo: 'wallet', path: 'api/src/foreign_rpc.rs', line: 66},
         example: null,
       },
       {
@@ -1208,7 +1235,7 @@ groups.push(
         params: [
           {name: 'block_fees', type: 'BlockFees', required: true, default: '{"fees": 0, "height": 1, "key_id": null}', help: 'Candidate block fees, height and optional key id.'},
         ],
-        src: {repo: 'wallet', path: 'api/src/foreign_rpc.rs', line: 116},
+        src: {repo: 'wallet', path: 'api/src/foreign_rpc.rs', line: 117},
         example: null,
       },
       {
@@ -1219,7 +1246,7 @@ groups.push(
         params: [
           {name: 'block_fees', type: 'BlockFees', required: true, default: '{"fees": 0, "height": 1, "key_id": null}', help: 'Candidate block fees, height and optional key id.'},
         ],
-        src: {repo: 'wallet', path: 'api/src/foreign_rpc.rs', line: 119},
+        src: {repo: 'wallet', path: 'api/src/foreign_rpc.rs', line: 120},
         example: null,
       },
       {
@@ -1230,7 +1257,7 @@ groups.push(
         params: [
           {name: 'slate', type: 'VersionedSlate', required: true, default: '{}', help: 'Slate containing participant messages.'},
         ],
-        src: {repo: 'wallet', path: 'api/src/foreign_rpc.rs', line: 201},
+        src: {repo: 'wallet', path: 'api/src/foreign_rpc.rs', line: 202},
         example: null,
       },
       {
@@ -1244,7 +1271,7 @@ groups.push(
           {name: 'message', type: 'string or null', required: false, default: 'null', help: 'Recipient message.'},
           {name: 'addr_from', type: 'string or null', required: false, default: 'null', help: 'Sender address.'},
         ],
-        src: {repo: 'wallet', path: 'api/src/foreign_rpc.rs', line: 359},
+        src: {repo: 'wallet', path: 'api/src/foreign_rpc.rs', line: 357},
         example: null,
       },
       {
@@ -1255,7 +1282,7 @@ groups.push(
         params: [
           {name: 'slate', type: 'VersionedSlate', required: true, default: '{}', help: 'Funded invoice slate.'},
         ],
-        src: {repo: 'wallet', path: 'api/src/foreign_rpc.rs', line: 532},
+        src: {repo: 'wallet', path: 'api/src/foreign_rpc.rs', line: 525},
         example: null,
       },
     ],

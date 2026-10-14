@@ -29,7 +29,7 @@ epic-wallet send --request_payment_proof --proof_address <recipient_proof_addres
 
 ## 据此选择传输方式 {/* #choose-the-transport-accordingly */}
 
-支付证明是V3 slate字段，而epicbox会将所有slate转换为V2，因此证明请求在epicbox发送中不会保留（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={251} />）。需要支付证明的转账请通过其他任意传输方式路由；[对比说明](/concepts/transports#comparison)中有对照表。
+支付证明是V3 slate字段，而epicbox会将所有slate转换为V2，因此证明请求在epicbox发送中不会保留（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={258} />）。需要支付证明的转账请通过其他任意传输方式路由；[对比说明](/concepts/transports#comparison)中有对照表。
 
 ## 验证 {/* #verification */}
 

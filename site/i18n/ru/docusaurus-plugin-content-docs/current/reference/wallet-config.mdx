@@ -68,22 +68,22 @@ log_file_path = "/home/you/wallets/bob/epic-wallet.log"
 | `api_listen_port` | u16 | <Ver k="ports.walletForeign" />, 13415 floonet, 23415 usernet | Порт Foreign API, используется `listen` |
 | `owner_api_listen_port` | u16, optional | <Ver k="ports.walletOwner" /> в каждой сети | Порт Owner API |
 | `owner_api_interface` | string, optional | `127.0.0.1` | Адрес привязки Owner API. Выводится закомментированным |
-| `api_secret_path` | string, optional | `<wallet dir>/.owner_api_secret` | Секрет базовой аутентификации для пути Foreign на слушателе владельца. `/v3/owner` принимает токен из `open_wallet`; см. [аутентификация](/api/authentication) |
-| `node_api_secret_path` | string, optional | `<wallet dir>/.api_secret` | Секрет базовой аутентификации, который кошелёк передаёт при обращении к узлу |
-| `check_node_api_http_addr` | string | <code>http://127.0.0.1:<Ver k="ports.nodeApi" /></code> | Узел, к которому обращается кошелёк. Переопределяется для каждого запуска через `-r` |
+| `api_secret_path` | string, optional | `<wallet dir>/.owner_api_secret` | Секрет Basic-аутентификации для всего на Owner listener, кроме `/v2/foreign`, то есть `/v3/owner` и `/v2/owner`. `/v3/owner` также принимает токен из `open_wallet`. Закомментируйте, чтобы убрать слой Basic. См. [аутентификация](/api/authentication#owner-access-on-the-wallet) |
+| `node_api_secret_path` | string, optional | `<wallet dir>/.api_secret` | Секрет узла, который кошелёк отправляет только при вызовах `/v2/owner`, кроме `get_status`, что на практике является поиском onion-адреса Tor. См. [учётные данные, которые кошелёк предъявляет узлу](/api/authentication#the-credential-the-wallet-presents-to-the-node) |
+| `check_node_api_http_addr` | string | <code>http://127.0.0.1:<Ver k="ports.nodeApi" /></code> | Узел, к которому обращается кошелёк. Переопределяется за запуск через `-r` |
 | `owner_api_include_foreign` | bool, optional | `false` | Обслуживать Foreign API на порту Owner API для окружений с одним портом |
 | `data_file_dir` | string | `<wallet dir>/wallet_data` | Расположение сида и базы данных |
 | `no_commit_cache` | bool, optional | `false` | Зарезервировано |
 | `tls_certificate_file` | string, optional | unset | TLS-сертификат для слушателя |
 | `tls_certificate_key` | string, optional | unset | Приватный ключ TLS. Указание сертификата без этого ключа является ошибкой запуска |
 | `dark_background_color_scheme` | bool, optional | `true` | Цветовая схема для таблиц CLI |
-| `keybase_notify_ttl` | минуты, необязательный | `1440` | Время жизни уведомлений о получении Keybase. `0` отключает |
+| `keybase_notify_ttl` | минуты, необязательный | `1440` | Время жизни уведомлений о получении keybase. `0` отключает |
 
 :::warning[The Owner API port is the same on every network]
 
 `owner_api_listen_port` не корректируется в зависимости от сети, в отличие от `api_listen_port` и `check_node_api_http_addr`. Кошелёк mainnet и кошелёк
-floonet оба используют <Ver k="ports.walletOwner" />, поэтому при одновременном запуске нескольких экземпляров необходимо
-переопределить это значение. См. [таблицу портов](/reference/cli#ports).
+floonet оба используют <Ver k="ports.walletOwner" />, поэтому при одновременном запуске более одного необходимо
+переопределить этот параметр. См. [таблицу портов](/reference/cli#ports).
 
 :::
 
@@ -94,28 +94,28 @@ floonet оба используют <Ver k="ports.walletOwner" />, поэтом�
 
 | Ключ | Тип | Default | Назначение |
 | --- | --- | --- | --- |
-| `use_tor_listener` | bool | `true` | Запустить скрытый сервис на `listen`. Переопределяется для каждого запуска через `-n` / `--no_tor` |
+| `use_tor_listener` | bool | `true` | Запустить скрытый сервис на `listen`. Переопределяется за запуск через `-n` / `--no_tor` |
 | `socks_proxy_addr` | string | `127.0.0.1:9050` | Адрес SOCKS-прокси |
 | `send_config_dir` | string | `<wallet dir>` | Зарезервировано |
 
-`use_tor_listener` не является необязательным. Раздел `[tor]`, в котором отсутствует этот ключ, не проходит разбор —
-укажите значение или полностью исключите весь раздел.
+`use_tor_listener` не является необязательным. Раздел `[tor]`, в котором отсутствует этот ключ, не проходит разбор
+— либо задайте значение, либо не включайте весь раздел.
 
 Значение по умолчанию `true` требует наличия бинарника `tor` рядом с исполняемым файлом кошелька,
-который [релизные архивы не поставляют](/downloads). Либо предоставьте бинарник, либо задайте `use_tor_listener = false` и
+который [архивы релизов не поставляют](/downloads). Либо предоставьте бинарник, либо задайте `use_tor_listener = false` и
 передайте `-n` в `listen`.
 
 ## `[epicbox]` {/* #epicbox */}
 
 | Ключ | Тип | Default | Назначение |
 | --- | --- | --- | --- |
-| `epicbox_domain` | string, optional | `epicbox.epiccash.com` | Хост релея и домен, отображаемый после `@` в вашем адресе epicbox |
+| `epicbox_domain` | string, optional | `epicbox.epiccash.com` | Хост релея и домен, отображаемый после `@` в вашем epicbox-адресе |
 | `epicbox_port` | u16, optional | <Ver k="ports.epicbox" /> | Порт релея |
 | `epicbox_protocol_unsecure` | bool, optional | `false` | `false` использует `wss://`, `true` использует `ws://` |
 | `epicbox_address_index` | u32, optional | `0` | Зарезервировано. Каждое выведение использует индекс 0 |
 
-Пути для адреса и отправки читают `epicbox_domain` и `epicbox_port` без запасного варианта, поэтому задайте оба явно или
-полностью исключите раздел `[epicbox]` и используйте значения по умолчанию из кода.
+Пути для адреса и отправки читают `epicbox_domain` и `epicbox_port` без запасного значения, поэтому задайте оба явно или
+не включайте весь раздел `[epicbox]` и используйте значения по умолчанию из кода.
 
 См. [протокол epicbox](/api/epicbox) для понимания того, что делает релей.
 
@@ -133,8 +133,8 @@ floonet оба используют <Ver k="ports.walletOwner" />, поэтом�
 | `log_max_files` | u32, optional | `32` | Сколько ротированных файлов хранить |
 | `tui_running` | bool, optional | unset | Устанавливается из `run_tui` узла при запуске |
 
-Новый кошелёк не записывает лог-файл, поскольку `log_to_file` равно `false`, тогда как `log_file_path` заполнено.
-Задайте `log_to_file = true` для записи лога на диск.
+Свежий кошелёк не создаёт файл журнала, поскольку `log_to_file` равно `false`, тогда как `log_file_path` заполнено.
+Задайте `log_to_file = true` для записи журнала на диск.
 
 ## Значения по умолчанию для каждой сети {/* #per-network-defaults */}
 
@@ -157,12 +157,12 @@ floonet оба используют <Ver k="ports.walletOwner" />, поэтом�
 | `logging.log_file_path` | `<wallet dir>/epic-wallet.log` |
 | `tor.send_config_dir` | `<wallet dir>` |
 
-`<wallet dir>` равно `~/.epic/<network>`, если вы не указали его с помощью `--current_dir` или `init --cwd`.
+`<wallet dir>` равно `~/.epic/<network>`, если только вы не задали его с помощью `--current_dir` или `init --cwd`.
 
 ## Источник {/* #source */}
 
 - <Src repo="wallet" path="config/src/types.rs" /> — структуры и их значения по умолчанию
-- <Src repo="wallet" path="config/src/types.rs" line={223} /> — `[logging]`, конфигурация логирования, общая для узла
+- <Src repo="wallet" path="config/src/types.rs" line={223} /> для `[logging]` — это конфигурация логирования, которую узел использует совместно
 - <Src repo="wallet" path="config/src/comments.rs" /> — аннотированный шаблон, записываемый на диск
 - <Src repo="wallet" path="config/src/config.rs" /> — обнаружение файлов, переопределения для каждой сети и перезапись путей
 

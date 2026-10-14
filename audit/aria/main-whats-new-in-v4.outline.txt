@@ -14,4 +14,5 @@ h1 Migrating from 3.x
     h3 Mempool confirmation after posting​
     h3 The epicbox relay implementation changed​
   h2 Behaviour to check in your integration​
+  h2 Changes in 4.1.0​
   h2 Next​

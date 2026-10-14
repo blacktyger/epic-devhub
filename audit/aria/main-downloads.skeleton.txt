@@ -39,13 +39,10 @@
             - code
           - cell
             - code
-        - row
-          - cell
-          - cell
-            - code
-          - cell
-            - code
     - paragraph
+      - code
+      - link
+      - link
     - heading [level=2]
       - link
     - paragraph
@@ -70,13 +67,41 @@
           - cell
             - code
           - cell
+            - code
     - paragraph
+      - code
     - heading [level=2]
       - link
     - paragraph
       - code
       - code
       - code
+    - table
+      - rowgroup
+        - row
+          - cell
+          - cell
+      - rowgroup
+        - row
+          - cell
+            - code
+          - cell
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
+        - row
+          - cell
+            - code
+          - cell
+            - code
     - tablist
       - tab
       - tab

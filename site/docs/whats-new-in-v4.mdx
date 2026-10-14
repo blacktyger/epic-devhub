@@ -37,7 +37,7 @@ single scalar field carried the solution.
 ### `Status` gains supply fields {/* #status-gains-supply-fields */}
 
 `supply` and `max_supply` are amounts in freemen. `blocks_to_next_halving` is a count of blocks, at
-<Src repo="node" path="api/src/types.rs" line={96} />. Reward steps are not all halvings; see
+<Src repo="node" path="api/src/types.rs" line={102} />. Reward steps are not all halvings; see
 [emission](/mining/emission).
 
 ### Kernels appear in two shapes {/* #kernels-appear-in-two-shapes */}
@@ -101,10 +101,32 @@ topology and storage are in [the epicbox reference](/api/epicbox).
 - **Epicbox converts every slate to V2**, which drops a payment proof request. See
   [the transport comparison](/concepts/transports#comparison).
 - **`change_password` removes the backup seed** unless `--remove-backup` is passed.
-- **Sync validation defaults changed shape.** `skip_pow_validation` and `disable_checkpoints` default to
-  `true`, which skips proof of work for checkpointed history while always fully verifying the most recent
-  <Ver k="powVerificationThreshold" /> blocks. See
-  [node and wallet setup](/guides/mainnet-setup).
+- **Sync validation defaults changed shape.** `skip_pow_validation` defaults to `true` and
+  `disable_checkpoints` to `false`. On mainnet proof of work is skipped only up to the last checkpoint and
+  fully verified above it, and `disable_checkpoints` is ignored. See
+  [node and wallet setup](/guides/mainnet-setup#sync-validation-settings).
+
+## Changes in 4.1.0 {/* #changes-in-410 */}
+
+Node and wallet 4.1.0 tighten authentication. An integration that worked against 4.0.x can start getting
+401s.
+
+- **The wallet Owner API needs HTTP Basic.** `/v3/owner` and `/v2/owner` take username `epic` and the
+  contents of `.owner_api_secret`, on top of the v3 token. See
+  [owner access on the wallet](/api/authentication#owner-access-on-the-wallet).
+- **The node's `/v1` and `/v2/owner` fail closed.** With no secret configured they answer 401 rather than
+  running open. Only `GET /v1/version` and one plain `get_status` call answer without a credential. See
+  [the node credential](/api/authentication#the-node-credential).
+- **New foreign method `ready_for_txs`** reports whether the node is synced, with no credential. The
+  wallet uses it in place of the owner `get_status`. See
+  [which method lives where](/api/node#which-json-rpc-method-lives-where).
+- **The wallet sends its node secret far less.** It never sends one to `/v2/foreign`, so a node with
+  `foreign_api_secret_path` set cannot serve it. See
+  [the credential the wallet presents to the node](/api/authentication#the-credential-the-wallet-presents-to-the-node).
+- **`/v1/kerneldownload` is removed.** See [the v1 routes](/api/node#routes).
+- **`disable_checkpoints` defaults to `false` and is ignored on mainnet,** and a new checkpoint at height
+  <Ver k="lastCheckpointHeight" />, making <Ver k="checkpointCount" />, moves the end of the skipped
+  range. See [sync validation settings](/guides/mainnet-setup#sync-validation-settings).
 
 ## Next {/* #next */}
 

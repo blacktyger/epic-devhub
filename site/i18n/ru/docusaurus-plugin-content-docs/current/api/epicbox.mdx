@@ -30,7 +30,7 @@ WebSocket поверх TLS, порт <Ver k="ports.epicbox" /> по умолча
 secp256k1. См. [addresses](/concepts/addresses).
 
 Ключ формируется для каждого аккаунта, поэтому кошелёк хранит один epicbox-адрес для каждого своего
-аккаунта, а слушатель подписывается с адресом открытого аккаунта (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={145} />). См. [accounts](/concepts/accounts#which-account-a-transfer-uses).
+аккаунта, а слушатель подписывается с адресом открытого аккаунта (<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={152} />). См. [accounts](/concepts/accounts#which-account-a-transfer-uses).
 
 Домен релея кошелька по умолчанию — <Ver k="epicboxDomain" />.
 
@@ -62,7 +62,7 @@ secp256k1. См. [addresses](/concepts/addresses).
 | `PostSlate` | `from`, `to`, `str`, `signature` | Отправить слейт (slate) для доставки |
 | `Made` | `address`, `signature`, `ver`, `epicboxmsgid` | Подтвердить обработку слейта |
 | `ClientDetails` | `wallet_version`, `wallet_mode`, `protocol_version` | Объявить идентификатор клиента |
-| `ping` / `pong` | none | Keepalive |
+| `ping` / `pong` | нет | Keepalive |
 
 `Challenge`, `GetVersion` и `FastSend` принимаются для обеспечения совместимости и не являются частью <Ver k="epicboxProtocol" />.
 
@@ -74,7 +74,7 @@ secp256k1. См. [addresses](/concepts/addresses).
 | Тип | Поля | Назначение |
 | --- | --- | --- |
 | `Challenge` | `str` | Подписать для подписки |
-| `Ok` | none | Принято |
+| `Ok` | нет | Принято |
 | `Slate` | `from`, `str`, `signature`, `challenge`, `ver`, `epicboxmsgid` | Слейт для вас |
 | `Error` | `kind`, `description` | Отклонено |
 

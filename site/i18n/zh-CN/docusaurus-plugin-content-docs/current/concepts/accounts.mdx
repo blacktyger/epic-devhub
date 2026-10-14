@@ -5,9 +5,9 @@ description: Epic钱包账户如何映射到BIP32派生路径、账户的作用�
 
 # 账户
 
-账户（account）是绑定到钱包单一种子内某条BIP32派生路径的标签。钱包可持有任意数量的账户，钱包初始化时即存在一个名为`default`的账户。
+账户是绑定到钱包单一种子内某条BIP32派生路径的标签。钱包可持有任意数量的账户，钱包初始化时即存在一个名为`default`的账户。
 
-该记录包含两个字段：标签和父派生路径（<Src repo="wallet" path="libwallet/src/types.rs" line={992} />）。标签是存储键（<Src repo="wallet" path="impls/src/backends/lmdb.rs" line={823} />），因此创建后不可更改。钱包存储的所有币相关数据均以路径为键。
+该记录包含两个字段：标签和父派生路径（<Src repo="wallet" path="libwallet/src/types.rs" line={997} />）。标签是存储键（<Src repo="wallet" path="impls/src/backends/lmdb.rs" line={830} />），因此创建后不可更改。钱包存储的所有币相关数据均以路径为键。
 
 ## 账户包含的内容 {/* #what-belongs-to-an-account */}
 
@@ -19,13 +19,13 @@ description: Epic钱包账户如何映射到BIP32派生路径、账户的作用�
 | 最后确认的区块高度 | 飞行中的slate缓存 |
 | epicbox与支付证明地址 | 最后扫描的区块高度 |
 
-余额摘要、输出（output）列表和交易列表均读取单个账户（<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={479} />）。交易日志id在每个账户内从0重新计数（<Src repo="wallet" path="impls/src/backends/lmdb.rs" line={721} />），因此id仅在持有它的账户内唯一。
+余额摘要、输出（output）列表和交易列表均读取单个账户（<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={475} />）。交易日志id在每个账户内从0重新计数（<Src repo="wallet" path="impls/src/backends/lmdb.rs" line={727} />），因此id仅在持有它的账户内唯一。
 
-`epic-wallet address`打印单个账户的标识符，每个账户有其自己的（<Src repo="wallet" path="controller/src/command.rs" line={1360} />）。参见[地址](/concepts/addresses)。
+`epic-wallet address`打印一个账户的标识符，每个账户都有其自己的（<Src repo="wallet" path="controller/src/command.rs" line={1360} />）。参见[地址](/concepts/addresses)。
 
 ## 派生路径 {/* #derivation */}
 
-`default`是一个深度为2、所有子索引均为零的标识符。账户*n*取当前最高的第一级索引加一（<Src repo="wallet" path="libwallet/src/internal/keys.rs" line={81} />），因此路径按创建顺序分配且不会复用。
+`default`是一个深度为2的标识符，所有子索引均为零。账户*n*取当前最大的第一级索引加一（<Src repo="wallet" path="libwallet/src/internal/keys.rs" line={81} />），因此路径按创建顺序分配，且不会重复使用。
 
 `accounts`方法以十六进制返回标签和路径标识符，格式为一个深度字节后跟四个大端序子索引：
 
@@ -38,11 +38,11 @@ description: Epic钱包账户如何映射到BIP32派生路径、账户的作用�
 ]
 ```
 
-采集自2026-08-26运行<Ver k="wallet" />的钱包。第二个创建的账户返回
+采集自运行4.0.0版本的钱包，时间为2026-08-26。第二个创建的账户返回
 `0200000001000000000000000000000000`
 (<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={99} />).
 
-每条账户路径下挂有两个分支。输出（output）键为`m/<n>/0/<index>`，地址键为`m/<n>/1/<index>`，通过blake2b哈希为secp256k1机密（<Src repo="wallet" path="libwallet/src/address.rs" line={31} />）。持有种子的工具无需钱包数据库即可为任意账户派生两者。标签是数据库独有的唯一信息。
+每条账户路径下挂有两个分支。输出（output）密钥为`m/<n>/0/<index>`，地址密钥为`m/<n>/1/<index>`，通过blake2b哈希为secp256k1机密（<Src repo="wallet" path="libwallet/src/address.rs" line={31} />）。持有种子的工具无需钱包数据库即可为任意账户派生两者。标签是唯一仅由数据库保存的内容。
 
 ## 命令行操作 {/* #from-the-command-line */}
 
@@ -52,17 +52,17 @@ epic-wallet account -c savings      # 创建一个
 epic-wallet -a savings info         # 对其执行任意命令
 ```
 
-`-a`默认值为`default`（<Src repo="wallet" path="src/cmd/wallet_args.rs" line={81} />），在钱包打开时生效，因此它为该次调用选定账户。列表打印两列：名称和父BIP-32派生路径（<Src repo="wallet" path="controller/src/display.rs" line={431} />）。
+`-a`默认为`default`（<Src repo="wallet" path="src/cmd/wallet_args.rs" line={81} />），在钱包打开时生效，因此它为该次调用选定账户。列表打印两列：名称和父级BIP-32派生路径（<Src repo="wallet" path="controller/src/display.rs" line={431} />）。
 
 ## 转账使用的账户 {/* #which-account-a-transfer-uses */}
 
-**发送**从已选定的账户`-a`花费。在Owner API上，`InitTxArgs`中的`src_acct_name`为单次调用指定账户，不在`accounts`中的标签解析为活跃账户（<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={383} />）。传入`accounts`方法返回的标签。
+**发送**从`-a`选定的账户花费。在Owner API中，`InitTxArgs`里的`src_acct_name`为单次调用指定账户，不在`accounts`中的标签解析为活跃账户（<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={383} />）。传入`accounts`方法返回的标签。
 
-**通过文件或http接收**将资金记入已选定的账户`-a`。Foreign API通过`receive_tx`上的`dest_acct_name`接受该参数。
+**通过文件或http接收**将款项记入`-a`选定的账户。Foreign API通过`receive_tx`上的`dest_acct_name`接收该参数。
 
-**通过epicbox接收**将资金记入监听器打开钱包时处于活跃状态的账户（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={513} />）。该监听器使用该账户的地址订阅，因此一个进程服务于一个账户。
+**通过epicbox接收**将款项记入监听器打开钱包时处于活跃状态的账户（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={520} />）。该监听器使用该账户的地址进行订阅，因此一个进程服务于一个账户。
 
-**在同一钱包的两个账户之间转移资金**使用`self`传输方式，其中`-d`指定目标账户：
+**在同一钱包的两个账户之间转移价值**使用`self`传输方式，其中`-d`指定目标账户：
 
 ```bash
 epic-wallet -a savings send -m self -d default 1.5
@@ -72,7 +72,7 @@ epic-wallet -a savings send -m self -d default 1.5
 
 ## 刷新与扫描 {/* #refreshing-and-scanning */}
 
-`refresh_from_node`更新活跃账户（<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={245} />）。`scan`遍历所有账户，因为它通过每个账户携带的派生路径恢复输出（<Src repo="wallet" path="libwallet/src/internal/scan.rs" line={376} />）。扫描游标是全钱包范围的，而最后确认高度是按账户记录的，因此扫描完成后每个账户的高度由其自身的输出设定。
+`refresh_from_node`更新活跃账户（<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={241} />）。`scan`遍历每个账户，因为它通过每个账户携带的派生路径恢复输出（<Src repo="wallet" path="libwallet/src/internal/scan.rs" line={376} />）。扫描游标是全钱包范围的，而最后确认高度是按账户计的，因此扫描完成后每个账户的高度由其自身的输出设定。
 
 ## 恢复后操作 {/* #after-a-recovery */}
 

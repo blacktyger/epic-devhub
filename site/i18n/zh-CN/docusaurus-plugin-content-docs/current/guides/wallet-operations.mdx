@@ -44,7 +44,7 @@ epic-wallet txs
 
 ### 交易的确认深度 {/* #confirmation-depth-of-a-transaction */}
 
-交易深度为当前链高度减去钱包看到该交易确认时的高度。钱包将该高度记录在交易日志中，字段为`confirmation_height`（<Src repo="wallet" path="libwallet/src/types.rs" line={849} />），在刷新时发现输出（output）已上链时设置（<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={370} />）。在`confirmed`为true之前，该字段值为`null`。链高度来自节点的`get_status`，字段为`tip.height`。
+交易深度为当前链高度减去钱包看到该交易确认时的高度。钱包将该高度记录在交易日志中，字段为`confirmation_height`（<Src repo="wallet" path="libwallet/src/types.rs" line={854} />），在刷新时发现输出（output）已上链时设置（<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={366} />）。在`confirmed`为true之前，该字段值为`null`。链高度来自节点的`get_status`，字段为`tip.height`。
 
 两个字段均位于Owner API的`retrieve_txs`结果中。`epic-wallet txs`在输出中打印高度而非深度，因此集成方需自行计算差值。
 

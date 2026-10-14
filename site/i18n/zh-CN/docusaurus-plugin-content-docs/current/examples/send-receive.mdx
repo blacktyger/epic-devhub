@@ -102,7 +102,7 @@ epic-wallet listen -m epicbox    # 离线时进入队列
 epic-wallet listen               # HTTP，需要可达性
 ```
 
-如需自行处理slate，Foreign API方法为`receive_tx`。该方法位于端口<Ver k="ports.walletForeign" />，不需要令牌，接受四个位置参数：`slate`、`dest_acct_name`、`message`和`addr_from`（<Src repo="wallet" path="api/src/foreign_rpc.rs" line={359} />）。
+如需自行处理slate，Foreign API方法为`receive_tx`。该方法位于端口<Ver k="ports.walletForeign" />，不需要令牌，接受四个位置参数：`slate`、`dest_acct_name`、`message`和`addr_from`（<Src repo="wallet" path="api/src/foreign_rpc.rs" line={357} />）。
 
 <Tabs groupId="lang">
 <TabItem value="curl" label="curl">

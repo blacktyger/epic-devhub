@@ -58,8 +58,8 @@ HTTP-транспорт оставляют его пустым, поэтому �
 ### Глубина подтверждения транзакции {/* #confirmation-depth-of-a-transaction */}
 
 Глубина транзакции — это текущая высота блока минус высота, на которой кошелёк зафиксировал её
-подтверждение. Кошелёк записывает эту высоту в журнал транзакций как `confirmation_height` (<Src repo="wallet" path="libwallet/src/types.rs" line={849} />); значение
-устанавливается, когда обновление обнаруживает выходы в цепочке (<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={370} />). Поле равно `null`, пока `confirmed`
+подтверждение. Кошелёк записывает эту высоту в журнал транзакций как `confirmation_height` (<Src repo="wallet" path="libwallet/src/types.rs" line={854} />); значение
+устанавливается, когда обновление обнаруживает выходы в цепочке (<Src repo="wallet" path="libwallet/src/internal/updater.rs" line={366} />). Поле равно `null`, пока `confirmed`
 не станет true. Высота блока берётся из `get_status` узла, поле `tip.height`.
 
 Оба поля присутствуют в результате `retrieve_txs` Owner API. `epic-wallet txs` выводит высоту, а не глубину, поэтому

@@ -51,7 +51,7 @@ output](/guides/wallet-operations#keep-more-than-one-spendable-output).
 `cancel_tx` обращается к узлу перед любым действием, поэтому недоступный или несинхронизированный узел
 блокирует его выполнение (<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={758} />). Далее требуется ровно одна транзакция, соответствующая переданному
 id или slate id, тип этой транзакции должен быть `TxSentCreated` или `TxReceived`, а поле `confirmed` должно быть равно false
-(<Src repo="wallet" path="libwallet/src/internal/tx.rs" line={309} />).
+(<Src repo="wallet" path="libwallet/src/internal/tx.rs" line={316} />).
 
 Тип условия задаёт границу. Как только опубликованный перевод обнаружен в мемпуле узла, его запись
 становится `TxSentMempool`, и с этого момента вы ожидаете цепочку, а не выбираете отказ от него. Кошелёк

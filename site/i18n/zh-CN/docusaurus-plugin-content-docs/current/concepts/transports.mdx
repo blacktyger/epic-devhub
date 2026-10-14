@@ -22,7 +22,7 @@ slate（交易协商数据）需要在两个钱包之间来回传递。传输方
 
 Epicbox是唯一不需要接收方在发送时刻可达的传输方式，也是唯一会丢失支付证明的传输方式。这两列决定了大多数集成方案的选择。
 
-版本列是证明列存在的原因。支付证明是V3 slate的字段。`file`和`emoji`在slate携带`payment_proof`或`ttl_cutoff_height`时（<Src repo="wallet" path="impls/src/adapters/file.rs" line={30} />和<Src repo="wallet" path="impls/src/adapters/emoji.rs" line={1151} />）立即序列化为V3。`keybase`在不进行版本转换的情况下序列化slate，因此所有字段均得以保留（<Src repo="wallet" path="impls/src/adapters/keybase.rs" line={304} />）。`http`询问监听器所支持的版本，若slate携带证明则返回错误而非降级处理（<Src repo="wallet" path="impls/src/adapters/http.rs" line={143} />）。`epicbox`无条件转换为V2（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={251} />），因此证明请求在slate发出前就已丢失。如需请求证明，请参阅[相应地选择传输方式](/concepts/payment-proofs#choose-the-transport-accordingly)。
+版本列是证明列存在的原因。支付证明是V3 slate的字段。`file`和`emoji`在slate携带`payment_proof`或`ttl_cutoff_height`时（<Src repo="wallet" path="impls/src/adapters/file.rs" line={30} />和<Src repo="wallet" path="impls/src/adapters/emoji.rs" line={1151} />）立即序列化为V3。`keybase`在不进行版本转换的情况下序列化slate，因此所有字段均得以保留（<Src repo="wallet" path="impls/src/adapters/keybase.rs" line={304} />）。`http`询问监听器所支持的版本，若slate携带证明则返回错误而非降级处理（<Src repo="wallet" path="impls/src/adapters/http.rs" line={177} />）。`epicbox`无条件转换为V2（<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={258} />），因此证明请求在slate发出前就已丢失。如需请求证明，请参阅[相应地选择传输方式](/concepts/payment-proofs#choose-the-transport-accordingly)。
 
 开发者常用的三种传输方式之间的已知差异：
 
@@ -32,7 +32,7 @@ Epicbox是唯一不需要接收方在发送时刻可达的传输方式，也是�
 | `http` | 1，仅发送方 | 接收方 | 否，`From/To Address`是`None` |
 | `epicbox` | 1条命令，但两个钱包均需订阅 | **双方** | 是，发送方地址 |
 
-**Epicbox要求发送方也保持监听。** `send -m epicbox`连接到中继，发布slate，锁定其输入（input），然后返回（<Src repo="wallet" path="controller/src/command.rs" line={566} />）。它不等待回复。已签名的slate通过中继作为新消息返回，持有发送方epicbox订阅的进程负责最终确认并广播（<Fn repo="wallet" path="impls/src/adapters/epicbox.rs" line={502} name="process_incoming_slate" />）。因此，接收方需要`listen -m epicbox`来签名，发送方需要`listen -m epicbox`来最终确认。由于中继会存储消息直到收件方重新连接，双方无需在对方操作时同时在线。在发送前启动两个订阅。实测往返时间约为1.5秒。
+**Epicbox要求发送方也保持监听。** `send -m epicbox`连接到中继，发布slate，锁定其输入（input），然后返回（<Src repo="wallet" path="controller/src/command.rs" line={566} />）。它不等待回复。已签名的slate通过中继作为新消息返回，持有发送方epicbox订阅的进程负责最终确认并广播（<Fn repo="wallet" path="impls/src/adapters/epicbox.rs" line={509} name="process_incoming_slate" />）。因此，接收方需要`listen -m epicbox`来签名，发送方需要`listen -m epicbox`来最终确认。由于中继会存储消息直到收件方重新连接，双方无需在对方操作时同时在线。在发送前启动两个订阅。实测往返时间约为1.5秒。
 
 **只有epicbox能告知付款方身份。** 文件和HTTP方式会使交易日志的对手方字段留空，因此归因需依赖你自己系统中的其他机制。参阅[交易所集成](/guides/exchange-integration)。
 

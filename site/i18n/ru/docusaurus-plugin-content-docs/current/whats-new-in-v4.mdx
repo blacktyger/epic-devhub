@@ -27,7 +27,7 @@ description: Что изменилось в Epic node 4.x и wallet 4.x и чт�
 ### Заголовки блоков описывают доказательства двумя полями {/* #block-headers-describe-proofs-with-two-fields */}
 
 `proof` задаёт название алгоритма, а `solution` — размеченное объединение, форма которого зависит от него. В
-3.x решение хранилось в одном скалярном поле.
+версии 3.x одно скалярное поле содержало решение.
 
 ### Чтение выходов и транзакций кошелька поддерживает пагинацию {/* #wallet-output-and-transaction-reads-take-pagination */}
 
@@ -35,7 +35,7 @@ description: Что изменилось в Epic node 4.x и wallet 4.x и чт�
 
 ### `Status` получает поля supply {/* #status-gains-supply-fields */}
 
-`supply` и `max_supply` — суммы в freemen. `blocks_to_next_halving` — количество блоков, при <Src repo="node" path="api/src/types.rs" line={96} />. Шаги эмиссии не являются
+`supply` и `max_supply` — суммы в freemen. `blocks_to_next_halving` — количество блоков, при <Src repo="node" path="api/src/types.rs" line={102} />. Шаги эмиссии не являются
 исключительно халвингами; см. [emission](/mining/emission).
 
 ### Ядра представлены в двух формах {/* #kernels-appear-in-two-shapes */}
@@ -55,7 +55,7 @@ description: Что изменилось в Epic node 4.x и wallet 4.x и чт�
 ## Тулчейн и сборка {/* #toolchain-and-build */}
 
 Каждый репозиторий фиксирует версию Rust, поэтому достаточно установить rustup — самостоятельно
-фиксировать версию не нужно. Сборка также требует системных пакетов помимо тулчейна Rust; они
+фиксировать версию не нужно. Для сборки также требуются системные пакеты помимо тулчейна Rust; они
 перечислены по платформам в [building from source](/guides/build).
 
 ## Изменения хранилища {/* #storage-changes */}
@@ -68,21 +68,21 @@ configuration](/reference/wallet-config).
 
 ### Встроенный Tor {/* #bundled-tor */}
 
-Сборка с `--features with-tor` загружает экспертный пакет Tor и проверяет его по зафиксированному дайджесту. Релизные
-сборки не включают эту функцию. См. [what this version does not cover](/start#what-this-version-does-not-cover).
+Сборка с `--features with-tor` загружает экспертный пакет Tor и проверяет его по зафиксированному дайджесту. В
+релизных сборках эта функция не включена. См. [what this version does not cover](/start#what-this-version-does-not-cover).
 
 ### Epicbox подтверждает доставку {/* #epicbox-acknowledges-delivery */}
 
-Протокол <Ver k="epicboxProtocol" /> добавляет подтверждение `Made` с идентификатором сообщения, поэтому слейт (slate)
+Протокол <Ver k="epicboxProtocol" /> добавляет подтверждение `Made` с идентификатором сообщения, так что слейт (slate)
 помечается доставленным только после того, как получатель подтверждает его обработку. Совместимость
 с клиентами до версии 3.5.2 сохранена. См. [the protocol](/api/epicbox).
 
 ### Подтверждение мемпула после публикации {/* #mempool-confirmation-after-posting */}
 
 После публикации транзакции кошелёк отслеживает мемпул узла и фиксирует отдельное состояние при её
-появлении там. Именно это ожидание объясняет, почему отправка может выглядеть зависшей — см. [the
-send appears to hang](/guides/stuck-transactions#case-3-the-send-appears-to-hang); кроме того, опубликованный перевод выходит из множества, которое принимает
-`cancel_tx`, — см. [cancelling has preconditions](/concepts/outputs-and-locking#cancelling-has-preconditions).
+появлении там. Именно это ожидание является причиной того, что отправка может выглядеть зависшей —
+подробнее в [the send appears to hang](/guides/stuck-transactions#case-3-the-send-appears-to-hang); кроме того, опубликованный перевод выходит из множества,
+которое принимает `cancel_tx`, — подробнее в [cancelling has preconditions](/concepts/outputs-and-locking#cancelling-has-preconditions).
 
 ### Реализация релея Epicbox изменилась {/* #the-epicbox-relay-implementation-changed */}
 
@@ -95,9 +95,29 @@ send appears to hang](/guides/stuck-transactions#case-3-the-send-appears-to-hang
 - **Epicbox конвертирует каждый слейт в V2**, что удаляет запрос доказательства платежа. См. [the
   transport comparison](/concepts/transports#comparison).
 - **`change_password` удаляет резервную сид-фразу**, если не передан `--remove-backup`.
-- **Значения по умолчанию для валидации синхронизации изменились.** `skip_pow_validation` и `disable_checkpoints` по умолчанию равны
-  `true`, что пропускает доказательство работы для контрольных точек истории, при этом всегда
-  полностью проверяя последние <Ver k="powVerificationThreshold" /> блоков. См. [node and wallet setup](/guides/mainnet-setup).
+- **Значения по умолчанию для валидации синхронизации изменились.** `skip_pow_validation` по умолчанию равно `true`, а
+  `disable_checkpoints` — `false`. В mainnet доказательство работы пропускается только до последней контрольной точки и
+  полностью проверяется выше неё, а `disable_checkpoints` игнорируется. См. [node and wallet setup](/guides/mainnet-setup#sync-validation-settings).
+
+## Изменения в 4.1.0 {/* #changes-in-410 */}
+
+Узел и кошелёк версии 4.1.0 ужесточают аутентификацию. Интеграция, работавшая с 4.0.x, может начать
+получать ответы 401.
+
+- **Owner API кошелька требует HTTP Basic.** `/v3/owner` и `/v2/owner` принимают имя пользователя `epic` и
+  содержимое `.owner_api_secret` в дополнение к токену v3. См. [owner access on the wallet](/api/authentication#owner-access-on-the-wallet).
+- **`/v1` и `/v2/owner` узла закрыты по умолчанию.** При отсутствии настроенного секрета они возвращают 401,
+  а не работают в открытом режиме. Без учётных данных отвечают только `GET /v1/version` и один вызов `get_status` типа
+  plain. См. [the node credential](/api/authentication#the-node-credential).
+- **Новый метод Foreign API `ready_for_txs`** сообщает, синхронизирован ли узел, без учётных данных. Кошелёк
+  использует его вместо owner-метода `get_status`. См. [which method lives where](/api/node#which-json-rpc-method-lives-where).
+- **Кошелёк значительно реже отправляет секрет узла.** Он никогда не отправляет его в `/v2/foreign`, поэтому
+  узел с установленным `foreign_api_secret_path` не может его обслуживать. См. [the credential the wallet presents to the
+  node](/api/authentication#the-credential-the-wallet-presents-to-the-node).
+- **`/v1/kerneldownload` удалён.** См. [the v1 routes](/api/node#routes).
+- **`disable_checkpoints` по умолчанию равен `false` и игнорируется на mainnet,** а новая контрольная точка на высоте
+  блока <Ver k="lastCheckpointHeight" />, задающая <Ver k="checkpointCount" />, смещает конец пропускаемого диапазона. См. [настройки валидации
+  синхронизации](/guides/mainnet-setup#sync-validation-settings).
 
 ## Далее {/* #next */}
 
