@@ -3,6 +3,9 @@ title: Node API
 description: The Epic node's JSON-RPC surfaces, which method lives on which one, and the response shapes clients have to handle.
 ---
 
+import CodeBlock from '@theme/CodeBlock';
+import {versions} from '@site/src/data/versions';
+
 # Node API
 
 The node serves JSON-RPC 2.0 on one listener, bound to `127.0.0.1` port <Ver k="ports.nodeApi" /> by
@@ -10,7 +13,7 @@ default, split across two surfaces.
 
 | Surface | Path | Serves |
 | --- | --- | --- |
-| Owner | `/v2/owner` | Node administration, eight methods |
+| Owner | `/v2/owner` | Node administration, <Ver k="apiMethods.nodeOwner" /> methods |
 | Foreign | `/v2/foreign` | Chain reads, transaction submission, block templates, <Ver k="foreignApiMethods" /> methods |
 
 Credentials, and which of these expects one, are covered once in
@@ -120,7 +123,7 @@ returns the same thing, and its surface.
 <details>
 <summary>Every v1 route and its JSON-RPC equivalent</summary>
 
-The router registers 18 patterns, six of them wildcards: `blocks/*`, `headers/*`, `chain/outputs/*`,
+The router registers <Ver k="v1Routes" /> patterns, <Ver k="v1Wildcards" /> of them wildcards: `blocks/*`, `headers/*`, `chain/outputs/*`,
 `chain/kernels/*`, `txhashset/*` and `peers/**`.
 
 | Route | Verb | JSON-RPC equivalent |
@@ -161,10 +164,9 @@ returns 401:
 curl -s -u epic:$(cat ~/.epic/main/.api_secret) http://127.0.0.1:3413/v1/status
 ```
 
-```json
-{
+<CodeBlock language="json">{`{
   "protocol_version": 2,
-  "user_agent": "MW/Epic 4.0.3",
+  "user_agent": "MW/Epic ${versions.history.captureNode}",
   "connections": 0,
   "tip": {
     "height": 1439,
@@ -176,32 +178,31 @@ curl -s -u epic:$(cat ~/.epic/main/.api_secret) http://127.0.0.1:3413/v1/status
   "supply": 23024,
   "max_supply": 21000000,
   "blocks_to_next_halving": 479521
-}
-```
+}`}</CodeBlock>
 
-Captured from node 4.0.3 on a local usernet chain at height 1439 on 2026-08-24. A <Ver k="node" />
-node puts its own version in `user_agent`.
+Captured from node <Ver k="history.captureNode" /> on a local usernet chain at height 1439 on
+<Ver k="history.captureDate" />. A <Ver k="node" /> node puts its own version in `user_agent`.
 
 ## Full method reference {/* #full-method-reference */}
 
 <CardGrid>
   <Card title="Chain reads" to="/api/node/chain-reads">
-    Eleven methods. Sync readiness, blocks, headers, kernels, outputs and the tip.
+    <Ver k="apiMethods.node-chain-reads" /> methods. Sync readiness, blocks, headers, kernels, outputs and the tip.
   </Card>
   <Card title="Administration" to="/api/node/administration">
-    Eight methods. Status, peers, validation and compaction.
+    <Ver k="apiMethods.node-administration" /> methods. Status, peers, validation and compaction.
   </Card>
   <Card title="Mempool and submission" to="/api/node/mempool">
-    Four methods, one of them irreversible.
+    <Ver k="apiMethods.node-mempool" /> methods, one of them irreversible.
   </Card>
   <Card title="Block templates" to="/api/node/block-templates">
-    Three methods. Mining over HTTP instead of Stratum.
+    <Ver k="apiMethods.node-mining" /> methods. Mining over HTTP instead of Stratum.
   </Card>
 </CardGrid>
 
 ## Source {/* #source */}
 
-- <Src repo="node" path="api/src/owner_rpc.rs" line={29} /> defines the eight owner methods
+- <Src repo="node" path="api/src/owner_rpc.rs" line={29} /> defines the <Ver k="apiMethods.nodeOwner" /> owner methods
 - <Src repo="node" path="api/src/foreign_rpc.rs" line={38} /> defines the foreign methods
 - <Src repo="node" path="api/src/types.rs" /> defines every response shape
 - <Src repo="node" path="api/src/auth.rs" /> is the Basic auth middleware

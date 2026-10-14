@@ -8,7 +8,10 @@ description: The epicbox wire protocol, covering addressing, handshake, message 
 Epicbox is the store-and-forward relay that carries slates between wallets that cannot reach each other
 directly, which is what makes a transfer work between two wallets behind NAT.
 
-Protocol version: **<Ver k="epicboxProtocol" />**.
+Protocol version: **<Ver k="epicboxProtocol" />**, the constant every current wallet sends
+(<Src repo="wallet" path="impls/src/adapters/epicbox.rs" line={77} />). The public relays report relay
+software <Ver k="epicboxRelay" />, which is a server build that speaks this protocol, not a newer
+protocol. No relay release is tagged and no relay image is published.
 
 ## What a relay does {/* #what-a-relay-does */}
 
@@ -49,8 +52,8 @@ case for how long a queued slate waits before a connected client is offered it. 
 connected and registered as a listener receives slates immediately instead, without waiting for the next
 challenge.
 
-Clients that announce protocol version `2.0.0`, or announce none, are issued a fixed challenge string
-instead of a random one, for compatibility with wallets older than 3.5.2.
+Clients that announce protocol version <code><Ver k="history.epicboxLegacyProtocol" /></code>, or announce none, are issued a fixed challenge string
+instead of a random one, for compatibility with wallets older than <Ver k="history.epicboxFixedChallengeBefore" />.
 
 ## Message types {/* #message-types */}
 
@@ -94,7 +97,7 @@ delivery works.
 
 ## Delivery and its limits {/* #delivery-and-its-limits */}
 
-Delivery is acknowledged rather than fire-and-forget, which is the main change from protocol 2.0.0.
+Delivery is acknowledged rather than fire-and-forget, which is the main change from protocol <Ver k="history.epicboxLegacyProtocol" />.
 
 1. On a valid `Subscribe`, the relay sends the **oldest undelivered** slate for that key, with an
    `epicboxmsgid`.

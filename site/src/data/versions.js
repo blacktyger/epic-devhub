@@ -1,36 +1,93 @@
 /**
- * Single source of truth for every value that changes when Epic releases.
+ * The single source of truth for every version, release date, download filename, checksum,
+ * release URL and documented count on this site.
  *
- * Edit this file and nothing else. It feeds:
- *   - the <Ver /> component used throughout the docs
- *   - the <Src /> and <Fn /> components, which pin GitHub links to these refs
- *   - docusaurus.config.js, for the footer and metadata
+ * Every page, in every locale, and the header, footer, downloads, docs prose, code examples and
+ * the documentation assistant's corpus read these values: <Ver k="..." /> in MDX, imports in
+ * components and in docusaurus.config.js, and epic-assistant's build-corpus.mjs, which imports
+ * this file. Nothing else may write a version out. `npm run versions` in audit/ fails the build on
+ * a literal anywhere else; see audit/version-literals.mjs for the one exception it allows.
  *
- * When a new release lands: bump the version, bump gitRef to the new tag, and
- * check anything in `verifiedAgainst` that the release plausibly changed.
+ * Two kinds of value live here:
+ *
+ *   - Release data, derived from `releaseData` in ./releases.js. That file is generated from the
+ *     GitHub releases API by `npm run versions:bump` in site/, which also downloads each asset and
+ *     verifies it against its published SHA-256. A release bump is that one command; see
+ *     site/README.md, "Bumping to a new Epic release". Never type a release value below.
+ *   - Hand-curated facts with no release API behind them: the epicbox protocol, ports, consensus
+ *     constants, documented counts, and `history`, the fixed points the prose refers to ("changed
+ *     in", "captured on"). Each carries its upstream source in a comment.
+ *
+ * When a release lands: run the bump, then check `history` and anything the release plausibly
+ * changed, and move `verifiedAgainst` to the day you checked.
  */
+import {releaseData} from './releases.js';
+
+const node = releaseData.components.node;
+const wallet = releaseData.components.wallet;
+const miner = releaseData.components.miner;
+
+/** A component's assets in page order, each with the key pages look them up by. */
+function assetList(component, order) {
+  return order.filter((key) => component.assets[key]).map((key) => ({key, ...component.assets[key]}));
+}
+
+/**
+ * Counts of documented JSON-RPC methods, per surface and per reference group. Declared, not
+ * computed, so a page can print one without bundling the whole API reference. audit/version-
+ * literals.mjs fails if any of these disagrees with the methods src/data/rpcSpec.js documents.
+ */
+export const apiMethodCounts = {
+  nodeOwner: '8',
+  nodeForeign: '18',
+  walletOwner: '37',
+  walletForeign: '6',
+  'node-administration': '8',
+  'node-chain-reads': '11',
+  'node-mempool': '4',
+  'node-mining': '3',
+  'wallet-session': '10',
+  'wallet-reading': '8',
+  'wallet-transfers': '7',
+  'wallet-proofs': '4',
+  'wallet-secrets': '4',
+  'wallet-config': '4',
+  'wallet-foreign': '6',
+};
 
 export const versions = {
-  // Software versions
-  node: '4.1.0',
-  // The newest node release that actually published binaries, which is NOT always `node` above.
-  //
-  // v4.0.4 (2026-09-21) shipped with no assets: its release job died on "Create GitHub Release"
-  // uploading a zero-byte asset. v4.1.0 (2026-10-09) publishes Linux and Windows binaries, so the
-  // two are equal again and the caution on /downloads disappears on its own. Keep the field: when
-  // a tag ships without assets again, set this to the last release that has them.
-  nodeBinaries: '4.1.0',
-  // The newest node release with a macOS binary. v4.1.0 attaches Linux and Windows assets only
-  // (gh release view v4.1.0 -R EpicCash/epic, checked 2026-10-14); MacOS-aarch64-4.0.3.zip on v4.0.3
-  // is the last macOS build.
-  nodeMacBinaries: '4.0.3',
-  wallet: '4.1.0',
+  // Software versions, from the GitHub releases API via releases.js.
+  node: node.version,
+  nodeDate: node.date,
+  wallet: wallet.version,
+  walletDate: wallet.date,
+  // null while EpicCash/epic-miner has no published release. Its only release, 2.3.1 of
+  // 2022-11-23, is a draft, and the bump ignores drafts.
+  miner: miner.version,
+  // The release the node's Linux binary comes from. Normally equal to `node`; lower when the
+  // newest tag shipped without assets, as v4.0.4 did.
+  nodeBinaries: node.assets.linux?.version ?? null,
+  // The newest node release with a macOS binary, which can be older than `node`.
+  nodeMacBinaries: node.assets.mac?.version ?? null,
+
+  // The epicbox wire protocol the wallet speaks, not a server release. EPICBOX_PROTOCOL_VERSION in
+  // epic-wallet impls/src/adapters/epicbox.rs:77 at v4.1.0, unchanged since wallet 3.6.0. Protocol
+  // 3.1.0 exists only on unmerged branches (EpicCash/epic-wallet#125, closed unmerged).
   epicboxProtocol: '3.0.0',
+  // The relay software the public relays report, which speaks protocol 3.0.0. "Protocol version
+  // 3.0.1" on https://epicbox.epiccash.com/ (checked 2026-10-14), and the 3.0.1 build of
+  // EpicCash/epicbox-nodejs-install. There is no tagged release or Docker image of it.
+  epicboxRelay: '3.0.1',
+  // epic-wallet libwallet/src/slate_versions/mod.rs at v4.1.0: v2.rs and v3.rs.
   slateVersions: 'V2 and V3',
 
-  // Toolchain
+  // Toolchain. rust-toolchain.toml in both repos at v4.1.0. nodejs is the site's own engines
+  // floor (site/package.json) and the CI runner's version.
   rust: '1.89.0',
-  nodejs: '18',
+  // Highest GLIBC_ symbol the node and wallet Linux release binaries need, measured with
+  // objdump -T on both at their release tag. Re-measure on a bump; the bump does not.
+  linuxGlibc: '2.34',
+  nodejs: '20',
   python: '3.10',
 
   // Consensus and economics
@@ -43,8 +100,8 @@ export const versions = {
   baseFee: '0.001',
   maxBlockWeight: '40,000',
   powVerificationThreshold: '1,000',
+  // chain/src/types.rs at the node tag: 13 checkpoints, the newest at 3,710,000.
   checkpointCount: '13',
-  // The newest compiled-in checkpoint, added in node 4.1.0 (chain/src/types.rs:519 at v4.1.0).
   lastCheckpointHeight: '3,710,000',
   difficultyWindow: '60',
 
@@ -55,13 +112,48 @@ export const versions = {
 
   // Wallet behaviour
   mempoolWaitMinutes: 'four',
-  ownerApiMethods: '37',
-  // Methods on the node's /v2/foreign surface. 18 from node 4.1.0, which added ready_for_txs.
-  foreignApiMethods: '18',
 
-  // Python SDK. Its own release line, not Epic's, so it moves independently of the node and wallet.
+  // Documented counts. Method counts are checked against rpcSpec.js.
+  apiMethods: apiMethodCounts,
+  ownerApiMethods: apiMethodCounts.walletOwner,
+  foreignApiMethods: apiMethodCounts.nodeForeign,
+  // Methods the stratum server dispatches: login, submit, keepalive, getjobtemplate, status
+  // (servers/src/mining/stratumserver.rs:290-307 at the node tag).
+  stratumMethods: '5',
+  // The unencrypted v2 Owner API, trait OwnerRpc in epic-wallet api/src/owner_rpc.rs at the wallet tag.
+  walletOwnerV2Methods: '17',
+  // The node's /v1 router, api/src/handlers.rs at the node tag.
+  v1Routes: '18',
+  v1Wildcards: '6',
+
+  // Python SDK. Its own release line, not Epic's (epic-python-sdk pyproject.toml), so it moves
+  // independently of the node and wallet.
   sdk: '0.1.0',
   sdkPython: '3.12',
+
+  // Fixed points the prose refers to. These do not move on a bump: a change made in 4.1.0 was made
+  // in 4.1.0 whatever the current release is, and a response captured on 4.0.3 stays a 4.0.3
+  // capture.
+  history: {
+    // The release that put HTTP Basic on the wallet Owner API, made node /v1 and /v2/owner fail
+    // closed, added ready_for_txs and removed /v1/kerneldownload.
+    authChange: '4.1.0',
+    // The series before it, for "an integration built against ...".
+    beforeAuthChange: '4.0.x',
+    // The node and wallet the captured API responses were recorded against, and when.
+    captureNode: '4.0.3',
+    captureWallet: '4.0.0',
+    captureDate: '2026-08-24',
+    accountsCaptureDate: '2026-08-26',
+    readyForTxsCaptureDate: '2026-10-14',
+    // Epicbox: the protocol before 3.0.0, which gets a fixed challenge, and the wallet release
+    // before which that challenge is needed (epic-epicbox-docker app_mongo.js).
+    epicboxLegacyProtocol: '2.0.0',
+    epicboxFixedChallengeBefore: '3.5.2',
+    // The first wallet release that speaks epicbox protocol 3.0.0 (epic-wallet v3.6.0
+    // impls/src/adapters/epicbox.rs:73).
+    epicboxProtocolSinceWallet: '3.6.0',
+  },
 
   // Default ports
   ports: {
@@ -81,110 +173,77 @@ export const versions = {
 
   // The date the factual claims were last checked against source.
   verifiedAgainst: '2026-10-14',
+  // The date releases.js was last refreshed from the GitHub API.
+  releasesCheckedAt: releaseData.checkedAt,
 };
 
-/** Release download pages, and the assets each publishes. */
+/** Release download pages, and the assets each publishes. Every value comes from releases.js. */
 export const releases = {
   node: {
-    url: `https://github.com/EpicCash/epic/releases/tag/v${versions.node}`,
-    latest: 'https://github.com/EpicCash/epic/releases/latest',
-    all: 'https://github.com/EpicCash/epic/releases',
-    // The release the binaries below actually come from. Equal to `url` whenever the newest
-    // release published assets; see versions.nodeBinaries for why 4.0.4 did not.
+    version: node.version,
+    date: node.date,
+    url: node.url,
+    latest: `https://github.com/${node.repo}/releases/latest`,
+    all: `https://github.com/${node.repo}/releases`,
+    // The release the Linux and Windows binaries come from, and whether it lags the newest tag.
     binariesVersion: versions.nodeBinaries,
-    binariesUrl: `https://github.com/EpicCash/epic/releases/tag/v${versions.nodeBinaries}`,
-    // True only while nodeBinaries lags node. Pages branch on this rather than comparing the two
-    // strings themselves, so the explanation lives in one place and disappears on its own.
-    binariesStale: versions.nodeBinaries !== versions.node,
-    // Base for a direct asset download. Built from nodeBinaries, not node: the filenames below
-    // have to name a release that really has assets, so a version bump cannot leave a command
-    // pointing at something that 404s.
-    download: `https://github.com/EpicCash/epic/releases/download/v${versions.nodeBinaries}`,
-    // The directory each archive unpacks into, which is not derivable from the filename. Read from
-    // the v4.1.0 archives themselves: the Linux tarball holds ./epic-4.1.0-linux-amd64/epic and the
-    // Windows zip holds Windows-v4.1.0/epic.exe. The Windows zip had no wrapping directory up to
-    // v4.0.3; it has one from v4.1.0.
-    unpacksTo: {
-      linux: `epic-${versions.nodeBinaries}-linux-amd64`,
-      windows: `Windows-v${versions.nodeBinaries}`,
-    },
-    assets: [
-      {
-        key: 'linux',
-        platform: 'Linux x86-64',
-        file: `epic-${versions.nodeBinaries}-linux-amd64.tar.gz`,
-        sha256: '88bcc46ff9b32ac96060e5db51ab718ddc43f548b969fa7ad238ae49eb23d4cc',
-      },
-      {
-        key: 'windows',
-        platform: 'Windows x86-64',
-        file: `Windows-v${versions.nodeBinaries}.zip`,
-        sha256: '99589f1d130d77a104da1985a9b8c86847911e1011a2922b75aa98776d1cafd9',
-      },
-    ],
-    // The last macOS build, on an older tag than the assets above. See versions.nodeMacBinaries.
-    mac: {
-      version: versions.nodeMacBinaries,
-      url: `https://github.com/EpicCash/epic/releases/tag/v${versions.nodeMacBinaries}`,
-      download: `https://github.com/EpicCash/epic/releases/download/v${versions.nodeMacBinaries}`,
-      platform: 'macOS Apple silicon',
-      file: `MacOS-aarch64-${versions.nodeMacBinaries}.zip`,
-    },
+    binariesUrl: node.assets.linux ? `https://github.com/${node.repo}/releases/tag/${node.assets.linux.tag}` : null,
+    binariesStale: versions.nodeBinaries !== node.version,
+    assets: assetList(node, ['linux', 'windows']),
+    // Base URL of the release the Linux and Windows assets come from; an asset's own download URL
+    // is its `url`.
+    download: node.assets.linux ? `https://github.com/${node.repo}/releases/download/${node.assets.linux.tag}` : null,
+    unpacksTo: {linux: node.assets.linux?.unpacksTo ?? null, windows: node.assets.windows?.unpacksTo ?? null},
+    // The newest macOS build, from whichever release last shipped one. `url` is that release's
+    // page, `fileUrl` the asset, `download` the base its checksum file sits under.
+    mac: node.assets.mac
+      ? {
+          ...node.assets.mac,
+          fileUrl: node.assets.mac.url,
+          url: `https://github.com/${node.repo}/releases/tag/${node.assets.mac.tag}`,
+          download: `https://github.com/${node.repo}/releases/download/${node.assets.mac.tag}`,
+          stale: node.assets.mac.version !== node.version,
+        }
+      : null,
   },
   wallet: {
-    url: `https://github.com/EpicCash/epic-wallet/releases/tag/v${versions.wallet}`,
-    latest: 'https://github.com/EpicCash/epic-wallet/releases/latest',
-    all: 'https://github.com/EpicCash/epic-wallet/releases',
-    download: `https://github.com/EpicCash/epic-wallet/releases/download/v${versions.wallet}`,
-    // From v4.1.0 the wallet publishes the same shape as the node: a versioned Linux tarball and a
-    // Windows zip, each with a -sha256sum.txt beside it. Up to v4.0.0 it published
-    // epic-wallet-4.0.zip and a bare epic-wallet.exe; v4.0.1 published an ubuntu24.04 tarball only
-    // and v4.0.2 published nothing. Note the Windows zip uses an underscore, Windows_v4.1.0.zip,
-    // where the node's uses a hyphen. Checksums are the published -sha256sum.txt values, re-checked
-    // with sha256sum -c against the downloaded assets on 2026-10-14.
-    assets: [
-      {
-        key: 'linux',
-        platform: 'Linux x86-64',
-        file: `epic-wallet-${versions.wallet}-linux-amd64.tar.gz`,
-        sha256: 'f8c820f83ceef02e570454a3a413ee87e6f4a44a895f4a584d8521ecb00e2563',
-      },
-      {
-        key: 'windows',
-        platform: 'Windows x86-64',
-        file: `Windows_v${versions.wallet}.zip`,
-        sha256: '46ce3b3ff7f74b6ee6ef6e7c2c7f80fdd537d52cf318d1728486602e6d2bb56c',
-      },
-    ],
-    // Read from the archives: ./epic-wallet-4.1.0-linux-amd64/epic-wallet and
-    // Windows_v4.1.0/epic-wallet.exe.
-    unpacksTo: {
-      linux: `epic-wallet-${versions.wallet}-linux-amd64`,
-      windows: `Windows_v${versions.wallet}`,
-    },
+    version: wallet.version,
+    date: wallet.date,
+    url: wallet.url,
+    latest: `https://github.com/${wallet.repo}/releases/latest`,
+    all: `https://github.com/${wallet.repo}/releases`,
+    assets: assetList(wallet, ['linux', 'windows']),
+    download: wallet.assets.linux ? `https://github.com/${wallet.repo}/releases/download/${wallet.assets.linux.tag}` : null,
+    unpacksTo: {linux: wallet.assets.linux?.unpacksTo ?? null, windows: wallet.assets.windows?.unpacksTo ?? null},
+    mac: wallet.assets.mac ?? null,
+  },
+  miner: {
+    version: miner.version,
+    url: miner.url,
+    all: `https://github.com/${miner.repo}/releases`,
   },
 };
 
 /**
- * Git refs used for source links. Keep these on release tags so a link keeps
- * pointing at the code the prose describes.
+ * Git refs used for source links. Kept on release tags so a link keeps pointing at the code the
+ * prose describes.
  */
 export const repos = {
   node: {
-    url: 'https://github.com/EpicCash/epic',
-    ref: `v${versions.node}`,
-    label: 'EpicCash/epic',
+    url: `https://github.com/${node.repo}`,
+    ref: node.tag,
+    label: node.repo,
   },
   wallet: {
-    url: 'https://github.com/EpicCash/epic-wallet',
-    ref: `v${versions.wallet}`,
-    label: 'EpicCash/epic-wallet',
+    url: `https://github.com/${wallet.repo}`,
+    ref: wallet.tag,
+    label: wallet.repo,
   },
-  // No release since the 2.3.1 draft of 2022-11-23; master was last pushed 2023-02-15.
+  // No published release, so links follow the default branch.
   miner: {
-    url: 'https://github.com/EpicCash/epic-miner',
-    ref: 'master',
-    label: 'EpicCash/epic-miner',
+    url: `https://github.com/${miner.repo}`,
+    ref: miner.tag ?? 'master',
+    label: miner.repo,
   },
   epicbox: {
     url: 'https://github.com/EpicCash/epic-epicbox-docker',

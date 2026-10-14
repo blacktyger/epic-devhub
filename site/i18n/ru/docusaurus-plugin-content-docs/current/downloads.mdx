@@ -13,9 +13,9 @@ export const sumFile = (file) => `${file.replace(/\.(tar\.gz|zip|exe)$/, '')}-sh
 
 # Загрузки
 
-Готовые бинарники публикуются в релизах GitHub. Linux-бинарники <Ver k="node" /> как узла, так и кошелька
-скомпонованы с `GLIBC_2.34`, поэтому им требуется glibc 2.34 или новее, то есть Ubuntu 22.04, Debian 12 или
-более поздние версии.
+Готовые бинарники публикуются в релизах GitHub. <Ver k="node" /> Linux-бинарники как узла, так и кошелька
+скомпонованы с <code>GLIBC_<Ver k="linuxGlibc" /></code>, поэтому им требуется glibc <Ver k="linuxGlibc" /> или новее, то есть Ubuntu 22.04,
+Debian 12 или более поздние версии.
 
 Чтобы вместо этого собрать из исходников, см. [собрать бинарники](/guides/build).
 
@@ -45,9 +45,9 @@ export const sumFile = (file) => `${file.replace(/\.(tar\.gz|zip|exe)$/, '')}-sh
 | {nodeAsset('linux').platform} | <code>{nodeAsset('linux').file}</code> | <code>{releases.node.unpacksTo.linux}/epic</code> |
 | {nodeAsset('windows').platform} | <code>{nodeAsset('windows').file}</code> | <code>{releases.node.unpacksTo.windows}/epic.exe</code> |
 
-Релиз <Ver k="node" /> не публикует бинарник для macOS. Последний доступный находится{' '} <code>{releases.node.mac.file}</code> на
-<a href={releases.node.mac.url}>tag v{releases.node.mac.version}</a>, в более старом релизе; чтобы запустить <Ver k="node" /> на Mac, [соберите из
-исходников](/guides/build). macOS Intel и Linux ARM также требуют сборки из исходников.
+Релиз <Ver k="node" /> не публикует бинарник для macOS. Последний доступный —{' '} <code>{releases.node.mac.file}</code> на <a href={releases.node.mac.url}>tag
+v{releases.node.mac.version}</a>, более старый релиз; чтобы запустить <Ver k="node" /> на Mac, [соберите из исходников](/guides/build). macOS
+Intel и Linux ARM также требуют сборки из исходников.
 
 ## Кошелёк <Ver k="wallet" /> {/* #wallet-ver-kwallet- */}
 
@@ -100,8 +100,8 @@ tar xzf ${walletAsset('linux').file}
 
 Бинарника <Ver k="node" /> для macOS для скачивания нет. [Соберите из исходников](/guides/build) на теге <code>v<Ver k="node" /></code>.
 Последний готовый бинарник узла для macOS относится к более старому релизу,{' '} <a href={releases.node.mac.url}>v{releases.node.mac.version}</a>,
-который вышел до{' '} изменений аутентификации <Ver k="node" /> API: он ведёт себя не так, как описано в
-[аутентификация и TLS](/api/authentication), и не должен использоваться совместно с кошельком <Ver k="wallet" />.
+который вышел до{' '} изменений аутентификации API <Ver k="history.authChange" />: он не ведёт себя так, как описано в
+[authentication and TLS](/api/authentication), и не следует использовать его в паре с кошельком <Ver k="wallet" />.
 
 <CodeBlock language="bash">{`curl -LO ${releases.node.mac.download}/${releases.node.mac.file}
 curl -LO ${releases.node.mac.download}/${sumFile(releases.node.mac.file)}
@@ -115,22 +115,20 @@ Privacy and Security.
 </TabItem>
 <TabItem value="win" label="Windows">
 
-<CodeBlock language="powershell">{`$tag = 'v${releases.node.binariesVersion}'
-$base = "https://github.com/EpicCash/epic/releases/download/$tag"
-Invoke-WebRequest "$base/Windows-$tag.zip" -OutFile "Windows-$tag.zip"
-Invoke-WebRequest "$base/Windows-$tag-sha256sum.txt" -OutFile "sha256sum.txt"
+<CodeBlock language="powershell">{`$file = '${nodeAsset('windows').file}'
+Invoke-WebRequest "${nodeAsset('windows').url}" -OutFile $file
+Invoke-WebRequest "${nodeAsset('windows').sumUrl}" -OutFile "sha256sum.txt"
 
 # PowerShell has no \`sha256sum -c\`, so compare the two values.
-(Get-FileHash "Windows-$tag.zip" -Algorithm SHA256).Hash.ToLower()
+(Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
 Get-Content sha256sum.txt
 
-Expand-Archive "Windows-$tag.zip" -DestinationPath .
-.\\Windows-$tag\\epic.exe --version
+Expand-Archive $file -DestinationPath .
+.\\${nodeAsset('windows').binary.replaceAll('/', '\\')} --version
 
 # The wallet archive is named with an underscore, not a hyphen.
-$wbase = "https://github.com/EpicCash/epic-wallet/releases/download/v${versions.wallet}"
-Invoke-WebRequest "$wbase/${walletAsset('windows').file}" -OutFile "${walletAsset('windows').file}"
-Invoke-WebRequest "$wbase/${sumFile(walletAsset('windows').file)}" -OutFile "wallet-sha256sum.txt"
+Invoke-WebRequest "${walletAsset('windows').url}" -OutFile "${walletAsset('windows').file}"
+Invoke-WebRequest "${walletAsset('windows').sumUrl}" -OutFile "wallet-sha256sum.txt"
 (Get-FileHash "${walletAsset('windows').file}" -Algorithm SHA256).Hash.ToLower()
 Get-Content wallet-sha256sum.txt
 Expand-Archive "${walletAsset('windows').file}" -DestinationPath .`}</CodeBlock>

@@ -12,7 +12,9 @@
     "serve": "docusaurus serve",
     "preview:all": "node preview.mjs",
     "write-translations": "docusaurus write-translations",
-    "write-heading-ids": "docusaurus write-heading-ids"
+    "write-heading-ids": "docusaurus write-heading-ids",
+    "versions:bump": "node scripts/bump-versions.mjs",
+    "versions:check": "node scripts/bump-versions.mjs --check"
   },
   "dependencies": {
     "@docusaurus/core": "3.10.2",

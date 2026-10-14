@@ -50,6 +50,37 @@ carries no test-only dependencies. From `../audit`, after `npm run build` here:
 Use `npm run page` rather than an ad-hoc full-page screenshot. Full-page shots of long routes exceed
 the image dimension limit that agent tooling can read.
 
+## Bumping to a new Epic release
+
+```bash
+npm run versions:bump     # fetch, verify, write src/data/releases.js
+npm run versions:check    # exit 1 if releases.js is behind upstream; writes nothing
+```
+
+`versions:bump` runs `scripts/bump-versions.mjs`. It reads the GitHub releases API for
+`EpicCash/epic`, `EpicCash/epic-wallet` and `EpicCash/epic-miner`, ignores drafts, prereleases and
+tags that are not semver, and takes the highest version as current. For Linux, Windows and macOS it
+picks the asset from the newest release in that major line that ships one, so a tag without a macOS
+build falls back to the last one that had it, and the entry records which tag that was. Each chosen
+archive is downloaded and its SHA-256 must match the published `-sha256sum.txt` or the run fails; the
+archive listing gives the directory it unpacks to and the path of the binary. Set `GITHUB_TOKEN` to
+authenticate API calls; it works without one. `versions:check` compares versions, tags, files and
+checksums against upstream without downloading archives.
+
+`src/data/releases.js` is generated. Do not edit it by hand. `checkedAt` is its only field that
+changes between runs with nothing new upstream. Pages never import it: `src/data/versions.js` reads it
+and stays the only module pages import. The hand-curated values stay in `versions.js`: the epicbox
+protocol version, ports, consensus numbers and the "since" history of when a feature arrived.
+
+After bumping:
+
+```bash
+npm run build
+cd ../audit && npm run versions && npm run sources
+```
+
+`npm run versions` is the version-literal check; `npm run sources` checks the source citations.
+
 ## Layout
 
 ```

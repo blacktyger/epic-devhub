@@ -40,6 +40,14 @@ jobs:
         run: npm ci
         working-directory: site
 
+      # One source of truth for versions. Fails on a component version, release filename, checksum
+      # or tag written out anywhere but site/src/data/versions.js and the releases.js it reads, on a
+      # documented method count that disagrees with rpcSpec.js, and on a downloads sentence the
+      # current release shape makes false. Needs no build and no dependencies, so it runs first.
+      - name: Version literals
+        run: node version-literals.mjs
+        working-directory: audit
+
       # The build is the content gate: Docusaurus is configured to fail on a broken internal link
       # or a missing heading anchor, so this step failing usually means a link, not a bug.
       - name: Build

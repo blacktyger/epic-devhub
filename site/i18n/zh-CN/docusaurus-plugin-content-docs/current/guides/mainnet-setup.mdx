@@ -135,7 +135,7 @@ epic-wallet listen -n
 epic-wallet info
 ```
 
-余额为零且无报错，表示钱包已成功连接节点且节点已响应。401表示节点设置了`foreign_api_secret_path`，而epic-wallet <Ver k="wallet" />无法与之配合使用。根据代码，版本早于<Ver k="node" />且设置了API机密的节点同样会返回401；该组合尚未经过测试。
+余额为零且无报错，表示钱包已成功连接节点且节点已响应。401表示节点设置了`foreign_api_secret_path`，而epic-wallet <Ver k="wallet" />无法与之配合使用。根据代码，版本早于<Ver k="history.authChange" />且设置了API机密的节点同样会返回401；该组合尚未经过测试。
 
 将钱包指向公共节点可以正常使用。但该节点会看到钱包查询的输出（output），且钱包不会验证所获得的链状态。
 

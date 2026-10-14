@@ -175,7 +175,7 @@ epic-wallet info
 
 A balance of zero and no error means the wallet reached the node and the node answered. A 401 means the
 node has a `foreign_api_secret_path` set, which epic-wallet <Ver k="wallet" /> cannot work with. Going by
-the code, a node older than <Ver k="node" /> with an API secret would also answer 401; that pairing has
+the code, a node older than <Ver k="history.authChange" /> with an API secret would also answer 401; that pairing has
 not been tested.
 
 A wallet pointed at a public node works. That node sees which outputs the wallet asks about, and the

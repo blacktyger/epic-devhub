@@ -22,14 +22,14 @@ HTTP needs the interface widened or a reverse proxy in front of it, and whatever
 place access can be restricted. Taking delivery over the [epicbox relay](/api/epicbox) instead needs no
 inbound port at all.
 
-The same six methods are served from the owner listener when `owner_api_include_foreign` is true
+The same <Ver k="apiMethods.walletForeign" /> methods are served from the owner listener when `owner_api_include_foreign` is true
 (<Src repo="wallet" path="controller/src/controller.rs" line={151} />).
 
 <RpcGroup id="wallet-foreign" />
 
 ## Source {/* #source */}
 
-- <Src repo="wallet" path="api/src/foreign_rpc.rs" line={66} /> defines the six methods
+- <Src repo="wallet" path="api/src/foreign_rpc.rs" line={66} /> defines the <Ver k="apiMethods.walletForeign" /> methods
 - <Src repo="wallet" path="controller/src/controller.rs" line={209} /> is the standalone listener
 - <Src repo="wallet" path="libwallet/src/api_impl/foreign.rs" /> for the implementation behind them
 

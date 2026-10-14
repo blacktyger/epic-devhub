@@ -13,6 +13,7 @@
     "keyboard": "node keyboard.mjs",
     "sources": "node spec-sources.mjs",
     "sources:fix": "node spec-sources.mjs --fix",
+    "versions": "node version-literals.mjs",
     "budget": "node budget.mjs",
     "budget:update": "node budget.mjs --update",
     "chunk-cost": "node chunk-cost.mjs",

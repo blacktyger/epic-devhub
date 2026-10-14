@@ -161,7 +161,7 @@ the foreign `ready_for_txs`, and only a node that does not have that method gets
 
 So a wallet whose `.api_secret` differs from the node's still works. A 401 from the node points
 elsewhere: at a `foreign_api_secret_path` on the node, covered above, or at a node older than
-<Ver k="node" />. That second case is read from the code, not tested: a 4.0.x node with a secret puts
+<Ver k="history.authChange" />. That second case is read from the code, not tested: a <Ver k="history.beforeAuthChange" /> node with a secret puts
 all of `/v2/owner` behind Basic auth, so it refuses the wallet's unauthenticated `get_status`.
 
 ## TLS {/* #tls */}

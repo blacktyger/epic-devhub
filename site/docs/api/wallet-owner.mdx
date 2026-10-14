@@ -1,6 +1,6 @@
 ---
 title: Wallet Owner API v3
-description: The wallet's JSON-RPC control surface, covering the encrypted handshake, the 37 methods grouped by what they can do, and InitTxArgs in detail.
+description: The wallet's JSON-RPC control surface, covering the encrypted handshake, every method grouped by what it can do, and InitTxArgs in detail.
 ---
 
 # Wallet Owner API v3
@@ -190,7 +190,7 @@ no base fee is supplied by the wallet, there is no fee market to bid into.
 
 ## Version 2 {/* #version-2 */}
 
-An earlier, unencrypted Owner API with 17 methods is served from the same listener, at `/v2/owner`.
+An earlier, unencrypted Owner API with <Ver k="walletOwnerV2Methods" /> methods is served from the same listener, at `/v2/owner`.
 Its methods take no token, but the listener's Basic credential applies to it as it does to `/v3/owner`.
 New work should target v3, and the listener belongs on loopback.
 
@@ -198,22 +198,22 @@ New work should target v3, and the listener belongs on loopback.
 
 <CardGrid>
   <Card title="Session and accounts" to="/api/wallet/session">
-    Ten methods. The handshake, the token, and account labels.
+    <Ver k="apiMethods.wallet-session" /> methods. The handshake, the token, and account labels.
   </Card>
   <Card title="Reading state" to="/api/wallet/reading">
-    Eight methods. Balances, outputs, history, addresses.
+    <Ver k="apiMethods.wallet-reading" /> methods. Balances, outputs, history, addresses.
   </Card>
   <Card title="Building transfers" to="/api/wallet/transfers">
-    Seven methods. The ones that move value.
+    <Ver k="apiMethods.wallet-transfers" /> methods. The ones that move value.
   </Card>
   <Card title="Payment proofs" to="/api/wallet/proofs">
-    Four methods, and the transport that discards them.
+    <Ver k="apiMethods.wallet-proofs" /> methods, and the transport that discards them.
   </Card>
   <Card title="Secrets and maintenance" to="/api/wallet/secrets">
-    Four methods. Recovery phrase, password, deletion and scan.
+    <Ver k="apiMethods.wallet-secrets" /> methods. Recovery phrase, password, deletion and scan.
   </Card>
   <Card title="Configuration and updater" to="/api/wallet/config">
-    Four methods. Relay settings and background refresh.
+    <Ver k="apiMethods.wallet-config" /> methods. Relay settings and background refresh.
   </Card>
 </CardGrid>
 

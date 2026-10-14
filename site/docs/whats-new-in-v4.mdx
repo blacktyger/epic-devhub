@@ -77,9 +77,10 @@ digest. Release builds do not enable the feature. See
 
 ### Epicbox acknowledges delivery {/* #epicbox-acknowledges-delivery */}
 
-Protocol <Ver k="epicboxProtocol" /> adds a `Made` acknowledgement carrying a per-message id, so a
-slate is marked delivered only once the recipient confirms it processed it. Compatibility with
-pre-3.5.2 clients is preserved. See [the protocol](/api/epicbox).
+Protocol <Ver k="epicboxProtocol" />, which wallets speak from <Ver k="history.epicboxProtocolSinceWallet" /> onwards, so not new in 4.x, adds a `Made`
+acknowledgement carrying a per-message id, so a slate is marked delivered only once the recipient
+confirms it processed it. Compatibility with clients older than
+<Ver k="history.epicboxFixedChallengeBefore" /> is preserved. See [the protocol](/api/epicbox).
 
 ### Mempool confirmation after posting {/* #mempool-confirmation-after-posting */}
 
@@ -106,10 +107,10 @@ topology and storage are in [the epicbox reference](/api/epicbox).
   fully verified above it, and `disable_checkpoints` is ignored. See
   [node and wallet setup](/guides/mainnet-setup#sync-validation-settings).
 
-## Changes in 4.1.0 {/* #changes-in-410 */}
+## Changes in <Ver k="history.authChange" /> {/* #changes-in-410 */}
 
-Node and wallet 4.1.0 tighten authentication. An integration that worked against 4.0.x can start getting
-401s.
+Node and wallet <Ver k="history.authChange" /> tighten authentication. An integration that worked against
+<Ver k="history.beforeAuthChange" /> can start getting 401s.
 
 - **The wallet Owner API needs HTTP Basic.** `/v3/owner` and `/v2/owner` take username `epic` and the
   contents of `.owner_api_secret`, on top of the v3 token. See

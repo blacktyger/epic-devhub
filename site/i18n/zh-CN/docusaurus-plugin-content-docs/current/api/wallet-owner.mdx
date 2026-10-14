@@ -1,6 +1,6 @@
 ---
 title: Wallet Owner API v3
-description: 钱包的JSON-RPC控制接口，涵盖加密握手、按功能分组的37个方法，以及InitTxArgs的详细说明。
+description: 钱包的JSON-RPC控制接口，涵盖加密握手、按功能分组的所有方法，以及InitTxArgs的详细说明。
 ---
 
 # Wallet Owner API v3
@@ -9,10 +9,10 @@ Owner API是软件驱动钱包的接口：创建钱包、读取余额、构建�
 
 - **端点**：`http://127.0.0.1:3420/v3/owner`，通过`epic-wallet owner_api`启动
 - **协议**：JSON-RPC 2.0 over HTTP POST
-- **凭据**：HTTP Basic，用户名`epic`，内容为钱包的`.owner_api_secret`，以及由`open_wallet`返回的`token`，`open_wallet`接受钱包密码
+- **凭据**：HTTP Basic，用户名`epic`，密码为钱包的`.owner_api_secret`内容，以及由`open_wallet`返回的`token`（`open_wallet`需要钱包密码）
 - **加密**：首次调用之后，每次调用均通过ECDH握手进行封装
 
-每次请求（包括`init_secure_api`）均需发送Basic凭据，每个声明了`token`的方法还需在信封内附带该`token`。端口保持在本地回环地址。参见[钱包的owner访问](/api/authentication#owner-access-on-the-wallet)。
+每次请求（包括`init_secure_api`）均需携带Basic凭据，每个声明了`token`的方法须在信封内传入该`token`。端口保持在本地回环地址。参见[钱包的owner访问](/api/authentication#owner-access-on-the-wallet)。
 
 ## 按功能分类的方法 {/* #methods-by-what-they-can-do */}
 
@@ -72,15 +72,15 @@ Owner API是软件驱动钱包的接口：创建钱包、读取余额、构建�
 
 ## 加密握手 {/* #the-encrypted-handshake */}
 
-`init_secure_api`之后的每次调用均在加密信封内传输。参数固定，在<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={1453} />处声明：AES-256 GCM模式，12字节nonce，16字节tag附加在密文末尾，附加认证数据为空。
+`init_secure_api`之后的每次调用均在加密信封内传输。参数固定，在<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={1453} />中声明：AES-256 GCM模式，12字节nonce，16字节tag附加在密文末尾，附加认证数据为空。
 
 1. 在客户端生成一个secp256k1密钥对。
-2. 调用`init_secure_api`，将压缩公钥以十六进制形式放入`ecdh_pubkey`。钱包以相同形式返回自身的公钥。
+2. 调用`init_secure_api`，在`ecdh_pubkey`中以十六进制传入压缩公钥。钱包以相同形式返回自身的公钥。
 3. 用你的私有标量乘以钱包的公钥点，取32字节的x坐标。该值即为AES-256密钥（<Src repo="wallet" path="api/src/owner_rpc_s.rs" line={2433} />）。
 4. 将目标调用序列化为完整的JSON-RPC请求对象。该内层请求即为加密内容，`token`和方法参数均放置于此。
 5. 使用新生成的12字节nonce对其加密，将密文与tag拼接后进行base64编码。
-6. 以`encrypted_request_v3`为方法名发送请求，附带两个参数：`nonce`（十六进制）和`body_enc`（base64字符串）。信封不含其他字段（<Src repo="wallet" path="api/src/types.rs" line={59} />）。
-7. 响应为`encrypted_response_v3`，携带自身的`nonce`和`body_enc`。使用相同密钥解密，恢复内层JSON-RPC响应，该响应再包含自身的`Ok`或`Err`信封。
+6. 以`encrypted_request_v3`方法发送请求，携带两个参数：十六进制的`nonce`和base64字符串形式的`body_enc`。信封不含其他字段（<Src repo="wallet" path="api/src/types.rs" line={59} />）。
+7. 响应为`encrypted_response_v3`，携带各自的`nonce`和`body_enc`。使用相同密钥解密，还原内层JSON-RPC响应，该响应再包含各自的`Ok`或`Err`信封。
 8. `open_wallet`是第一个通过信封发送的调用，返回其他所有方法所需的令牌。
 
 ```json
@@ -100,7 +100,7 @@ Owner API是软件驱动钱包的接口：创建钱包、读取余额、构建�
 | 字段 | 类型 | 含义 |
 | --- | --- | --- |
 | `src_acct_name` | string，可选 | 来源账户。为null时使用当前活跃账户 |
-| `amount` | u64 | 金额，单位为freemen。1 EPIC等于`100000000` |
+| `amount` | u64 | 以freemen为单位的金额。1 EPIC等于`100000000` |
 | `minimum_confirmations` | u64 | 输出（output）可用前所需的确认数 |
 | `max_outputs` | u32 | 最多选择的输入（input）数量 |
 | `num_change_outputs` | u32 | 创建的找零输出数量 |
@@ -114,17 +114,17 @@ Owner API是软件驱动钱包的接口：创建钱包、读取余额、构建�
 
 附加行为：
 
-**`selection_strategy_is_use_all`会影响隐私。** 设为True时，将把你的输出（output）合并为一笔交易，使链上分析者能够关联这些输出。设为False时，输出保持独立，代价是后续UTXO集更大。
+**`selection_strategy_is_use_all`会影响隐私。** 设为true时，会将你的输出（outputs）合并为一笔交易，使链上分析者能够将其关联。设为false时，输出保持独立，代价是后续UTXO集更大。
 
-**支付证明需要slate V3。** `payment_proof_recipient_address`将证明字段写入slate，而只有V3才携带这些字段。通过epicbox传输会将slate转换为V2，因此以该方式完成的转账不会产生证明。请先确定传输方式：[相应选择传输方式](/concepts/payment-proofs#choose-the-transport-accordingly)。
+**支付证明需要slate V3。** `payment_proof_recipient_address`将证明字段写入slate，而只有V3才携带这些字段。通过epicbox传输会将slate转换为V2，因此以该方式完成的转账不会产生证明。请先确定传输方式：[相应地选择传输方式](/concepts/payment-proofs#choose-the-transport-accordingly)。
 
 **`ttl_blocks`不会在到期时释放输出。** 参见[输出与锁定](/concepts/outputs-and-locking)。
 
-**`src_acct_name`为单次调用指定来源账户。** 若`accounts`未返回该标签，则解析为当前活跃账户（<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={383} />）。参见[账户](/concepts/accounts#which-account-a-transfer-uses)。
+**`src_acct_name`为单次调用指定来源账户。** `accounts`未返回的标签将解析为当前活跃账户（<Src repo="wallet" path="libwallet/src/api_impl/owner.rs" line={383} />）。参见[账户](/concepts/accounts#which-account-a-transfer-uses)。
 
-**`send_args`在调用内部完成整个交换流程。** 它发送slate，然后根据请求执行最终确认和广播，因此该调用会阻塞，直到对方完成响应。
+**`send_args`在调用内部执行完整交换流程。** 它发送slate，然后在你要求时最终确认并广播，因此该调用会阻塞，直到对方完成响应。
 
-**将`send_args.method`设为`epicbox`时，调用在slate广播至中继且输入（input）已锁定后立即返回第一轮slate**（<Src repo="wallet" path="api/src/owner.rs" line={761} />）。`finalize`和`post_tx`适用于`http`和`keybase`路径。在epicbox路径上，钱包自身的订阅在收到对方回复时执行最终确认和广播，内存池（mempool）等待也在此处发生。
+**将`send_args.method`设为`epicbox`时，调用在slate发布到中继且输入（inputs）已锁定后立即返回第一轮slate**（<Src repo="wallet" path="api/src/owner.rs" line={761} />）。`finalize`和`post_tx`适用于`http`和`keybase`路径。在epicbox路径上，钱包自身的订阅会在对方回复到达时完成最终确认并广播，内存池（mempool）等待也在此处发生。
 
 ## 手续费 {/* #fees */}
 
@@ -138,38 +138,38 @@ fee = max(4 × outputs + kernels − inputs, 1) × 0.001 EPIC
 
 ## 版本2 {/* #version-2 */}
 
-同一监听器还提供一个早期的、未加密的Owner API，共17个方法，路径为`/v2/owner`。其方法不需要令牌，但监听器的Basic凭据同样适用，与`/v3/owner`一致。新开发工作应以v3为目标，且监听器应绑定在本地回环地址。
+同一监听器还提供一个较早的、未加密的Owner API，共<Ver k="walletOwnerV2Methods" />个方法，路径为`/v2/owner`。其方法不需要令牌，但监听器的Basic凭据同样适用，与`/v3/owner`一致。新开发应以v3为目标，且监听器应绑定在本地回环地址。
 
 ## 完整方法参考 {/* #full-method-reference */}
 
 <CardGrid>
   <Card title="会话与账户" to="/api/wallet/session">
-    十个方法。握手、令牌及账户标签。
+    <Ver k="apiMethods.wallet-session" />个方法。握手、令牌及账户标签。
   </Card>
   <Card title="读取状态" to="/api/wallet/reading">
-    八个方法。余额、输出、历史记录、地址。
+    <Ver k="apiMethods.wallet-reading" />个方法。余额、输出、历史记录、地址。
   </Card>
   <Card title="构建转账" to="/api/wallet/transfers">
-    七个方法。用于转移价值的方法。
+    <Ver k="apiMethods.wallet-transfers" />个方法。涉及价值转移的操作。
   </Card>
   <Card title="支付证明" to="/api/wallet/proofs">
-    四个方法，以及丢弃这些方法的传输方式。
+    <Ver k="apiMethods.wallet-proofs" />个方法，以及会丢弃支付证明的传输方式。
   </Card>
   <Card title="机密与维护" to="/api/wallet/secrets">
-    四个方法。恢复助记词、密码、删除和扫描。
+    <Ver k="apiMethods.wallet-secrets" />个方法。恢复助记词、密码、删除与扫描。
   </Card>
   <Card title="配置与更新器" to="/api/wallet/config">
-    四个方法。中继设置和后台刷新。
+    <Ver k="apiMethods.wallet-config" />个方法。中继设置与后台刷新。
   </Card>
 </CardGrid>
 
 ## 来源 {/* #source */}
 
-- <Src repo="wallet" path="api/src/owner_rpc_s.rs" />定义了所有v3方法，大多数方法在其文档注释中包含完整的JSON请求和响应示例
-- <Src repo="wallet" path="api/src/owner_rpc.rs" />对应旧版v2接口
+- <Src repo="wallet" path="api/src/owner_rpc_s.rs" />定义了所有v3方法，大多数方法在其文档注释中包含完整的JSON请求与响应示例
+- <Src repo="wallet" path="api/src/owner_rpc.rs" />对应较旧的v2接口
 - <Src repo="wallet" path="libwallet/src/api_impl/owner.rs" />对应方法背后的实现
-- <Src repo="wallet" path="libwallet/src/api_impl/types.rs" />用于`InitTxArgs`及相关方法
-- <Src repo="wallet" path="controller/src/controller.rs" line={123} />说明监听器及其中间件的连接方式
+- <Src repo="wallet" path="libwallet/src/api_impl/types.rs" /> 适用于`InitTxArgs`及相关方法
+- <Src repo="wallet" path="controller/src/controller.rs" line={123} /> 了解监听器及其中间件的连接方式
 
 ## 下一页 {/* #next */}
 

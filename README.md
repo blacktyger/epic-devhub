@@ -1,8 +1,9 @@
 # Epic Cash developer documentation
 
 Source for the Epic Cash developer documentation site. A ground-up replacement for the previous
-`devdocs.epiccash.com`, which is accurate for wallet 3.x and frozen at March 2024; the wallet is now
-4.1.0 and the node 4.1.0.
+`devdocs.epiccash.com`, which is accurate for wallet 3.x and frozen at March 2024. The node and wallet
+releases this site documents are declared in `site/src/data/versions.js` and nowhere else; see
+[One source of truth for versions](#one-source-of-truth-for-versions).
 
 Not a refresh of that site. A new structure, written from the Rust source and from a chain running on
 the author's machine.
@@ -40,6 +41,7 @@ and it is not negotiable.
 ```bash
 cd site && npm run build
 cd ../audit && npm install && npx playwright install chromium
+npm run versions     # no version written outside site/src/data/versions.js, no build needed
 npm run budget       # gzip ceilings, about a second, no browser
 npm run sources      # every source citation points at a real declaration
 npm run aria         # accessibility tree against committed snapshots
@@ -78,12 +80,44 @@ against a local chain, or it says the response was not captured.
 
 **The console makes no network calls.** It assembles the request for you to copy.
 
-**Versions live in one file.** `site/src/data/versions.js` holds every value that changes on a
-release: versions, git refs, ports, consensus constants. Pages print them with `<Ver k="node" />`,
-which fails the build on an unknown key. To publish against a new release, edit that file and rebuild.
+**Versions live in one file.** See [one source of truth for versions](#one-source-of-truth-for-versions).
 
 **One statement per topic.** Authentication is explained on the authentication page and nowhere else.
 Readers are not told the same thing five times.
+
+## One source of truth for versions
+
+`site/src/data/versions.js` is the only place a component version, release date, download filename,
+checksum, release URL or documented count (checkpoints, API methods, routes) is defined. Everything
+reads it: pages in every locale through `<Ver k="..." />` (an unknown key fails the build), the
+header pills and footer readout, the downloads page, the API reference in `rpcSpec.js`, and the
+documentation assistant, whose `build-corpus.mjs` imports the same file.
+
+- **Release data is generated.** `versions.js` derives it from `site/src/data/releases.js`, which
+  `npm run versions:bump` in `site/` writes from the GitHub releases API after downloading every
+  asset and checking it against its published SHA-256. A release bump is that one command. Details:
+  `site/README.md`, "Bumping to a new Epic release".
+- **Everything else is hand-curated in `versions.js`**, each value with its upstream source: the
+  epicbox protocol, ports, consensus constants, method counts, and `history`, the fixed points prose
+  refers to ("changed in", "captured on"). History does not move on a bump.
+- **Translations interpolate.** Translated pages carry the same `<Ver>` tags as the English ones, so
+  a version bump needs no retranslation.
+- **CI enforces it.** `cd audit && npm run versions` (`audit/version-literals.mjs`, the first step of
+  `verify.yml`) fails on a tracked version, tag or release filename written out anywhere else, on a
+  method count in `versions.js` that disagrees with `rpcSpec.js`, and on a downloads sentence that
+  the current release shape makes false. The only allowed literal is a recorded example response,
+  marked on its line with `version-literal-ok: historical capture`; prefer reading even those from
+  `versions.history`, as the captures on the node API page do.
+
+To publish against a new release:
+
+```bash
+cd site && npm run versions:bump && npm run build
+cd ../audit && npm run versions && npm run sources
+```
+
+Then review `versions.history` and anything else the release plausibly changed, and move
+`verifiedAgainst`.
 
 ## Scope of this version
 

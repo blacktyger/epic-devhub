@@ -40,8 +40,8 @@ class EpicWallet:
                 if env_secret
                 else Path.home() / ".epic" / "main" / ".owner_api_secret"
             )
-        # Two gates. From wallet 4.1.0 the owner listener wants HTTP Basic, epic and the contents of
-        # .owner_api_secret, on every route except /v2/foreign; inside that, the token returned by
+        # Two gates. Current wallets want HTTP Basic, user epic and the contents of .owner_api_secret,
+        # on every owner-listener route except /v2/foreign; inside that, the token returned by
         # open_wallet authorises each v3 call. No secret file, no credential sent.
         self.auth = (
             ("epic", secret_path.read_text().strip()) if secret_path.is_file() else None

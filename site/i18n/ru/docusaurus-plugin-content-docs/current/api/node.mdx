@@ -3,28 +3,31 @@ title: Node API
 description: "JSON-RPC интерфейсы узла Epic: какой метод доступен на каком интерфейсе и структуры ответов, которые должен обрабатывать клиент."
 ---
 
+import CodeBlock from '@theme/CodeBlock';
+import {versions} from '@site/src/data/versions';
+
 # Node API
 
 Узел обслуживает JSON-RPC 2.0 на одном слушателе, привязанном к `127.0.0.1` порту <Ver k="ports.nodeApi" /> по умолчанию,
-разделённом на две поверхности.
+разделённом на два интерфейса.
 
 | Поверхность | Путь | Назначение |
 | --- | --- | --- |
-| Owner | `/v2/owner` | Администрирование узла, восемь методов |
+| Owner | `/v2/owner` | Администрирование узла, <Ver k="apiMethods.nodeOwner" /> методов |
 | Foreign | `/v2/foreign` | Чтение цепочки, отправка транзакций, шаблоны блоков, <Ver k="foreignApiMethods" /> методов |
 
-Учётные данные и то, какая из поверхностей их требует, описаны один раз в разделе [аутентификация и
+Учётные данные и то, какой из интерфейсов их требует, описаны в одном месте: [аутентификация и
 TLS](/api/authentication).
 
-Тот же слушатель также обслуживает REST-поверхность по адресу `/v1`. См. [REST-поверхность v1](#the-v1-rest-surface).
+Тот же слушатель обслуживает REST-интерфейс по адресу `/v1`. См. [REST-интерфейс v1](#the-v1-rest-surface).
 
-## Какой метод JSON-RPC на каком интерфейсе {/* #which-json-rpc-method-lives-where */}
+## Какой JSON-RPC метод где находится {/* #which-json-rpc-method-lives-where */}
 
-`/v2/owner` — только администрирование узла:
+`/v2/owner` — только для администрирования узла:
 
 `get_status`, `validate_chain`, `compact_chain`, `get_peers`, `get_connected_peers`, `ban_peer`, `unban_peer`, `get_onion_addresses`.
 
-`/v2/foreign` — всё остальное, включая любое чтение цепочки и отправку транзакций:
+`/v2/foreign` — всё остальное, включая все операции чтения цепочки и отправку транзакций:
 
 `ready_for_txs`, `get_header`, `get_block`, `get_blocks`, `get_tip`, `get_version`, `get_kernel`, `get_last_n_kernels`, `get_outputs`, `get_unspent_outputs`, `get_pmmr_indices`, `get_pool_size`, `get_stempool_size`, `get_unconfirmed_transactions`, `push_transaction`, `get_block_template`,
 `finalize_block_template`, `submit_block`.
@@ -37,19 +40,19 @@ curl -s -d '{"jsonrpc":"2.0","method":"get_tip","params":[],"id":1}' \
   http://127.0.0.1:3413/v2/foreign
 ```
 
-Проверка синхронизации узла — тоже вызов foreign-поверхности. `ready_for_txs` возвращает `{"ready_for_txs": true}` только когда
-состояние синхронизации равно `no_sync`, в противном случае — `false`, и не требует учётных данных:
+Проверка синхронизации узла — тоже вызов к foreign-интерфейсу. `ready_for_txs` возвращает `{"ready_for_txs": true}` только когда
+состояние синхронизации равно `no_sync`, иначе `false`, и не требует учётных данных:
 
 ```bash
 curl -s -d '{"jsonrpc":"2.0","method":"ready_for_txs","params":[],"id":1}' \
   http://127.0.0.1:3413/v2/foreign
 ```
 
-Полный статус с высотой, пирами и именованным состоянием синхронизации доступен через `get_status` на
-owner-поверхности. Обычно требуются [учётные данные узла](/api/authentication#the-node-credential), но один простой вызов `get_status`
-обрабатывается без них.
+Полный статус с высотой блока, пирами и именованным состоянием синхронизации — это `get_status` на
+owner-интерфейсе. Обычно требует [учётных данных узла](/api/authentication#the-node-credential), но один простой вызов `get_status` отвечает без
+них.
 
-## Формы ответов {/* #response-shapes */}
+## Форматы ответов {/* #response-shapes */}
 
 `total_difficulty` — объект с ключами по алгоритму доказательства работы, а не целое число:
 
@@ -65,23 +68,24 @@ owner-поверхности. Обычно требуются [учётные д
 ```
 
 Заголовки блоков описывают своё доказательство двумя полями: `proof` — строка с именем алгоритма, и
-`solution` — размеченное объединение (tagged union), форма которого зависит от алгоритма.
+`solution` — размеченное объединение, форма которого определяется этим алгоритмом.
 
-`Status` содержит `supply` и `max_supply` в целых EPIC, а не в freemen, и `blocks_to_next_halving` как количество блоков. Не все ступени
-награды являются халвингами; см. [эмиссия](/mining/emission).
+`Status` включает `supply` и `max_supply` в целых EPIC, а не в freemen, и `blocks_to_next_halving` как количество блоков. Шаги эмиссии —
+не все халвинги; см. [эмиссия](/mining/emission).
 
-Ядра (kernel) возвращаются в двух формах в зависимости от метода. `get_block` возвращает плоскую форму,
-тогда как `get_kernel` и `get_last_n_kernels` возвращают сырой тип с внешне размеченным полем `features`. Обрабатывайте обе формы.
+Ядра (kernels) представлены в двух формах в зависимости от метода. `get_block` возвращает плоскую форму,
+тогда как `get_kernel` и `get_last_n_kernels` возвращают исходный тип с внешне размеченным полем `features`. Обрабатывайте обе
+формы.
 
 ## Майнинг через HTTP {/* #mining-over-http */}
 
-Foreign-поверхность предлагает трёхшаговый процесс отправки блока как альтернативу Stratum: `get_block_template`,
+Foreign-интерфейс предлагает трёхшаговый процесс отправки блока как альтернативу Stratum: `get_block_template`,
 `finalize_block_template`, `submit_block`. Это JSON-RPC поверх HTTP. См. [Stratum](/mining/stratum).
 
-## REST-интерфейс v1 {/* #the-v1-rest-surface */}
+## REST-поверхность v1 {/* #the-v1-rest-surface */}
 
-Узел обслуживает REST по адресу `/v1` и JSON-RPC по адресу `/v2`, в одном процессе на одном порту.
-Номера обозначают два стиля интерфейса, а не два поколения: `/v1` зарегистрирован на <Src repo="node" path="api/src/handlers.rs" line={692} />, `/v2` — на
+Узел обслуживает REST по адресу `/v1` и JSON-RPC по адресу `/v2` из одного процесса на одном порту.
+Числа обозначают два стиля интерфейса, а не два поколения: `/v1` зарегистрирован по <Src repo="node" path="api/src/handlers.rs" line={692} />, `/v2` — по
 <Src repo="node" path="api/src/handlers.rs" line={132} /> и <Src repo="node" path="api/src/handlers.rs" line={152} />.
 
 Разница в том, где указывается имя операции.
@@ -89,16 +93,16 @@ Foreign-поверхность предлагает трёхшаговый пр�
 |  | `/v1` | `/v2` |
 | --- | --- | --- |
 | Стиль | REST | JSON-RPC 2.0 |
-| Операция задаётся | URL-путём | полем `method` в теле запроса |
-| HTTP-метод | `GET`, `POST` для изменений | `POST` |
+| Операция задаётся | URL-путём | поле `method` в теле |
+| HTTP-метод | `GET`, `POST` для изменения | `POST` |
 | URL | один на операцию | `/v2/foreign`, `/v2/owner`, `/v2/tor` |
-| Результат | тело ответа | тело ответа внутри `result.Ok` |
-| Учётные данные | Basic auth для префикса `/v1`, кроме `GET /v1/version` | по поверхности |
+| Результат | тело ответа | полезная нагрузка внутри `result.Ok` |
+| Учётные данные | Basic auth на префиксе `/v1`, кроме `GET /v1/version` | по поверхности |
 
-Обе поверхности возвращают одинаковые данные. `GET /v1/status` и `get_status` на `/v2/owner` выдают идентичные тела ответов,
-поэтому [страницы JSON-RPC](#full-method-reference) документируют формы ответов для обеих поверхностей.
+Оба интерфейса возвращают одинаковые данные. `GET /v1/status` и `get_status` на `/v2/owner` производят идентичные тела
+ответов, поэтому [страницы JSON-RPC](#full-method-reference) документируют формы ответов для обоих.
 
-`GET /`, `GET /v1/` и `GET /v2/` возвращают список маршрутов v1, начиная с <Src repo="node" path="api/src/handlers.rs" line={606} />. `GET /v1/` требует учётные данные,
+`GET /`, `GET /v1/` и `GET /v2/` возвращают список маршрутов v1, начиная с <Src repo="node" path="api/src/handlers.rs" line={606} />. `GET /v1/` требует учётных данных,
 как и остальные маршруты этого префикса.
 
 ### Маршруты {/* #routes */}
@@ -109,18 +113,18 @@ Foreign-поверхность предлагает трёхшаговый пр�
 <details>
 <summary>Все маршруты v1 и их эквиваленты в JSON-RPC</summary>
 
-Маршрутизатор регистрирует 18 шаблонов, шесть из них — с подстановочными знаками: `blocks/*`, `headers/*`,
+Маршрутизатор регистрирует <Ver k="v1Routes" /> шаблонов, <Ver k="v1Wildcards" /> из них — с подстановочными знаками: `blocks/*`, `headers/*`,
 `chain/outputs/*`, `chain/kernels/*`, `txhashset/*` и `peers/**`.
 
 | Маршрут | Метод | JSON-RPC эквивалент |
 | --- | --- | --- |
 | `/v1/` | GET | нет, это индекс маршрутов |
-| `/v1/status` | GET | `get_status`, Owner |
-| `/v1/chain` | GET | `get_tip`, Foreign |
-| `/v1/chain/validate` | GET | `validate_chain`, Owner |
-| `/v1/chain/compact` | POST | `compact_chain`, Owner |
-| `/v1/blocks/<hash\|height>` | GET | `get_block`, Foreign |
-| `/v1/headers/<hash\|height\|commit>` | GET | `get_header`, Foreign |
+| `/v1/status` | GET | `get_status`, owner |
+| `/v1/chain` | GET | `get_tip`, foreign |
+| `/v1/chain/validate` | GET | `validate_chain`, owner |
+| `/v1/chain/compact` | POST | `compact_chain`, owner |
+| `/v1/blocks/<hash\|height>` | GET | `get_block`, foreign |
+| `/v1/headers/<hash\|height\|commit>` | GET | `get_header`, foreign |
 | `/v1/chain/kernels/<excess>?min_height=&max_height=` | GET | `get_kernel`, foreign |
 | `/v1/chain/outputs/byids?id=` | GET | `get_outputs`, foreign |
 | `/v1/chain/outputs/byheight?start_height=&end_height=` | GET | `get_outputs`, foreign |
@@ -143,16 +147,15 @@ Foreign-поверхность предлагает трёхшаговый пр�
 
 </details>
 
-Вызов `/v1`, требующий учётные данные узла. Без `-u` или на узле без `api_secret_path` возвращается 401:
+Вызов `/v1`, требующий учётных данных узла. Без `-u` или на узле без `api_secret_path` возвращает 401:
 
 ```bash
 curl -s -u epic:$(cat ~/.epic/main/.api_secret) http://127.0.0.1:3413/v1/status
 ```
 
-```json
-{
+<CodeBlock language="json">{`{
   "protocol_version": 2,
-  "user_agent": "MW/Epic 4.0.3",
+  "user_agent": "MW/Epic ${versions.history.captureNode}",
   "connections": 0,
   "tip": {
     "height": 1439,
@@ -164,36 +167,34 @@ curl -s -u epic:$(cat ~/.epic/main/.api_secret) http://127.0.0.1:3413/v1/status
   "supply": 23024,
   "max_supply": 21000000,
   "blocks_to_next_halving": 479521
-}
-```
+}`}</CodeBlock>
 
-Снято с узла версии 4.0.3 на локальной цепочке usernet на высоте 1439, 2026-08-24. Узел <Ver k="node" />
-помещает собственную версию в `user_agent`.
+Захвачено с узла <Ver k="history.captureNode" /> на локальной usernet-цепочке на высоте блока 1439 на <Ver k="history.captureDate" />. Узел <Ver k="node" /> помещает
+свою версию в `user_agent`.
 
 ## Полный справочник методов {/* #full-method-reference */}
 
 <CardGrid>
   <Card title="Чтение цепочки" to="/api/node/chain-reads">
-    Одиннадцать методов. Готовность синхронизации, блоки, заголовки, ядра, выходы (output) и вершина
-    цепочки.
+    <Ver k="apiMethods.node-chain-reads" /> методов. Готовность к синхронизации, блоки, заголовки, ядра, выходы и вершина цепочки.
   </Card>
   <Card title="Администрирование" to="/api/node/administration">
-    Восемь методов. Статус, пиры, валидация и компактификация.
+    <Ver k="apiMethods.node-administration" /> методов. Статус, пиры, валидация и компактизация.
   </Card>
   <Card title="Мемпул и отправка" to="/api/node/mempool">
-    Четыре метода, один из них необратимый.
+    <Ver k="apiMethods.node-mempool" /> методов, один из которых необратим.
   </Card>
   <Card title="Шаблоны блоков" to="/api/node/block-templates">
-    Три метода. Майнинг по HTTP вместо Stratum.
+    <Ver k="apiMethods.node-mining" /> методов. Майнинг через HTTP вместо Stratum.
   </Card>
 </CardGrid>
 
-## Исходный код {/* #source */}
+## Источник {/* #source */}
 
-- <Src repo="node" path="api/src/owner_rpc.rs" line={29} /> определяет восемь owner-методов
-- <Src repo="node" path="api/src/foreign_rpc.rs" line={38} /> определяет foreign-методы
+- <Src repo="node" path="api/src/owner_rpc.rs" line={29} /> определяет <Ver k="apiMethods.nodeOwner" /> методов owner-интерфейса
+- <Src repo="node" path="api/src/foreign_rpc.rs" line={38} /> определяет методы foreign-интерфейса
 - <Src repo="node" path="api/src/types.rs" /> определяет все формы ответов
-- <Src repo="node" path="api/src/auth.rs" /> — middleware для Basic auth
+- <Src repo="node" path="api/src/auth.rs" /> — middleware для Basic-аутентификации
 
 ## Далее {/* #next */}
 

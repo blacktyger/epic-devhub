@@ -11,26 +11,26 @@ Foreign API — это сторона кошелька, которую вызы�
 возвращается финализированным, а майнинговый узел запрашивает у него сборку выхода (output)
 coinbase, который зачисляет средства в этот кошелёк.
 
-- **Эндпоинт**: `http://127.0.0.1:3415/v2/foreign`, запускается с помощью `epic-wallet listen`
+- **Эндпоинт**: `http://127.0.0.1:3415/v2/foreign`, запускается с `epic-wallet listen`
 - **Протокол**: JSON-RPC 2.0 поверх HTTP POST
 - **Учётные данные**: отсутствуют
 - **Привязка по умолчанию**: `api_listen_interface` — `127.0.0.1`, `api_listen_port` — <Ver k="ports.walletForeign" /> (<Src repo="wallet" path="config/src/types.rs" line={71} />)
 
-Учётные данные здесь невозможны, поскольку контрагент, завершающий перевод, — незнакомец, которому
-должен быть открыт доступ к поверхности. Привязка по умолчанию — loopback, поэтому контрагенту,
-обращающемуся к этому кошельку по HTTP, необходимо расширить интерфейс или установить перед ним
-обратный прокси; ограничить доступ можно только на уровне того, что стоит перед кошельком. Приём
-через [epicbox релей](/api/epicbox) не требует открытого входящего порта вообще.
+Учётные данные здесь невозможны, поскольку контрагент, завершающий перевод, — незнакомец, который
+должен иметь возможность достучаться до поверхности. Привязка по умолчанию — loopback, поэтому
+контрагенту, обращающемуся к этому кошельку по HTTP, необходимо расширить интерфейс или поставить
+перед ним обратный прокси; ограничить доступ можно только на том уровне, что стоит перед кошельком.
+Приём через [epicbox релей](/api/epicbox) не требует входящего порта вовсе.
 
-Те же шесть методов обслуживаются из owner listener, когда `owner_api_include_foreign` равно true (<Src repo="wallet" path="controller/src/controller.rs" line={151} />).
+Те же методы <Ver k="apiMethods.walletForeign" /> обслуживаются из owner listener, когда `owner_api_include_foreign` равно true (<Src repo="wallet" path="controller/src/controller.rs" line={151} />).
 
 <RpcGroup id="wallet-foreign" />
 
 ## Источник {/* #source */}
 
-- <Src repo="wallet" path="api/src/foreign_rpc.rs" line={66} /> определяет шесть методов
+- <Src repo="wallet" path="api/src/foreign_rpc.rs" line={66} /> определяет методы <Ver k="apiMethods.walletForeign" />
 - <Src repo="wallet" path="controller/src/controller.rs" line={209} /> — автономный слушатель
-- <Src repo="wallet" path="libwallet/src/api_impl/foreign.rs" /> — реализация, лежащая в их основе
+- <Src repo="wallet" path="libwallet/src/api_impl/foreign.rs" /> для реализации, стоящей за ними
 
 ## Далее {/* #next */}
 

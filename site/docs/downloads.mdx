@@ -14,7 +14,7 @@ export const sumFile = (file) => `${file.replace(/\.(tar\.gz|zip|exe)$/, '')}-sh
 # Downloads
 
 Prebuilt binaries are published on GitHub releases. The <Ver k="node" /> Linux binaries of both the
-node and the wallet link against `GLIBC_2.34`, so they need glibc 2.34 or newer, which means Ubuntu
+node and the wallet link against <code>GLIBC_<Ver k="linuxGlibc" /></code>, so they need glibc <Ver k="linuxGlibc" /> or newer, which means Ubuntu
 22.04, Debian 12 or later.
 
 To build from source instead, see [build the binaries](/guides/build).
@@ -105,7 +105,7 @@ tar xzf ${walletAsset('linux').file}
 There is no <Ver k="node" /> macOS binary to download. [Build from source](/guides/build) at tag
 <code>v<Ver k="node" /></code>. The last prebuilt macOS node is from an older release,{' '}
 <a href={releases.node.mac.url}>v{releases.node.mac.version}</a>, which predates the{' '}
-<Ver k="node" /> API authentication changes: it does not behave as [authentication and
+<Ver k="history.authChange" /> API authentication changes: it does not behave as [authentication and
 TLS](/api/authentication) describes, and should not be paired with wallet <Ver k="wallet" />.
 
 <CodeBlock language="bash">{`curl -LO ${releases.node.mac.download}/${releases.node.mac.file}
@@ -120,22 +120,20 @@ Security.
 </TabItem>
 <TabItem value="win" label="Windows">
 
-<CodeBlock language="powershell">{`$tag = 'v${releases.node.binariesVersion}'
-$base = "https://github.com/EpicCash/epic/releases/download/$tag"
-Invoke-WebRequest "$base/Windows-$tag.zip" -OutFile "Windows-$tag.zip"
-Invoke-WebRequest "$base/Windows-$tag-sha256sum.txt" -OutFile "sha256sum.txt"
+<CodeBlock language="powershell">{`$file = '${nodeAsset('windows').file}'
+Invoke-WebRequest "${nodeAsset('windows').url}" -OutFile $file
+Invoke-WebRequest "${nodeAsset('windows').sumUrl}" -OutFile "sha256sum.txt"
 
 # PowerShell has no \`sha256sum -c\`, so compare the two values.
-(Get-FileHash "Windows-$tag.zip" -Algorithm SHA256).Hash.ToLower()
+(Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
 Get-Content sha256sum.txt
 
-Expand-Archive "Windows-$tag.zip" -DestinationPath .
-.\\Windows-$tag\\epic.exe --version
+Expand-Archive $file -DestinationPath .
+.\\${nodeAsset('windows').binary.replaceAll('/', '\\')} --version
 
 # The wallet archive is named with an underscore, not a hyphen.
-$wbase = "https://github.com/EpicCash/epic-wallet/releases/download/v${versions.wallet}"
-Invoke-WebRequest "$wbase/${walletAsset('windows').file}" -OutFile "${walletAsset('windows').file}"
-Invoke-WebRequest "$wbase/${sumFile(walletAsset('windows').file)}" -OutFile "wallet-sha256sum.txt"
+Invoke-WebRequest "${walletAsset('windows').url}" -OutFile "${walletAsset('windows').file}"
+Invoke-WebRequest "${walletAsset('windows').sumUrl}" -OutFile "wallet-sha256sum.txt"
 (Get-FileHash "${walletAsset('windows').file}" -Algorithm SHA256).Hash.ToLower()
 Get-Content wallet-sha256sum.txt
 Expand-Archive "${walletAsset('windows').file}" -DestinationPath .`}</CodeBlock>

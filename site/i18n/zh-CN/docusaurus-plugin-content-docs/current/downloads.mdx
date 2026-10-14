@@ -13,13 +13,13 @@ export const sumFile = (file) => `${file.replace(/\.(tar\.gz|zip|exe)$/, '')}-sh
 
 # 下载
 
-预构建的二进制文件发布在GitHub releases上。<Ver k="node" /> Linux二进制文件（节点和钱包均包含）链接到`GLIBC_2.34`，因此需要glibc 2.34或更高版本，即Ubuntu 22.04、Debian 12或更新版本。
+预构建的二进制文件发布在GitHub releases上。<Ver k="node" /> Linux二进制文件（节点和钱包均包含）链接到<code>GLIBC_<Ver k="linuxGlibc" /></code>，因此需要glibc <Ver k="linuxGlibc" />或更新版本，即Ubuntu 22.04、Debian 12或更高版本。
 
-若要从源码构建，请参阅[构建二进制文件](/guides/build)。
+如需从源码构建，请参阅[构建二进制文件](/guides/build)。
 
 ## 节点 <Ver k="node" /> {/* #node-ver-knode- */}
 
-发布版本<a href={releases.node.url}>tag v<Ver k="node" /></a>，或{' '} <a href={releases.node.latest}>最新发布版本</a>和<a href={releases.node.all}>所有发布版本</a>。
+发布版本<a href={releases.node.url}>tag v<Ver k="node" /></a>，或查看{' '} <a href={releases.node.latest}>最新发布版本</a>和<a href={releases.node.all}>所有发布版本</a>。
 
 {releases.node.binariesStale && (
   <Admonition type="caution" title={`v${versions.node} publishes no binaries`}>
@@ -43,11 +43,11 @@ export const sumFile = (file) => `${file.replace(/\.(tar\.gz|zip|exe)$/, '')}-sh
 | {nodeAsset('linux').platform} | <code>{nodeAsset('linux').file}</code> | <code>{releases.node.unpacksTo.linux}/epic</code> |
 | {nodeAsset('windows').platform} | <code>{nodeAsset('windows').file}</code> | <code>{releases.node.unpacksTo.windows}/epic.exe</code> |
 
-<Ver k="node" />发布版本未提供macOS二进制文件。最新的macOS二进制文件为<code>{releases.node.mac.file}</code>，位于<a href={releases.node.mac.url}>tag v{releases.node.mac.version}</a>，属于较旧的发布版本；若要在Mac上运行<Ver k="node" />，请[从源码构建](/guides/build)。macOS Intel和Linux ARM也需要从源码构建。
+<Ver k="node" />发布版本未提供macOS二进制文件。最新的macOS二进制文件为<code>{releases.node.mac.file}</code>，位于<a href={releases.node.mac.url}>tag v{releases.node.mac.version}</a>，属于较旧的发布版本；如需在Mac上运行<Ver k="node" />，请[从源码构建](/guides/build)。macOS Intel和Linux ARM同样需要从源码构建。
 
 ## 钱包 <Ver k="wallet" /> {/* #wallet-ver-kwallet- */}
 
-发布版本<a href={releases.wallet.url}>tag v<Ver k="wallet" /></a>，或{' '} <a href={releases.wallet.latest}>最新发布版本</a>和<a href={releases.wallet.all}>所有发布版本</a>。
+发布版本<a href={releases.wallet.url}>tag v<Ver k="wallet" /></a>，或查看{' '} <a href={releases.wallet.latest}>最新发布版本</a>和<a href={releases.wallet.all}>所有发布版本</a>。
 
 | 平台 | 资源文件 | 解压至 |
 | --- | --- | --- |
@@ -58,7 +58,7 @@ export const sumFile = (file) => `${file.replace(/\.(tar\.gz|zip|exe)$/, '')}-sh
 
 ## 下载并验证 {/* #download-and-verify */}
 
-每个资产旁边都发布了一个校验和文件，文件名与资产相同但扩展名替换为`-sha256sum.txt`：Linux节点tarball对应<code>{sumFile(nodeAsset('linux').file)}</code>，Linux钱包tarball对应<code>{sumFile(walletAsset('linux').file)}</code>。<Ver k="node" />已发布的SHA-256值为：
+每个资产旁边都附有一个校验和文件，文件名与资产相同但扩展名替换为`-sha256sum.txt`：Linux节点tarball对应<code>{sumFile(nodeAsset('linux').file)}</code>，Linux钱包tarball对应<code>{sumFile(walletAsset('linux').file)}</code>。<Ver k="node" />已发布的SHA-256值如下：
 
 | 资源文件 | SHA-256 |
 | --- | --- |
@@ -91,7 +91,7 @@ tar xzf ${walletAsset('linux').file}
 </TabItem>
 <TabItem value="mac" label="macOS">
 
-<Ver k="node" />没有可下载的macOS二进制文件。请在tag <code>v<Ver k="node" /></code>处[从源码构建](/guides/build)。最后一个预构建的macOS节点来自较旧的发布版本{' '} <a href={releases.node.mac.url}>v{releases.node.mac.version}</a>，该版本早于{' '} <Ver k="node" /> API身份验证变更：其行为与[身份验证和TLS](/api/authentication)所描述的不符，不应与钱包<Ver k="wallet" />配合使用。
+<Ver k="node" />没有可下载的macOS二进制文件。请在tag <code>v<Ver k="node" /></code>处[从源码构建](/guides/build)。最后一个预构建的macOS节点来自较旧的发布版本{' '} <a href={releases.node.mac.url}>v{releases.node.mac.version}</a>，该版本早于{' '} <Ver k="history.authChange" /> API身份验证变更：其行为与[身份验证与TLS](/api/authentication)所描述的不符，不应与钱包<Ver k="wallet" />配合使用。
 
 <CodeBlock language="bash">{`curl -LO ${releases.node.mac.download}/${releases.node.mac.file}
 curl -LO ${releases.node.mac.download}/${sumFile(releases.node.mac.file)}
@@ -104,22 +104,20 @@ Gatekeeper在首次运行时拒绝未签名的二进制文件。在系统设置�
 </TabItem>
 <TabItem value="win" label="Windows">
 
-<CodeBlock language="powershell">{`$tag = 'v${releases.node.binariesVersion}'
-$base = "https://github.com/EpicCash/epic/releases/download/$tag"
-Invoke-WebRequest "$base/Windows-$tag.zip" -OutFile "Windows-$tag.zip"
-Invoke-WebRequest "$base/Windows-$tag-sha256sum.txt" -OutFile "sha256sum.txt"
+<CodeBlock language="powershell">{`$file = '${nodeAsset('windows').file}'
+Invoke-WebRequest "${nodeAsset('windows').url}" -OutFile $file
+Invoke-WebRequest "${nodeAsset('windows').sumUrl}" -OutFile "sha256sum.txt"
 
 # PowerShell has no \`sha256sum -c\`, so compare the two values.
-(Get-FileHash "Windows-$tag.zip" -Algorithm SHA256).Hash.ToLower()
+(Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
 Get-Content sha256sum.txt
 
-Expand-Archive "Windows-$tag.zip" -DestinationPath .
-.\\Windows-$tag\\epic.exe --version
+Expand-Archive $file -DestinationPath .
+.\\${nodeAsset('windows').binary.replaceAll('/', '\\')} --version
 
 # The wallet archive is named with an underscore, not a hyphen.
-$wbase = "https://github.com/EpicCash/epic-wallet/releases/download/v${versions.wallet}"
-Invoke-WebRequest "$wbase/${walletAsset('windows').file}" -OutFile "${walletAsset('windows').file}"
-Invoke-WebRequest "$wbase/${sumFile(walletAsset('windows').file)}" -OutFile "wallet-sha256sum.txt"
+Invoke-WebRequest "${walletAsset('windows').url}" -OutFile "${walletAsset('windows').file}"
+Invoke-WebRequest "${walletAsset('windows').sumUrl}" -OutFile "wallet-sha256sum.txt"
 (Get-FileHash "${walletAsset('windows').file}" -Algorithm SHA256).Hash.ToLower()
 Get-Content wallet-sha256sum.txt
 Expand-Archive "${walletAsset('windows').file}" -DestinationPath .`}</CodeBlock>
@@ -128,7 +126,7 @@ Expand-Archive "${walletAsset('windows').file}" -DestinationPath .`}</CodeBlock>
 </Tabs>
 
 :::note
-发布版本的二进制文件构建时未启用`--features with-tor`，因此不包含Tor支持。请在[epic-wallet.toml](/reference/wallet-config)中设置`use_tor_listener = false`，或从源码构建时启用该功能。
+发布版本的二进制文件构建时未启用`--features with-tor`，因此不包含Tor支持。请在[epic-wallet.toml](/reference/wallet-config)中设置`use_tor_listener = false`，或从源码构建并启用该功能。
 :::
 
 ## 其他软件 {/* #other-software */}

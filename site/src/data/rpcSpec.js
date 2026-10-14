@@ -14,11 +14,15 @@
  * 4. `surfaces[].secretPath` is the Basic auth secret file for that listener. `epic-wallet` and
  *    `epic` do not use the same filename.
  *
- * Captured 2026-08-24 against node 4.0.3 and wallet 4.0.0 on a local usernet chain at height 1439.
- * The pages now document node 4.1.0 and wallet 4.1.0; those captures are kept as captured, so a
- * response that names a version (user_agent, node_version) still says 4.0.3. ready_for_txs, new in
- * node 4.1.0, was captured 2026-10-14 against the v4.1.0 release binary on usernet at height 0.
+ * Captured against the node and wallet named in versions.history (captureNode, captureWallet, on
+ * captureDate) on a local usernet chain at height 1439. Captures stay as captured when the documented
+ * release moves on, so a response that names a version still names the one it was recorded from.
+ * ready_for_txs was captured on readyForTxsCaptureDate against the release that introduced it, at
+ * height 0. No version is written out here: every one comes from versions.js.
  */
+import {versions} from './versions.js';
+
+const H = versions.history;
 
 export const surfaces = {
   nodeOwner: {
@@ -27,8 +31,9 @@ export const surfaces = {
     portKey: 'ports.nodeApi',
     credential: 'basic',
     secretPath: '~/.epic/main/.api_secret',
-    // Node 4.1.0 checks this inside the handler and fails closed: with no secret configured every
-    // call gets 401, except one plain get_status (epic v4.1.0 api/src/handlers.rs:207-236).
+    // From versions.history.authChange the node checks this inside the handler and fails closed:
+    // with no secret configured every call gets 401, except one plain get_status
+    // (api/src/handlers.rs:207-236 at the node tag).
     credentialNote:
       'HTTP Basic, username epic, password from ~/.epic/<network>/.api_secret. Required: without it only a plain get_status answers',
   },
@@ -44,8 +49,9 @@ export const surfaces = {
     label: 'Wallet owner',
     path: '/v3/owner',
     portKey: 'ports.walletOwner',
-    // Wallet 4.1.0 puts HTTP Basic in front of everything on the owner listener except /v2/foreign
-    // (epic-wallet v4.1.0 controller/src/controller.rs:143). Up to 4.0.x only the token applied.
+    // From versions.history.authChange the wallet puts HTTP Basic in front of everything on the
+    // owner listener except /v2/foreign (controller/src/controller.rs:143 at the wallet tag). Before
+    // it, only the token applied.
     credential: 'basic',
     secretPath: '~/.epic/main/.owner_api_secret',
     credentialNote:
@@ -127,8 +133,8 @@ export const groups = [
         notes: [
           'supply and max_supply are whole EPIC, not freemen, and blocks_to_next_halving counts reward steps that are not all halvings.',
           'total_difficulty is an object keyed by algorithm. A client expecting an integer fails to parse.',
-          'Captured on node 4.0.3, so user_agent reads MW/Epic 4.0.3. A 4.1.0 node reports MW/Epic 4.1.0.',
-          'From 4.1.0 this is the one owner call a node answers without a credential, and only as a single plain request with params [] or null. A batch, or any other owner method, gets 401.',
+          `Captured on node ${H.captureNode}, so user_agent reads MW/Epic ${H.captureNode}. A ${versions.node} node reports MW/Epic ${versions.node}.`,
+          `From ${H.authChange} this is the one owner call a node answers without a credential, and only as a single plain request with params [] or null. A batch, or any other owner method, gets 401.`,
         ],
         example: {
           params: [],
@@ -148,7 +154,7 @@ export const groups = [
                 '6ceed7ff0ff7da1d44b01dc03189edeb1323bfa6d3625768520dd1a0498a0735',
               total_difficulty: {cuckaroo: 1440, cuckatoo: 1440, progpow: 1440, randomx: 1440},
             },
-            user_agent: 'MW/Epic 4.0.3',
+            user_agent: `MW/Epic ${H.captureNode}`,
           },
         },
       },
@@ -244,13 +250,13 @@ export const groups = [
     methods: [
       {
         name: 'ready_for_txs',
-        summary: 'Whether the node has finished syncing and will accept transactions. New in node 4.1.0.',
+        summary: `Whether the node has finished syncing and will accept transactions. New in node ${H.authChange}.`,
         risk: 'read',
         paramStyle: 'positional',
         params: [],
         src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 39},
         notes: [
-          'True only when the sync status is no_sync. Wallet 4.1.0 uses it for its node readiness check (impls/src/node_clients/http.rs:264), and falls back to the owner get_status only when the node answers -32601, method not found, as a node older than 4.1.0 does.',
+          `True only when the sync status is no_sync. Wallet ${H.authChange} and later use it for their node readiness check (impls/src/node_clients/http.rs:264), and fall back to the owner get_status only when the node answers -32601, method not found, as a node older than ${H.authChange} does.`,
         ],
         example: {
           params: [],
@@ -286,11 +292,11 @@ export const groups = [
         paramStyle: 'positional',
         params: [],
         src: {repo: 'node', path: 'api/src/foreign_rpc.rs', line: 305},
-        notes: ['Captured on node 4.0.3. A 4.1.0 node reports node_version 4.1.0.'],
+        notes: [`Captured on node ${H.captureNode}. A ${versions.node} node reports node_version ${versions.node}.`],
         example: {
           params: [],
           verified: '2026-08-24',
-          response: {block_header_version: 7, node_version: '4.0.3'},
+          response: {block_header_version: 7, node_version: H.captureNode},
         },
       },
       {
@@ -530,7 +536,8 @@ export function allMethods() {
  * `open_wallet` returns, so the request bodies here are the *inner* JSON-RPC request, the thing
  * you encrypt.
  *
- * Responses marked verified were captured on 2026-08-24 against wallet 4.0.0 on a usernet chain,
+ * Responses marked verified were captured on versions.history.captureDate against wallet
+ * versions.history.captureWallet on a usernet chain,
  * from a freshly created wallet holding nothing.
  */
 const WALLET_TOKEN_PARAM = {
@@ -904,7 +911,7 @@ groups.push(
     surface: 'walletOwner',
     title: 'Building and completing transfers',
     blurb:
-      'The seven methods that move value. Read the risk note on each one before you call it: the first of them reserves your outputs, and only a cancellation releases them.',
+      `The ${versions.apiMethods['wallet-transfers']} methods that move value. Read the risk note on each one before you call it: the first of them reserves your outputs, and only a cancellation releases them.`,
     methods: [
       {
         name: 'init_send_tx',

@@ -59,7 +59,7 @@ export function Repo({name = 'node', children}) {
 /**
  * Prints a value from src/data/versions.js so versions live in exactly one place.
  *
- *   <Ver k="node" />            -> 4.1.0
+ *   <Ver k="node" />            -> the node release, from releases.js
  *   <Ver k="ports.nodeApi" />   -> 3413
  */
 export function Ver({k}) {
